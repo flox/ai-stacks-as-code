@@ -52,15 +52,9 @@ on-activate = '''
 # Runtime-configurable variables with defaults
 export JUPYTER_HOST="${JUPYTER_HOST:-0.0.0.0}"
 export JUPYTER_PORT="${JUPYTER_PORT:-8888}"
-export JUPYTER_SERVER_TOKEN="${JUPYTER_SERVER_TOKEN:-}"
+export JUPYTER_SERVER_TOKEN="${JUPYTER_SERVER_TOKEN:-floxfan4evah}"
 export NOTEBOOK_DIR="${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}"
 export INSTALL_REQUIREMENTS="${INSTALL_REQUIREMENTS:-false}"
-
-# Generate random token if not provided
-if [ -z "$JUPYTER_SERVER_TOKEN" ]; then
-    export JUPYTER_SERVER_TOKEN="$(openssl rand -hex 32)"
-    echo "ℹ️  Generated random token: $JUPYTER_SERVER_TOKEN"
-fi
 
 # Setup venv
 export VENV_DIR="$FLOX_ENV_CACHE/venv"
@@ -80,17 +74,22 @@ if [ -f "$VENV_DIR/bin/activate" ]; then
     fi
 fi
 
-# Display minimal info
-echo ""
-echo "✅ JupyterLab environment ready (headless mode)"
-echo ""
-echo "Access URL: http://localhost:$JUPYTER_PORT"
-echo "Token: ${JUPYTER_SERVER_TOKEN}"
-echo ""
-echo "Start service: flox activate -s"
-echo "Show help: jupyter-help"
-echo "Documentation: helpf"
-echo ""
+# Display minimal info — only for interactive shells. Non-interactive
+# activations (the ask-flox MCP server, scripts, CI) stay silent so nothing
+# clutters their output streams. The same details remain available via
+# `jupyter-help`.
+if [ -t 1 ]; then
+    echo ""
+    echo "✅ JupyterLab environment ready (headless mode)"
+    echo ""
+    echo "Access URL: http://localhost:$JUPYTER_PORT"
+    echo "Token: ${JUPYTER_SERVER_TOKEN}"
+    echo ""
+    echo "Start service: flox activate -s"
+    echo "Show help: jupyter-help"
+    echo "Documentation: helpf"
+    echo ""
+fi
 
 # Fetch README if missing
 

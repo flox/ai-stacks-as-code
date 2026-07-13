@@ -8,6 +8,10 @@
         "pkg-group": "chromadb",
         "priority": 7
       },
+      "mcp": {
+        "pkg-path": "python313Packages.mcp",
+        "pkg-group": "mcp"
+      },
       "sentence-transformers": {
         "pkg-path": "python313Packages.sentence-transformers",
         "pkg-group": "python-deps",
@@ -41,6 +45,96 @@
     }
   },
   "packages": [
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/ww3ac4b0dmd2c7mvxp3qwk9q0cs73sfi-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:39.540674Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/65xzf5ms3n2hypzh727wmcc0j6lf75yb-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/r5gmal2dpyx5amdvp5lf2adf480mzw28-python3.13-chromadb-1.5.9"
+      },
+      "system": "aarch64-darwin",
+      "group": "chromadb",
+      "priority": 7
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/c3b1cc8767l75jlcq07kxdjdmdw063d8-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:25.868787Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/b6zhjkj3b64wm4wypyy4safa1s7c9j7b-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/my8jfm1j9nzkkhq5iahn9b03gg4qvb1p-python3.13-chromadb-1.5.9"
+      },
+      "system": "aarch64-linux",
+      "group": "chromadb",
+      "priority": 7
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/qnlvag59f52xmj0f9zz7yrsqrvq7w0vj-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:32.545878Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/s8s3k9cgf6f53nzy1c51lbnc94b28dii-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/8gpk8d52mpzxcfv42q1azrhbr7pakwxx-python3.13-chromadb-1.5.9"
+      },
+      "system": "x86_64-linux",
+      "group": "chromadb",
+      "priority": 7
+    },
     {
       "attr_path": "python3Packages.torch",
       "broken": false,
@@ -234,94 +328,94 @@
       "priority": 6
     },
     {
-      "attr_path": "python313Packages.chromadb",
+      "attr_path": "python313Packages.mcp",
       "broken": false,
-      "derivation": "/nix/store/ww3ac4b0dmd2c7mvxp3qwk9q0cs73sfi-python3.13-chromadb-1.5.9.drv",
-      "description": "AI-native open-source embedding database",
-      "install_id": "chromadb",
-      "license": "Apache-2.0",
+      "derivation": "/nix/store/2gff1f3s027g5ax4j2zhi74y81lkaqyp-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
       "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-chromadb-1.5.9",
-      "pname": "chromadb",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
       "rev": "d407951447dcd00442e97087bf374aad70c04cea",
       "rev_count": 1027867,
       "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:39.540674Z",
+      "scrape_date": "2026-07-06T03:13:45.971127Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "1.5.9",
+      "version": "1.27.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dist": "/nix/store/65xzf5ms3n2hypzh727wmcc0j6lf75yb-python3.13-chromadb-1.5.9-dist",
-        "out": "/nix/store/r5gmal2dpyx5amdvp5lf2adf480mzw28-python3.13-chromadb-1.5.9"
+        "dist": "/nix/store/0jrqxaad75x8issjgfx1sx2yxk9xdkxp-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/3wf6hv9av6nl1djcb4h6yb92hjsc6hy6-python3.13-mcp-1.27.0"
       },
       "system": "aarch64-darwin",
-      "group": "chromadb",
-      "priority": 7
+      "group": "mcp",
+      "priority": 5
     },
     {
-      "attr_path": "python313Packages.chromadb",
+      "attr_path": "python313Packages.mcp",
       "broken": false,
-      "derivation": "/nix/store/c3b1cc8767l75jlcq07kxdjdmdw063d8-python3.13-chromadb-1.5.9.drv",
-      "description": "AI-native open-source embedding database",
-      "install_id": "chromadb",
-      "license": "Apache-2.0",
+      "derivation": "/nix/store/gm06n58hm7a4c4kx2f04rnc5582zqbai-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
       "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-chromadb-1.5.9",
-      "pname": "chromadb",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
       "rev": "d407951447dcd00442e97087bf374aad70c04cea",
       "rev_count": 1027867,
       "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:25.868787Z",
+      "scrape_date": "2026-07-06T03:42:34.087787Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "1.5.9",
+      "version": "1.27.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dist": "/nix/store/b6zhjkj3b64wm4wypyy4safa1s7c9j7b-python3.13-chromadb-1.5.9-dist",
-        "out": "/nix/store/my8jfm1j9nzkkhq5iahn9b03gg4qvb1p-python3.13-chromadb-1.5.9"
+        "dist": "/nix/store/mj5c4x6rp9ak988knixv4j0k1n4pydn4-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/3d7x2h0npj6cdpy8g40fr4nxylvvrfkb-python3.13-mcp-1.27.0"
       },
       "system": "aarch64-linux",
-      "group": "chromadb",
-      "priority": 7
+      "group": "mcp",
+      "priority": 5
     },
     {
-      "attr_path": "python313Packages.chromadb",
+      "attr_path": "python313Packages.mcp",
       "broken": false,
-      "derivation": "/nix/store/qnlvag59f52xmj0f9zz7yrsqrvq7w0vj-python3.13-chromadb-1.5.9.drv",
-      "description": "AI-native open-source embedding database",
-      "install_id": "chromadb",
-      "license": "Apache-2.0",
+      "derivation": "/nix/store/iicryksrzljmhnvpj0jnbpgbvsmfp0hc-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
       "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-chromadb-1.5.9",
-      "pname": "chromadb",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
       "rev": "d407951447dcd00442e97087bf374aad70c04cea",
       "rev_count": 1027867,
       "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:32.545878Z",
+      "scrape_date": "2026-07-06T04:41:40.770241Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "1.5.9",
+      "version": "1.27.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dist": "/nix/store/s8s3k9cgf6f53nzy1c51lbnc94b28dii-python3.13-chromadb-1.5.9-dist",
-        "out": "/nix/store/8gpk8d52mpzxcfv42q1azrhbr7pakwxx-python3.13-chromadb-1.5.9"
+        "dist": "/nix/store/v0xqwrqbmnfnl4gx2ca20gn10gil568a-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/pk5f53krsb3sjmc4bk522j6ih3dikjdl-python3.13-mcp-1.27.0"
       },
       "system": "x86_64-linux",
-      "group": "chromadb",
-      "priority": 7
+      "group": "mcp",
+      "priority": 5
     }
   ]
 }

@@ -90,6 +90,10 @@
         "pkg-path": "python313Packages.matplotlib",
         "outputs": "all"
       },
+      "mcp": {
+        "pkg-path": "python313Packages.mcp",
+        "pkg-group": "mcp"
+      },
       "mupdf": {
         "pkg-path": "mupdf"
       },
@@ -194,12 +198,12 @@
       "ENV_NAME": "ai-base"
     },
     "hook": {
-      "on-activate": "# Runtime-configurable variables with defaults\nexport JUPYTER_HOST=\"${JUPYTER_HOST:-0.0.0.0}\"\nexport JUPYTER_PORT=\"${JUPYTER_PORT:-8888}\"\nexport JUPYTER_SERVER_TOKEN=\"${JUPYTER_SERVER_TOKEN:-}\"\nexport NOTEBOOK_DIR=\"${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}\"\nexport INSTALL_REQUIREMENTS=\"${INSTALL_REQUIREMENTS:-false}\"\n\n# Generate random token if not provided\nif [ -z \"$JUPYTER_SERVER_TOKEN\" ]; then\n    export JUPYTER_SERVER_TOKEN=\"$(openssl rand -hex 32)\"\n    echo \"ℹ️  Generated random token: $JUPYTER_SERVER_TOKEN\"\nfi\n\n# Setup venv\nexport VENV_DIR=\"$FLOX_ENV_CACHE/venv\"\nif [ ! -d \"$VENV_DIR\" ]; then\n    echo \"Creating Python virtual environment...\"\n    python3.13 -m venv \"$VENV_DIR\"\nfi\n\n# Activate venv with guard\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\n\n    # Install requirements if requested\n    if [ -f \"$FLOX_ENV_PROJECT/requirements.txt\" ] && [ \"$INSTALL_REQUIREMENTS\" = \"true\" ]; then\n        echo \"Installing packages from requirements.txt...\"\n        pip install -r \"$FLOX_ENV_PROJECT/requirements.txt\" --quiet\n    fi\nfi\n\n# Display minimal info\necho \"\"\necho \"✅ JupyterLab environment ready (headless mode)\"\necho \"\"\necho \"Access URL: http://localhost:$JUPYTER_PORT\"\necho \"Token: ${JUPYTER_SERVER_TOKEN}\"\necho \"\"\necho \"Start service: flox activate -s\"\necho \"Show help: jupyter-help\"\necho \"Documentation: helpf\"\necho \"\"\n\n# Fetch README if missing\n\n  # Fetch README.md if not present\n  README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n  if [ ! -f \"$README_FILE\" ]; then\n    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o \"$README_FILE\" 2>/dev/null; then\n      echo \"✓ Downloaded README.md (use 'helpf' to view)\"\n    fi\n  fi\n\n# Project layout + backend selection (all overridable at activation time).\nexport AI_BRIEF_ROOT=\"$FLOX_ENV_PROJECT\"\nexport SOURCES_DIR=\"${SOURCES_DIR:-$AI_BRIEF_ROOT/sources}\"\nexport WORK_DIR=\"${WORK_DIR:-$AI_BRIEF_ROOT/work}\"\nexport REPORTS_DIR=\"${REPORTS_DIR:-$AI_BRIEF_ROOT/reports}\"\nexport PROMPTS_DIR=\"${PROMPTS_DIR:-$AI_BRIEF_ROOT/prompts}\"\nexport EVALS_DIR=\"${EVALS_DIR:-$AI_BRIEF_ROOT/evals}\"\nexport NOTEBOOKS_DIR=\"${NOTEBOOKS_DIR:-$AI_BRIEF_ROOT/notebooks}\"\nexport PIPELINE_DIR=\"${PIPELINE_DIR:-$AI_BRIEF_ROOT/pipeline}\"\nexport AI_BRIEF_JUSTFILE=\"${AI_BRIEF_JUSTFILE:-$AI_BRIEF_ROOT/justfile}\"\nexport AI_BRIEF_PYTHON=\"${AI_BRIEF_PYTHON:-python3.13}\"\n\n# Backend: honor an explicit AI_BACKEND, else detect (cuda / mps / cpu).\nif [ -z \"${AI_BACKEND:-}\" ]; then\n  if [ \"$(uname -s)\" = \"Darwin\" ] && [ \"$(uname -m)\" = \"arm64\" ]; then\n    AI_BACKEND=\"mps\"\n  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then\n    AI_BACKEND=\"cuda\"\n  else\n    AI_BACKEND=\"cpu\"\n  fi\nfi\nexport AI_BACKEND\n\n# Idempotent project skeleton.\nmkdir -p \"$SOURCES_DIR\" \"$WORK_DIR\" \"$REPORTS_DIR\" \"$PROMPTS_DIR\" \\\n         \"$EVALS_DIR\" \"$NOTEBOOKS_DIR\" \"$PIPELINE_DIR\" 2>/dev/null || true\n\ncd \"$FLOX_ENV_PROJECT\"\n"
+      "on-activate": "# Runtime-configurable variables with defaults\nexport JUPYTER_HOST=\"${JUPYTER_HOST:-0.0.0.0}\"\nexport JUPYTER_PORT=\"${JUPYTER_PORT:-8888}\"\nexport JUPYTER_SERVER_TOKEN=\"${JUPYTER_SERVER_TOKEN:-floxfan4evah}\"\nexport NOTEBOOK_DIR=\"${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}\"\nexport INSTALL_REQUIREMENTS=\"${INSTALL_REQUIREMENTS:-false}\"\n\n# Setup venv\nexport VENV_DIR=\"$FLOX_ENV_CACHE/venv\"\nif [ ! -d \"$VENV_DIR\" ]; then\n    echo \"Creating Python virtual environment...\"\n    python3.13 -m venv \"$VENV_DIR\"\nfi\n\n# Activate venv with guard\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\n\n    # Install requirements if requested\n    if [ -f \"$FLOX_ENV_PROJECT/requirements.txt\" ] && [ \"$INSTALL_REQUIREMENTS\" = \"true\" ]; then\n        echo \"Installing packages from requirements.txt...\"\n        pip install -r \"$FLOX_ENV_PROJECT/requirements.txt\" --quiet\n    fi\nfi\n\n# Display minimal info — only for interactive shells. Non-interactive\n# activations (the ask-flox MCP server, scripts, CI) stay silent so nothing\n# clutters their output streams. The same details remain available via\n# `jupyter-help`.\nif [ -t 1 ]; then\n    echo \"\"\n    echo \"✅ JupyterLab environment ready (headless mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: ${JUPYTER_SERVER_TOKEN}\"\n    echo \"\"\n    echo \"Start service: flox activate -s\"\n    echo \"Show help: jupyter-help\"\n    echo \"Documentation: helpf\"\n    echo \"\"\nfi\n\n# Fetch README if missing\n\n  # Fetch README.md if not present\n  README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n  if [ ! -f \"$README_FILE\" ]; then\n    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o \"$README_FILE\" 2>/dev/null; then\n      echo \"✓ Downloaded README.md (use 'helpf' to view)\"\n    fi\n  fi\n\n# Project layout + backend selection (all overridable at activation time).\nexport AI_BRIEF_ROOT=\"$FLOX_ENV_PROJECT\"\nexport SOURCES_DIR=\"${SOURCES_DIR:-$AI_BRIEF_ROOT/sources}\"\nexport WORK_DIR=\"${WORK_DIR:-$AI_BRIEF_ROOT/work}\"\nexport REPORTS_DIR=\"${REPORTS_DIR:-$AI_BRIEF_ROOT/reports}\"\nexport PROMPTS_DIR=\"${PROMPTS_DIR:-$AI_BRIEF_ROOT/prompts}\"\nexport EVALS_DIR=\"${EVALS_DIR:-$AI_BRIEF_ROOT/evals}\"\nexport NOTEBOOKS_DIR=\"${NOTEBOOKS_DIR:-$AI_BRIEF_ROOT/notebooks}\"\nexport PIPELINE_DIR=\"${PIPELINE_DIR:-$AI_BRIEF_ROOT/pipeline}\"\nexport AI_BRIEF_JUSTFILE=\"${AI_BRIEF_JUSTFILE:-$AI_BRIEF_ROOT/justfile}\"\nexport AI_BRIEF_PYTHON=\"${AI_BRIEF_PYTHON:-python3.13}\"\n\n# Backend: honor an explicit AI_BACKEND, else detect (cuda / mps / cpu).\nif [ -z \"${AI_BACKEND:-}\" ]; then\n  if [ \"$(uname -s)\" = \"Darwin\" ] && [ \"$(uname -m)\" = \"arm64\" ]; then\n    AI_BACKEND=\"mps\"\n  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then\n    AI_BACKEND=\"cuda\"\n  else\n    AI_BACKEND=\"cpu\"\n  fi\nfi\nexport AI_BACKEND\n\n# Idempotent project skeleton.\nmkdir -p \"$SOURCES_DIR\" \"$WORK_DIR\" \"$REPORTS_DIR\" \"$PROMPTS_DIR\" \\\n         \"$EVALS_DIR\" \"$NOTEBOOKS_DIR\" \"$PIPELINE_DIR\" 2>/dev/null || true\n\ncd \"$FLOX_ENV_PROJECT\"\n"
     },
     "profile": {
-      "bash": "jupyter-help() {\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\n}\n\n# View environment documentation\n\n  helpf() {\n    local README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n    local README_URL=\"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if [ \"$1\" = \"--help\" ]; then\n      echo \"Usage: helpf [OPTIONS]\"\n      echo \"\"\n      echo \"View environment documentation\"\n      echo \"\"\n      echo \"Options:\"\n      echo \"  --force    Force download fresh copy from GitHub\"\n      echo \"  --help     Show this help message\"\n      echo \"\"\n      echo \"The README is cached locally and only downloaded if missing.\"\n      return 0\n    fi\n\n    if [ \"$1\" = \"--force\" ]; then\n      echo \"Fetching latest README.md from GitHub...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    elif [ ! -f \"$README_FILE\" ]; then\n      echo \"README.md not found, downloading...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    fi\n\n    if [ -f \"$README_FILE\" ]; then\n      bat --style=auto --paging=always \"$README_FILE\"\n    else\n      echo \"✗ README.md not found at $README_FILE\"\n      return 1\n    fi\n  }\n  export -f helpf\n\n_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\n",
-      "zsh": "jupyter-help() {\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\n}\n\n# View environment documentation\n\n  helpf() {\n    local README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n    local README_URL=\"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if [ \"$1\" = \"--help\" ]; then\n      echo \"Usage: helpf [OPTIONS]\"\n      echo \"\"\n      echo \"View environment documentation\"\n      echo \"\"\n      echo \"Options:\"\n      echo \"  --force    Force download fresh copy from GitHub\"\n      echo \"  --help     Show this help message\"\n      echo \"\"\n      echo \"The README is cached locally and only downloaded if missing.\"\n      return 0\n    fi\n\n    if [ \"$1\" = \"--force\" ]; then\n      echo \"Fetching latest README.md from GitHub...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    elif [ ! -f \"$README_FILE\" ]; then\n      echo \"README.md not found, downloading...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    fi\n\n    if [ -f \"$README_FILE\" ]; then\n      bat --style=auto --paging=always \"$README_FILE\"\n    else\n      echo \"✗ README.md not found at $README_FILE\"\n      return 1\n    fi\n  }\n\n_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\n",
-      "fish": "function jupyter-help\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\nend\n\n# View environment documentationend\n\n  # Fetch README if missing or --force specified\n  if test \"$force_fetch\" = true; or test ! -s \"$README_FILE\"\n    if curl -fsSL \"$README_URL\" -o \"$README_FILE\" 2>/dev/null\n      test \"$force_fetch\" = true; and echo \"README refreshed from $README_URL\"\n    else\n      echo \"Warning: Failed to fetch README from $README_URL\"\n      test ! -s \"$README_FILE\"; and return 1\n    end\n  end\n\n  # Display with bat (if available) or cat\n  if command -v bat >/dev/null 2>&1\n    bat --paging=always \"$README_FILE\"\n  else\n    cat \"$README_FILE\"\n  end\nend\n\nfunction helpf\n    set README_FILE \"$FLOX_ENV_PROJECT/README.md\"\n    set README_URL \"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if test \"$argv[1]\" = \"--help\"\n        echo \"Usage: helpf [OPTIONS]\"\n        echo \"\"\n        echo \"View environment documentation\"\n        echo \"\"\n        echo \"Options:\"\n        echo \"  --force    Force download fresh copy from GitHub\"\n        echo \"  --help     Show this help message\"\n        echo \"\"\n        echo \"The README is cached locally and only downloaded if missing.\"\n        return 0\n    end\n\n    if test \"$argv[1]\" = \"--force\"\n        echo \"Fetching latest README.md from GitHub...\"\n        if curl -fsSL \"$README_URL\" -o \"$README_FILE\"\n            echo \"✓ Downloaded README.md\"\n        else\n            echo \"✗ Failed to download README.md\"\n            return 1\n        end\n    else if not test -f \"$README_FILE\"\n        echo \"README.md not found, downloading...\"\n        if curl -fsSL \"$README_URL\" -o \"$README_FILE\"\n            echo \"✓ Downloaded README.md\"\n        else\n            echo \"✗ Failed to download README.md\"\n            return 1\n        end\n    end\n\n    if test -f \"$README_FILE\"\n        bat --style=auto --paging=always \"$README_FILE\"\n    else\n        echo \"✗ README.md not found at $README_FILE\"\n        return 1\n    end\nend\n\nfunction _ai_brief_just\n    set -l jf \"$FLOX_ENV_PROJECT/justfile\"\n    test -n \"$AI_BRIEF_JUSTFILE\"; and set jf \"$AI_BRIEF_JUSTFILE\"\n    just --justfile \"$jf\" $argv\nend\nfunction ingest;    _ai_brief_just ingest $argv;    end\nfunction index;     _ai_brief_just index $argv;     end\nfunction brief;     _ai_brief_just brief $argv;     end\nfunction ai-eval;   _ai_brief_just ai-eval $argv;   end\nfunction notebook;  _ai_brief_just notebook $argv;  end\nfunction ai-doctor; _ai_brief_just ai-doctor $argv; end\n"
+      "bash": "jupyter-help() {\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\n}\n\n# View environment documentation\n\n  helpf() {\n    local README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n    local README_URL=\"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if [ \"$1\" = \"--help\" ]; then\n      echo \"Usage: helpf [OPTIONS]\"\n      echo \"\"\n      echo \"View environment documentation\"\n      echo \"\"\n      echo \"Options:\"\n      echo \"  --force    Force download fresh copy from GitHub\"\n      echo \"  --help     Show this help message\"\n      echo \"\"\n      echo \"The README is cached locally and only downloaded if missing.\"\n      return 0\n    fi\n\n    if [ \"$1\" = \"--force\" ]; then\n      echo \"Fetching latest README.md from GitHub...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    elif [ ! -f \"$README_FILE\" ]; then\n      echo \"README.md not found, downloading...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    fi\n\n    if [ -f \"$README_FILE\" ]; then\n      bat --style=auto --paging=always \"$README_FILE\"\n    else\n      echo \"✗ README.md not found at $README_FILE\"\n      return 1\n    fi\n  }\n  export -f helpf\n\n_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\nmcp()       { _ai_brief_just mcp \"$@\"; }\n",
+      "zsh": "jupyter-help() {\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\n}\n\n# View environment documentation\n\n  helpf() {\n    local README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n    local README_URL=\"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if [ \"$1\" = \"--help\" ]; then\n      echo \"Usage: helpf [OPTIONS]\"\n      echo \"\"\n      echo \"View environment documentation\"\n      echo \"\"\n      echo \"Options:\"\n      echo \"  --force    Force download fresh copy from GitHub\"\n      echo \"  --help     Show this help message\"\n      echo \"\"\n      echo \"The README is cached locally and only downloaded if missing.\"\n      return 0\n    fi\n\n    if [ \"$1\" = \"--force\" ]; then\n      echo \"Fetching latest README.md from GitHub...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    elif [ ! -f \"$README_FILE\" ]; then\n      echo \"README.md not found, downloading...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    fi\n\n    if [ -f \"$README_FILE\" ]; then\n      bat --style=auto --paging=always \"$README_FILE\"\n    else\n      echo \"✗ README.md not found at $README_FILE\"\n      return 1\n    fi\n  }\n\n_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\nmcp()       { _ai_brief_just mcp \"$@\"; }\n",
+      "fish": "function jupyter-help\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\nend\n\n# View environment documentationend\n\n  # Fetch README if missing or --force specified\n  if test \"$force_fetch\" = true; or test ! -s \"$README_FILE\"\n    if curl -fsSL \"$README_URL\" -o \"$README_FILE\" 2>/dev/null\n      test \"$force_fetch\" = true; and echo \"README refreshed from $README_URL\"\n    else\n      echo \"Warning: Failed to fetch README from $README_URL\"\n      test ! -s \"$README_FILE\"; and return 1\n    end\n  end\n\n  # Display with bat (if available) or cat\n  if command -v bat >/dev/null 2>&1\n    bat --paging=always \"$README_FILE\"\n  else\n    cat \"$README_FILE\"\n  end\nend\n\nfunction helpf\n    set README_FILE \"$FLOX_ENV_PROJECT/README.md\"\n    set README_URL \"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if test \"$argv[1]\" = \"--help\"\n        echo \"Usage: helpf [OPTIONS]\"\n        echo \"\"\n        echo \"View environment documentation\"\n        echo \"\"\n        echo \"Options:\"\n        echo \"  --force    Force download fresh copy from GitHub\"\n        echo \"  --help     Show this help message\"\n        echo \"\"\n        echo \"The README is cached locally and only downloaded if missing.\"\n        return 0\n    end\n\n    if test \"$argv[1]\" = \"--force\"\n        echo \"Fetching latest README.md from GitHub...\"\n        if curl -fsSL \"$README_URL\" -o \"$README_FILE\"\n            echo \"✓ Downloaded README.md\"\n        else\n            echo \"✗ Failed to download README.md\"\n            return 1\n        end\n    else if not test -f \"$README_FILE\"\n        echo \"README.md not found, downloading...\"\n        if curl -fsSL \"$README_URL\" -o \"$README_FILE\"\n            echo \"✓ Downloaded README.md\"\n        else\n            echo \"✗ Failed to download README.md\"\n            return 1\n        end\n    end\n\n    if test -f \"$README_FILE\"\n        bat --style=auto --paging=always \"$README_FILE\"\n    else\n        echo \"✗ README.md not found at $README_FILE\"\n        return 1\n    end\nend\n\nfunction _ai_brief_just\n    set -l jf \"$FLOX_ENV_PROJECT/justfile\"\n    test -n \"$AI_BRIEF_JUSTFILE\"; and set jf \"$AI_BRIEF_JUSTFILE\"\n    just --justfile \"$jf\" $argv\nend\nfunction ingest;    _ai_brief_just ingest $argv;    end\nfunction index;     _ai_brief_just index $argv;     end\nfunction brief;     _ai_brief_just brief $argv;     end\nfunction ai-eval;   _ai_brief_just ai-eval $argv;   end\nfunction notebook;  _ai_brief_just notebook $argv;  end\nfunction ai-doctor; _ai_brief_just ai-doctor $argv; end\nfunction mcp;       _ai_brief_just mcp $argv;       end\n"
     },
     "options": {
       "systems": [
@@ -369,6 +373,1273 @@
       },
       "system": "x86_64-linux",
       "group": "cuda",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.beautifulsoup4",
+      "broken": false,
+      "derivation": "/nix/store/0xf2yqfmn6f4g4wz6afdik03phw6537z-python3.13-beautifulsoup4-4.14.3.drv",
+      "description": "HTML and XML parser",
+      "install_id": "beautifulsoup4",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-beautifulsoup4-4.14.3",
+      "pname": "beautifulsoup4",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:38.841964Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-beautifulsoup4-4.14.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/lrxd1zad5w1aw773mbssgd93xcbdidhk-python3.13-beautifulsoup4-4.14.3-dist",
+        "doc": "/nix/store/misgc91pv331iwmkvracbmhhaqmvj7x4-python3.13-beautifulsoup4-4.14.3-doc",
+        "out": "/nix/store/ybjbwv5rp5v6s529yz9kc5g681hx4k0c-python3.13-beautifulsoup4-4.14.3"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.beautifulsoup4",
+      "broken": false,
+      "derivation": "/nix/store/n3gvn9x66j9r2hjqz2c8zgsm0jfyasw4-python3.13-beautifulsoup4-4.14.3.drv",
+      "description": "HTML and XML parser",
+      "install_id": "beautifulsoup4",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-beautifulsoup4-4.14.3",
+      "pname": "beautifulsoup4",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:24.961253Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-beautifulsoup4-4.14.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/7ai8hy2b1myf6v5r3y43hpinb794mvwm-python3.13-beautifulsoup4-4.14.3-dist",
+        "doc": "/nix/store/hc6r3ghlrbkkvw815x6dq6yja786h3hr-python3.13-beautifulsoup4-4.14.3-doc",
+        "out": "/nix/store/xf778rg83hpifxwazj6z645piyg8yz9x-python3.13-beautifulsoup4-4.14.3"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.beautifulsoup4",
+      "broken": false,
+      "derivation": "/nix/store/xf8ar0djwiqaafj1f4b0z240q9d8q9xl-python3.13-beautifulsoup4-4.14.3.drv",
+      "description": "HTML and XML parser",
+      "install_id": "beautifulsoup4",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-beautifulsoup4-4.14.3",
+      "pname": "beautifulsoup4",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:31.640091Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-beautifulsoup4-4.14.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/0vr468vvbix7lz8jp87vmhr9pff1z4w4-python3.13-beautifulsoup4-4.14.3-dist",
+        "doc": "/nix/store/74fdnfvi7yl0lkbxniqm33cflpz9s1s7-python3.13-beautifulsoup4-4.14.3-doc",
+        "out": "/nix/store/427s2j9nv0s8vq6lfzx8pa293kb3fpdj-python3.13-beautifulsoup4-4.14.3"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.ftfy",
+      "broken": false,
+      "derivation": "/nix/store/kaq6b32d0ksjwvr5h9kvqaxspk0xyivp-python3.13-ftfy-6.3.1.drv",
+      "description": "Given Unicode text, make its representation consistent and possibly less broken",
+      "install_id": "ftfy",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-ftfy-6.3.1",
+      "pname": "ftfy",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:42.642156Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8253q6i4517wrhfxr7q5gc9gbfdm9np6-python3.13-ftfy-6.3.1-dist",
+        "out": "/nix/store/4rvhlswwi8xk2ird43l2yhshkhjwvamf-python3.13-ftfy-6.3.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.ftfy",
+      "broken": false,
+      "derivation": "/nix/store/g3cd8inkwf207ds345bpw0pqhwwhh1nq-python3.13-ftfy-6.3.1.drv",
+      "description": "Given Unicode text, make its representation consistent and possibly less broken",
+      "install_id": "ftfy",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-ftfy-6.3.1",
+      "pname": "ftfy",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:29.823386Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/f5nmxr0ki28224b811j5kzxak65n803v-python3.13-ftfy-6.3.1-dist",
+        "out": "/nix/store/j04pxzyd43w907ch7y323hm1az6x66x9-python3.13-ftfy-6.3.1"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.ftfy",
+      "broken": false,
+      "derivation": "/nix/store/jhggfm35xpjspvlv2849a48rnns2gqq7-python3.13-ftfy-6.3.1.drv",
+      "description": "Given Unicode text, make its representation consistent and possibly less broken",
+      "install_id": "ftfy",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-ftfy-6.3.1",
+      "pname": "ftfy",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:36.478735Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2ksba7lv773aq7l6jzlb7yjidjyp3sd6-python3.13-ftfy-6.3.1-dist",
+        "out": "/nix/store/637fdpsq0iy3r0s95yxv4qrirsmfbbkl-python3.13-ftfy-6.3.1"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.langchain-text-splitters",
+      "broken": false,
+      "derivation": "/nix/store/xkq9lb4khf3wqncdm2yzl7zxlr66hy0m-python3.13-langchain-text-splitters-1.1.2.drv",
+      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
+      "install_id": "langchain-text-splitters",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-langchain-text-splitters-1.1.2",
+      "pname": "langchain-text-splitters",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.014043Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.1.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/a09sylphqzy7g2qf4wx257dfskn2idvc-python3.13-langchain-text-splitters-1.1.2-dist",
+        "out": "/nix/store/3p1bw135yj89fa5lpqyzkngiq5fnk7ps-python3.13-langchain-text-splitters-1.1.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.langchain-text-splitters",
+      "broken": false,
+      "derivation": "/nix/store/gz9a61b4xj3zblx5m1k01zb6nia01q2w-python3.13-langchain-text-splitters-1.1.2.drv",
+      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
+      "install_id": "langchain-text-splitters",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-langchain-text-splitters-1.1.2",
+      "pname": "langchain-text-splitters",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:32.840266Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.1.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/pvd6pwwmhf291hm3gr75yllgqkx63mqf-python3.13-langchain-text-splitters-1.1.2-dist",
+        "out": "/nix/store/20x8rcsfm4jvd682vp3pdp3ig0whm19m-python3.13-langchain-text-splitters-1.1.2"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.langchain-text-splitters",
+      "broken": false,
+      "derivation": "/nix/store/mhp9bm062h114gas6b3yhxxaxyrfwpr2-python3.13-langchain-text-splitters-1.1.2.drv",
+      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
+      "install_id": "langchain-text-splitters",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-langchain-text-splitters-1.1.2",
+      "pname": "langchain-text-splitters",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:39.508438Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.1.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2b81ykhvkcqh5bs80y98pjx3lkkdr7z1-python3.13-langchain-text-splitters-1.1.2-dist",
+        "out": "/nix/store/y0gskdqmcd3k24d9m08dab26awiv68pb-python3.13-langchain-text-splitters-1.1.2"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.lxml",
+      "broken": false,
+      "derivation": "/nix/store/ylh689waf9dnq6ycr2g7c84svhc6597h-python3.13-lxml-6.0.2.drv",
+      "description": "Pythonic binding for the libxml2 and libxslt libraries",
+      "install_id": "lxml",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-lxml-6.0.2",
+      "pname": "lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.747932Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.0.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8xlgb10n19dapyasg3fccgfpli6i1y7c-python3.13-lxml-6.0.2-dist",
+        "out": "/nix/store/6pd59dj7am1a64gg85j0ymsg3zpf2paz-python3.13-lxml-6.0.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.lxml",
+      "broken": false,
+      "derivation": "/nix/store/i9ibrhb5yn8js64ykqljknqsny542a4h-python3.13-lxml-6.0.2.drv",
+      "description": "Pythonic binding for the libxml2 and libxslt libraries",
+      "install_id": "lxml",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-lxml-6.0.2",
+      "pname": "lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:33.807319Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.0.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/h0dbyng080irjgczbqsl6ifly7y5xbbi-python3.13-lxml-6.0.2-dist",
+        "out": "/nix/store/bzaar6ik0nrlf9275p8njf25lzsan60y-python3.13-lxml-6.0.2"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.lxml",
+      "broken": false,
+      "derivation": "/nix/store/krk8a9fxga17wzy33ajjxybcblg3km28-python3.13-lxml-6.0.2.drv",
+      "description": "Pythonic binding for the libxml2 and libxslt libraries",
+      "install_id": "lxml",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-lxml-6.0.2",
+      "pname": "lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.490430Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.0.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/f91jpyfv9pmpcc044wimy5ynw1c3y0yw-python3.13-lxml-6.0.2-dist",
+        "out": "/nix/store/dy1r203li2icgdw2va6piggzdgjglj8d-python3.13-lxml-6.0.2"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown",
+      "broken": false,
+      "derivation": "/nix/store/f3n0il8nqm431fn7ivq1ksf3y2nr49ij-python3.13-markdown-3.10.2.drv",
+      "description": "Python implementation of John Gruber's Markdown",
+      "install_id": "markdown",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-3.10.2",
+      "pname": "markdown",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.866605Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.10.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/6j6wd8j9cn9najhwyv60j0xplk4k9dcc-python3.13-markdown-3.10.2-dist",
+        "out": "/nix/store/77135fyvnh0dlid6vj6vx9f9chcdhd9r-python3.13-markdown-3.10.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown",
+      "broken": false,
+      "derivation": "/nix/store/wyz83dn84l7dlgf1kwjbci4cd5cxh6za-python3.13-markdown-3.10.2.drv",
+      "description": "Python implementation of John Gruber's Markdown",
+      "install_id": "markdown",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-3.10.2",
+      "pname": "markdown",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:33.956110Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/rlp4i6y0n6r5rl5r778pylkl9s6znd4w-python3.13-markdown-3.10.2-dist",
+        "out": "/nix/store/bw3fb4hkkgqk024d1niq2m5374vwydlq-python3.13-markdown-3.10.2"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown",
+      "broken": false,
+      "derivation": "/nix/store/zz9bqpgzxc551rfxzb2nn15jrzdvbimj-python3.13-markdown-3.10.2.drv",
+      "description": "Python implementation of John Gruber's Markdown",
+      "install_id": "markdown",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-3.10.2",
+      "pname": "markdown",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.639765Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/vv8wdid1ms3620dl8q4xblxhap2x77vc-python3.13-markdown-3.10.2-dist",
+        "out": "/nix/store/kqair32qhics3khf0sqq49pparlcli88-python3.13-markdown-3.10.2"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown-it-py",
+      "broken": false,
+      "derivation": "/nix/store/d319jq5szqvlrzw2g9xrq8dsizd84ghh-python3.13-markdown-it-py-4.0.0.drv",
+      "description": "Markdown parser in Python",
+      "install_id": "markdown-it-py",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-it-py-4.0.0",
+      "pname": "markdown-it-py",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.872818Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.0.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/n68wysnknsizs49w8z3qf74ysanmqvpd-python3.13-markdown-it-py-4.0.0-dist",
+        "out": "/nix/store/v860s63cnn2xmkpy1ynpm8nc2jls2lzg-python3.13-markdown-it-py-4.0.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown-it-py",
+      "broken": false,
+      "derivation": "/nix/store/6xwal9w9afpydpzmpf5nbnsk68rj7z5p-python3.13-markdown-it-py-4.0.0.drv",
+      "description": "Markdown parser in Python",
+      "install_id": "markdown-it-py",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-it-py-4.0.0",
+      "pname": "markdown-it-py",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:33.963912Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.0.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/p52m8hb9yns7nclgrmi3l0m7dcy6z15w-python3.13-markdown-it-py-4.0.0-dist",
+        "out": "/nix/store/zvdvla1qb9vgp82mbnjmahdrcw6hsnzp-python3.13-markdown-it-py-4.0.0"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown-it-py",
+      "broken": false,
+      "derivation": "/nix/store/f1kkny231k80a9iv7z8dsrly0cbni088-python3.13-markdown-it-py-4.0.0.drv",
+      "description": "Markdown parser in Python",
+      "install_id": "markdown-it-py",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-it-py-4.0.0",
+      "pname": "markdown-it-py",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.647342Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.0.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8sv7qwm46aj9cl68myfbmkmnfin0m1rx-python3.13-markdown-it-py-4.0.0-dist",
+        "out": "/nix/store/9hqfprx1x6gw6zclb42rimddv87gv903-python3.13-markdown-it-py-4.0.0"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pdfplumber",
+      "broken": false,
+      "derivation": "/nix/store/vc405gjw7bq72w0pli6nkn6s8f20nvi5-python3.13-pdfplumber-0.11.9.drv",
+      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
+      "install_id": "pdfplumber",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pdfplumber-0.11.9",
+      "pname": "pdfplumber",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:48.830129Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.11.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/i48vnp0cbmwshdn7hvh2h29lbxncrrmi-python3.13-pdfplumber-0.11.9-dist",
+        "out": "/nix/store/7qd4ppc8dzl820sxr5rcnn5707qqrczi-python3.13-pdfplumber-0.11.9"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pdfplumber",
+      "broken": false,
+      "derivation": "/nix/store/xs02bsq2g87a0n3m53sfgzrzq5r2y4sb-python3.13-pdfplumber-0.11.9.drv",
+      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
+      "install_id": "pdfplumber",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pdfplumber-0.11.9",
+      "pname": "pdfplumber",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:37.696160Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.11.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/qzd42p8l03vhn5fr10a7cq9d6ddijazi-python3.13-pdfplumber-0.11.9-dist",
+        "out": "/nix/store/hj7r2gsi03gnnq9ql0w69pabwkg5kplx-python3.13-pdfplumber-0.11.9"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pdfplumber",
+      "broken": false,
+      "derivation": "/nix/store/af0nhaiyqy49qkilzj6ax8bvn3jgnzwq-python3.13-pdfplumber-0.11.9.drv",
+      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
+      "install_id": "pdfplumber",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pdfplumber-0.11.9",
+      "pname": "pdfplumber",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:44.445201Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.11.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/s92x06ibw61k7b1gvymy5688abd9pgxf-python3.13-pdfplumber-0.11.9-dist",
+        "out": "/nix/store/gm5am2n8y0b0y0b845kxrv2g9hg0bdz3-python3.13-pdfplumber-0.11.9"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pymupdf",
+      "broken": false,
+      "derivation": "/nix/store/z9rzjhmiim6rz63n1cigphdm90nsyh21-python3.13-pymupdf-1.27.2.3.drv",
+      "description": "Python bindings for MuPDF's rendering library",
+      "install_id": "pymupdf",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pymupdf-1.27.2.3",
+      "pname": "pymupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:51.065491Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/ia9qqh39pd1azllk2xr1q2869v3f0ih1-python3.13-pymupdf-1.27.2.3-dist",
+        "out": "/nix/store/4286p23y3y6s1b8pxxz19bgczfm4a9ax-python3.13-pymupdf-1.27.2.3"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pymupdf",
+      "broken": false,
+      "derivation": "/nix/store/wxvdyzcz79hk4n9m7ljfrahdxf8aij10-python3.13-pymupdf-1.27.2.3.drv",
+      "description": "Python bindings for MuPDF's rendering library",
+      "install_id": "pymupdf",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pymupdf-1.27.2.3",
+      "pname": "pymupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:40.322863Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/fm6n7yvyyiqygbczb53n9xqjbr38vpip-python3.13-pymupdf-1.27.2.3-dist",
+        "out": "/nix/store/nblgs9jk3s3bgnqavinimfp2d4lzj5h4-python3.13-pymupdf-1.27.2.3"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pymupdf",
+      "broken": false,
+      "derivation": "/nix/store/vrwz50c90jkj3ri2sbvwh08935g9n0zy-python3.13-pymupdf-1.27.2.3.drv",
+      "description": "Python bindings for MuPDF's rendering library",
+      "install_id": "pymupdf",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pymupdf-1.27.2.3",
+      "pname": "pymupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:47.224514Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/d1w4d62pshgjbsw1pr8my5wf6fsry19a-python3.13-pymupdf-1.27.2.3-dist",
+        "out": "/nix/store/iiin1d2sxr57amzpkp050bx009582sgc-python3.13-pymupdf-1.27.2.3"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.readability-lxml",
+      "broken": false,
+      "derivation": "/nix/store/izdq2p5rgf571rpnhbpx7hwr99g6zyz8-python3.13-readability-lxml-0.8.4.1.drv",
+      "description": "Fast python port of arc90's readability tool",
+      "install_id": "readability-lxml",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-readability-lxml-0.8.4.1",
+      "pname": "readability-lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:53.369949Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4znbghmcd1l4c79hbjcr2293f4n8j5df-python3.13-readability-lxml-0.8.4.1-dist",
+        "out": "/nix/store/z19fr8rwkr9xdfqviflihfrvqmppyyrp-python3.13-readability-lxml-0.8.4.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.readability-lxml",
+      "broken": false,
+      "derivation": "/nix/store/07lgkf7ffln8xafz2hvfw4gz5r8jnhhi-python3.13-readability-lxml-0.8.4.1.drv",
+      "description": "Fast python port of arc90's readability tool",
+      "install_id": "readability-lxml",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-readability-lxml-0.8.4.1",
+      "pname": "readability-lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:43.002329Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/0v3rp2asn796bq32isxpw7brjx5kkysp-python3.13-readability-lxml-0.8.4.1-dist",
+        "out": "/nix/store/vpyjx8lqjhbw98mlwlcgzslqnm15krdh-python3.13-readability-lxml-0.8.4.1"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.readability-lxml",
+      "broken": false,
+      "derivation": "/nix/store/aygjpjqawr6kiixi0bjrxhg56gfi07i7-python3.13-readability-lxml-0.8.4.1.drv",
+      "description": "Fast python port of arc90's readability tool",
+      "install_id": "readability-lxml",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-readability-lxml-0.8.4.1",
+      "pname": "readability-lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:50.067411Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/rl8r12vky3nxfq7l1dxsbk1b2qfj4pjx-python3.13-readability-lxml-0.8.4.1-dist",
+        "out": "/nix/store/7qajmbm246w1gd7sxbxw4n9p0lxq00f7-python3.13-readability-lxml-0.8.4.1"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.semchunk",
+      "broken": false,
+      "derivation": "/nix/store/7pqbjqmz1r16y8zmf3wi602301kaw6ly-python3.13-semchunk-4.1.0.drv",
+      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
+      "install_id": "semchunk",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-semchunk-4.1.0",
+      "pname": "semchunk",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:54.302251Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4yxa68kjd041kha6r3w6q5kws3gzgbqs-python3.13-semchunk-4.1.0-dist",
+        "out": "/nix/store/w2h052i2pirfr0m051dl3ljrf2x3nzy3-python3.13-semchunk-4.1.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.semchunk",
+      "broken": false,
+      "derivation": "/nix/store/ff2bs90ya9z41m6xgcn3ffdynhxf5cay-python3.13-semchunk-4.1.0.drv",
+      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
+      "install_id": "semchunk",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-semchunk-4.1.0",
+      "pname": "semchunk",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:44.089508Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/igc7ndfyk2s1jgdfziix7j1pkx474g06-python3.13-semchunk-4.1.0-dist",
+        "out": "/nix/store/zzmzz0wibp0p959pjvyazpwdhkashlqj-python3.13-semchunk-4.1.0"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.semchunk",
+      "broken": false,
+      "derivation": "/nix/store/679lsgf5qzash9hczlh3v9isqzwj9h13-python3.13-semchunk-4.1.0.drv",
+      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
+      "install_id": "semchunk",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-semchunk-4.1.0",
+      "pname": "semchunk",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:51.241630Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/dpvafdk4mwr3bmgz73hfi3k0inbacnji-python3.13-semchunk-4.1.0-dist",
+        "out": "/nix/store/prpgvzkfysal578gws1xq2ws5ksvhzsq-python3.13-semchunk-4.1.0"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.srt",
+      "broken": false,
+      "derivation": "/nix/store/j7jhl2iznn2f8vixljly2gm3cp80530n-python3.13-srt-3.5.3.drv",
+      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
+      "install_id": "srt",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-srt-3.5.3",
+      "pname": "srt",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:55.365498Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/n7fgsx2nxcy0m2xfvl4q4z9f4z48zshn-python3.13-srt-3.5.3-dist",
+        "out": "/nix/store/ivssljpi9nivgq44hlzj91f2zyfpyb3z-python3.13-srt-3.5.3"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.srt",
+      "broken": false,
+      "derivation": "/nix/store/c4m4xq98gsrigx6kz4hhwrp97rx5aczv-python3.13-srt-3.5.3.drv",
+      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
+      "install_id": "srt",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-srt-3.5.3",
+      "pname": "srt",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:45.304331Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/9y59vdx5664jy0hhardnqq5dl8fk0g55-python3.13-srt-3.5.3-dist",
+        "out": "/nix/store/rbnyx4y9hvhpxvxajxh0xk48n669rnky-python3.13-srt-3.5.3"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.srt",
+      "broken": false,
+      "derivation": "/nix/store/a6lj4did2gyy6qkp9q9933aikq6kvclx-python3.13-srt-3.5.3.drv",
+      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
+      "install_id": "srt",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-srt-3.5.3",
+      "pname": "srt",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:52.570514Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8pb5wa4a3cjavvscivh7758wdfgidr3k-python3.13-srt-3.5.3-dist",
+        "out": "/nix/store/05safc48z88iwyy3v5cgizylzgpg6phm-python3.13-srt-3.5.3"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.tiktoken",
+      "broken": false,
+      "derivation": "/nix/store/jjr9j54nqpjvj6irjacd0md5sy6iwzlr-python3.13-tiktoken-0.12.0.drv",
+      "description": "Fast BPE tokeniser for use with OpenAI's models",
+      "install_id": "tiktoken",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-tiktoken-0.12.0",
+      "pname": "tiktoken",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:56.227877Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/06xh3vic9dif54yn9yx6p6ha4iijf25n-python3.13-tiktoken-0.12.0-dist",
+        "out": "/nix/store/f4pskhh14b5l06qlcz5ps7yn9jiv9qnw-python3.13-tiktoken-0.12.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.tiktoken",
+      "broken": false,
+      "derivation": "/nix/store/625xircyak5rgf17pwy2z52n8jjmwym8-python3.13-tiktoken-0.12.0.drv",
+      "description": "Fast BPE tokeniser for use with OpenAI's models",
+      "install_id": "tiktoken",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-tiktoken-0.12.0",
+      "pname": "tiktoken",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:46.297099Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/jgkn5ajb88qj6xx73sczw6lcmpw5hh5p-python3.13-tiktoken-0.12.0-dist",
+        "out": "/nix/store/i2nplksjm444frk7rf52738rfxkspasr-python3.13-tiktoken-0.12.0"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.tiktoken",
+      "broken": false,
+      "derivation": "/nix/store/z4i6bnxrvrxk8kdmkrvyvb2mdnc3ax8r-python3.13-tiktoken-0.12.0.drv",
+      "description": "Fast BPE tokeniser for use with OpenAI's models",
+      "install_id": "tiktoken",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-tiktoken-0.12.0",
+      "pname": "tiktoken",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:53.682506Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/a1604g8m8shvv4c2x4jgxfb05vxw5279-python3.13-tiktoken-0.12.0-dist",
+        "out": "/nix/store/c7phan9lyg6zi094aapk89w0l9f2rixw-python3.13-tiktoken-0.12.0"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.unstructured",
+      "broken": false,
+      "derivation": "/nix/store/a6cbk8cfx1wnqx2q7gci7cicqxncshy8-python3.13-unstructured-0.18.31.drv",
+      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
+      "install_id": "unstructured",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-unstructured-0.18.31",
+      "pname": "unstructured",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:58.682341Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.18.31",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4zbkmy5j4gkchv4h5djlap9125i57gf9-python3.13-unstructured-0.18.31-dist",
+        "out": "/nix/store/czxzd0v208lfbjh9dcqnlhkc417qx64h-python3.13-unstructured-0.18.31"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.unstructured",
+      "broken": false,
+      "derivation": "/nix/store/kzghj06myrd498r15m9bfikh3zwd346p-python3.13-unstructured-0.18.31.drv",
+      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
+      "install_id": "unstructured",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-unstructured-0.18.31",
+      "pname": "unstructured",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:49.066257Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.18.31",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/zrpxqncggcgx5m7yv873day5cy51qfgd-python3.13-unstructured-0.18.31-dist",
+        "out": "/nix/store/qz3zw3anq195v2gaif1cjlii57c12c26-python3.13-unstructured-0.18.31"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.unstructured",
+      "broken": false,
+      "derivation": "/nix/store/64qj8l08gfckazmapg6xhiki56y4pl0f-python3.13-unstructured-0.18.31.drv",
+      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
+      "install_id": "unstructured",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-unstructured-0.18.31",
+      "pname": "unstructured",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:56.654886Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.18.31",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/nfk8vr6l15fs9ffqxw179x9svy23q1bp-python3.13-unstructured-0.18.31-dist",
+        "out": "/nix/store/pizj2vykzk3rmhkg5g6m2q47f3fbvnkx-python3.13-unstructured-0.18.31"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.mcp",
+      "broken": false,
+      "derivation": "/nix/store/2gff1f3s027g5ax4j2zhi74y81lkaqyp-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.971127Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/0jrqxaad75x8issjgfx1sx2yxk9xdkxp-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/3wf6hv9av6nl1djcb4h6yb92hjsc6hy6-python3.13-mcp-1.27.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "mcp",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.mcp",
+      "broken": false,
+      "derivation": "/nix/store/gm06n58hm7a4c4kx2f04rnc5582zqbai-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:34.087787Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/mj5c4x6rp9ak988knixv4j0k1n4pydn4-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/3d7x2h0npj6cdpy8g40fr4nxylvvrfkb-python3.13-mcp-1.27.0"
+      },
+      "system": "aarch64-linux",
+      "group": "mcp",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.mcp",
+      "broken": false,
+      "derivation": "/nix/store/iicryksrzljmhnvpj0jnbpgbvsmfp0hc-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.770241Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/v0xqwrqbmnfnl4gx2ca20gn10gil568a-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/pk5f53krsb3sjmc4bk522j6ih3dikjdl-python3.13-mcp-1.27.0"
+      },
+      "system": "x86_64-linux",
+      "group": "mcp",
       "priority": 5
     },
     {
@@ -3244,1183 +4515,6 @@
       "system": "x86_64-linux",
       "group": "toplevel",
       "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.beautifulsoup4",
-      "broken": false,
-      "derivation": "/nix/store/0xf2yqfmn6f4g4wz6afdik03phw6537z-python3.13-beautifulsoup4-4.14.3.drv",
-      "description": "HTML and XML parser",
-      "install_id": "beautifulsoup4",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-beautifulsoup4-4.14.3",
-      "pname": "beautifulsoup4",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:38.841964Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "python3.13-beautifulsoup4-4.14.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/lrxd1zad5w1aw773mbssgd93xcbdidhk-python3.13-beautifulsoup4-4.14.3-dist",
-        "doc": "/nix/store/misgc91pv331iwmkvracbmhhaqmvj7x4-python3.13-beautifulsoup4-4.14.3-doc",
-        "out": "/nix/store/ybjbwv5rp5v6s529yz9kc5g681hx4k0c-python3.13-beautifulsoup4-4.14.3"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.beautifulsoup4",
-      "broken": false,
-      "derivation": "/nix/store/n3gvn9x66j9r2hjqz2c8zgsm0jfyasw4-python3.13-beautifulsoup4-4.14.3.drv",
-      "description": "HTML and XML parser",
-      "install_id": "beautifulsoup4",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-beautifulsoup4-4.14.3",
-      "pname": "beautifulsoup4",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:24.961253Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "python3.13-beautifulsoup4-4.14.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/7ai8hy2b1myf6v5r3y43hpinb794mvwm-python3.13-beautifulsoup4-4.14.3-dist",
-        "doc": "/nix/store/hc6r3ghlrbkkvw815x6dq6yja786h3hr-python3.13-beautifulsoup4-4.14.3-doc",
-        "out": "/nix/store/xf778rg83hpifxwazj6z645piyg8yz9x-python3.13-beautifulsoup4-4.14.3"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.beautifulsoup4",
-      "broken": false,
-      "derivation": "/nix/store/xf8ar0djwiqaafj1f4b0z240q9d8q9xl-python3.13-beautifulsoup4-4.14.3.drv",
-      "description": "HTML and XML parser",
-      "install_id": "beautifulsoup4",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-beautifulsoup4-4.14.3",
-      "pname": "beautifulsoup4",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:31.640091Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "python3.13-beautifulsoup4-4.14.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/0vr468vvbix7lz8jp87vmhr9pff1z4w4-python3.13-beautifulsoup4-4.14.3-dist",
-        "doc": "/nix/store/74fdnfvi7yl0lkbxniqm33cflpz9s1s7-python3.13-beautifulsoup4-4.14.3-doc",
-        "out": "/nix/store/427s2j9nv0s8vq6lfzx8pa293kb3fpdj-python3.13-beautifulsoup4-4.14.3"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.ftfy",
-      "broken": false,
-      "derivation": "/nix/store/kaq6b32d0ksjwvr5h9kvqaxspk0xyivp-python3.13-ftfy-6.3.1.drv",
-      "description": "Given Unicode text, make its representation consistent and possibly less broken",
-      "install_id": "ftfy",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-ftfy-6.3.1",
-      "pname": "ftfy",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:42.642156Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "6.3.1",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/8253q6i4517wrhfxr7q5gc9gbfdm9np6-python3.13-ftfy-6.3.1-dist",
-        "out": "/nix/store/4rvhlswwi8xk2ird43l2yhshkhjwvamf-python3.13-ftfy-6.3.1"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.ftfy",
-      "broken": false,
-      "derivation": "/nix/store/g3cd8inkwf207ds345bpw0pqhwwhh1nq-python3.13-ftfy-6.3.1.drv",
-      "description": "Given Unicode text, make its representation consistent and possibly less broken",
-      "install_id": "ftfy",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-ftfy-6.3.1",
-      "pname": "ftfy",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:29.823386Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "6.3.1",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/f5nmxr0ki28224b811j5kzxak65n803v-python3.13-ftfy-6.3.1-dist",
-        "out": "/nix/store/j04pxzyd43w907ch7y323hm1az6x66x9-python3.13-ftfy-6.3.1"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.ftfy",
-      "broken": false,
-      "derivation": "/nix/store/jhggfm35xpjspvlv2849a48rnns2gqq7-python3.13-ftfy-6.3.1.drv",
-      "description": "Given Unicode text, make its representation consistent and possibly less broken",
-      "install_id": "ftfy",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-ftfy-6.3.1",
-      "pname": "ftfy",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:36.478735Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "6.3.1",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/2ksba7lv773aq7l6jzlb7yjidjyp3sd6-python3.13-ftfy-6.3.1-dist",
-        "out": "/nix/store/637fdpsq0iy3r0s95yxv4qrirsmfbbkl-python3.13-ftfy-6.3.1"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.langchain-text-splitters",
-      "broken": false,
-      "derivation": "/nix/store/xkq9lb4khf3wqncdm2yzl7zxlr66hy0m-python3.13-langchain-text-splitters-1.1.2.drv",
-      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
-      "install_id": "langchain-text-splitters",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-langchain-text-splitters-1.1.2",
-      "pname": "langchain-text-splitters",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:45.014043Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.1.2",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/a09sylphqzy7g2qf4wx257dfskn2idvc-python3.13-langchain-text-splitters-1.1.2-dist",
-        "out": "/nix/store/3p1bw135yj89fa5lpqyzkngiq5fnk7ps-python3.13-langchain-text-splitters-1.1.2"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.langchain-text-splitters",
-      "broken": false,
-      "derivation": "/nix/store/gz9a61b4xj3zblx5m1k01zb6nia01q2w-python3.13-langchain-text-splitters-1.1.2.drv",
-      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
-      "install_id": "langchain-text-splitters",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-langchain-text-splitters-1.1.2",
-      "pname": "langchain-text-splitters",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:32.840266Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.1.2",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/pvd6pwwmhf291hm3gr75yllgqkx63mqf-python3.13-langchain-text-splitters-1.1.2-dist",
-        "out": "/nix/store/20x8rcsfm4jvd682vp3pdp3ig0whm19m-python3.13-langchain-text-splitters-1.1.2"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.langchain-text-splitters",
-      "broken": false,
-      "derivation": "/nix/store/mhp9bm062h114gas6b3yhxxaxyrfwpr2-python3.13-langchain-text-splitters-1.1.2.drv",
-      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
-      "install_id": "langchain-text-splitters",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-langchain-text-splitters-1.1.2",
-      "pname": "langchain-text-splitters",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:39.508438Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.1.2",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/2b81ykhvkcqh5bs80y98pjx3lkkdr7z1-python3.13-langchain-text-splitters-1.1.2-dist",
-        "out": "/nix/store/y0gskdqmcd3k24d9m08dab26awiv68pb-python3.13-langchain-text-splitters-1.1.2"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.lxml",
-      "broken": false,
-      "derivation": "/nix/store/ylh689waf9dnq6ycr2g7c84svhc6597h-python3.13-lxml-6.0.2.drv",
-      "description": "Pythonic binding for the libxml2 and libxslt libraries",
-      "install_id": "lxml",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-lxml-6.0.2",
-      "pname": "lxml",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:45.747932Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "6.0.2",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/8xlgb10n19dapyasg3fccgfpli6i1y7c-python3.13-lxml-6.0.2-dist",
-        "out": "/nix/store/6pd59dj7am1a64gg85j0ymsg3zpf2paz-python3.13-lxml-6.0.2"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.lxml",
-      "broken": false,
-      "derivation": "/nix/store/i9ibrhb5yn8js64ykqljknqsny542a4h-python3.13-lxml-6.0.2.drv",
-      "description": "Pythonic binding for the libxml2 and libxslt libraries",
-      "install_id": "lxml",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-lxml-6.0.2",
-      "pname": "lxml",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:33.807319Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "6.0.2",
-      "outputs_to_install": [
-        "out",
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/h0dbyng080irjgczbqsl6ifly7y5xbbi-python3.13-lxml-6.0.2-dist",
-        "out": "/nix/store/bzaar6ik0nrlf9275p8njf25lzsan60y-python3.13-lxml-6.0.2"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.lxml",
-      "broken": false,
-      "derivation": "/nix/store/krk8a9fxga17wzy33ajjxybcblg3km28-python3.13-lxml-6.0.2.drv",
-      "description": "Pythonic binding for the libxml2 and libxslt libraries",
-      "install_id": "lxml",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-lxml-6.0.2",
-      "pname": "lxml",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:40.490430Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "6.0.2",
-      "outputs_to_install": [
-        "out",
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/f91jpyfv9pmpcc044wimy5ynw1c3y0yw-python3.13-lxml-6.0.2-dist",
-        "out": "/nix/store/dy1r203li2icgdw2va6piggzdgjglj8d-python3.13-lxml-6.0.2"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.markdown",
-      "broken": false,
-      "derivation": "/nix/store/f3n0il8nqm431fn7ivq1ksf3y2nr49ij-python3.13-markdown-3.10.2.drv",
-      "description": "Python implementation of John Gruber's Markdown",
-      "install_id": "markdown",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-markdown-3.10.2",
-      "pname": "markdown",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:45.866605Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "3.10.2",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/6j6wd8j9cn9najhwyv60j0xplk4k9dcc-python3.13-markdown-3.10.2-dist",
-        "out": "/nix/store/77135fyvnh0dlid6vj6vx9f9chcdhd9r-python3.13-markdown-3.10.2"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.markdown",
-      "broken": false,
-      "derivation": "/nix/store/wyz83dn84l7dlgf1kwjbci4cd5cxh6za-python3.13-markdown-3.10.2.drv",
-      "description": "Python implementation of John Gruber's Markdown",
-      "install_id": "markdown",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-markdown-3.10.2",
-      "pname": "markdown",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:33.956110Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "3.10.2",
-      "outputs_to_install": [
-        "out",
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/rlp4i6y0n6r5rl5r778pylkl9s6znd4w-python3.13-markdown-3.10.2-dist",
-        "out": "/nix/store/bw3fb4hkkgqk024d1niq2m5374vwydlq-python3.13-markdown-3.10.2"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.markdown",
-      "broken": false,
-      "derivation": "/nix/store/zz9bqpgzxc551rfxzb2nn15jrzdvbimj-python3.13-markdown-3.10.2.drv",
-      "description": "Python implementation of John Gruber's Markdown",
-      "install_id": "markdown",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-markdown-3.10.2",
-      "pname": "markdown",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:40.639765Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "3.10.2",
-      "outputs_to_install": [
-        "out",
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/vv8wdid1ms3620dl8q4xblxhap2x77vc-python3.13-markdown-3.10.2-dist",
-        "out": "/nix/store/kqair32qhics3khf0sqq49pparlcli88-python3.13-markdown-3.10.2"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.markdown-it-py",
-      "broken": false,
-      "derivation": "/nix/store/d319jq5szqvlrzw2g9xrq8dsizd84ghh-python3.13-markdown-it-py-4.0.0.drv",
-      "description": "Markdown parser in Python",
-      "install_id": "markdown-it-py",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-markdown-it-py-4.0.0",
-      "pname": "markdown-it-py",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:45.872818Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "4.0.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/n68wysnknsizs49w8z3qf74ysanmqvpd-python3.13-markdown-it-py-4.0.0-dist",
-        "out": "/nix/store/v860s63cnn2xmkpy1ynpm8nc2jls2lzg-python3.13-markdown-it-py-4.0.0"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.markdown-it-py",
-      "broken": false,
-      "derivation": "/nix/store/6xwal9w9afpydpzmpf5nbnsk68rj7z5p-python3.13-markdown-it-py-4.0.0.drv",
-      "description": "Markdown parser in Python",
-      "install_id": "markdown-it-py",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-markdown-it-py-4.0.0",
-      "pname": "markdown-it-py",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:33.963912Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "4.0.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/p52m8hb9yns7nclgrmi3l0m7dcy6z15w-python3.13-markdown-it-py-4.0.0-dist",
-        "out": "/nix/store/zvdvla1qb9vgp82mbnjmahdrcw6hsnzp-python3.13-markdown-it-py-4.0.0"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.markdown-it-py",
-      "broken": false,
-      "derivation": "/nix/store/f1kkny231k80a9iv7z8dsrly0cbni088-python3.13-markdown-it-py-4.0.0.drv",
-      "description": "Markdown parser in Python",
-      "install_id": "markdown-it-py",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-markdown-it-py-4.0.0",
-      "pname": "markdown-it-py",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:40.647342Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "4.0.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/8sv7qwm46aj9cl68myfbmkmnfin0m1rx-python3.13-markdown-it-py-4.0.0-dist",
-        "out": "/nix/store/9hqfprx1x6gw6zclb42rimddv87gv903-python3.13-markdown-it-py-4.0.0"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.pdfplumber",
-      "broken": false,
-      "derivation": "/nix/store/vc405gjw7bq72w0pli6nkn6s8f20nvi5-python3.13-pdfplumber-0.11.9.drv",
-      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
-      "install_id": "pdfplumber",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-pdfplumber-0.11.9",
-      "pname": "pdfplumber",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:48.830129Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.11.9",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/i48vnp0cbmwshdn7hvh2h29lbxncrrmi-python3.13-pdfplumber-0.11.9-dist",
-        "out": "/nix/store/7qd4ppc8dzl820sxr5rcnn5707qqrczi-python3.13-pdfplumber-0.11.9"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.pdfplumber",
-      "broken": false,
-      "derivation": "/nix/store/xs02bsq2g87a0n3m53sfgzrzq5r2y4sb-python3.13-pdfplumber-0.11.9.drv",
-      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
-      "install_id": "pdfplumber",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-pdfplumber-0.11.9",
-      "pname": "pdfplumber",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:37.696160Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.11.9",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/qzd42p8l03vhn5fr10a7cq9d6ddijazi-python3.13-pdfplumber-0.11.9-dist",
-        "out": "/nix/store/hj7r2gsi03gnnq9ql0w69pabwkg5kplx-python3.13-pdfplumber-0.11.9"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.pdfplumber",
-      "broken": false,
-      "derivation": "/nix/store/af0nhaiyqy49qkilzj6ax8bvn3jgnzwq-python3.13-pdfplumber-0.11.9.drv",
-      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
-      "install_id": "pdfplumber",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-pdfplumber-0.11.9",
-      "pname": "pdfplumber",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:44.445201Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.11.9",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/s92x06ibw61k7b1gvymy5688abd9pgxf-python3.13-pdfplumber-0.11.9-dist",
-        "out": "/nix/store/gm5am2n8y0b0y0b845kxrv2g9hg0bdz3-python3.13-pdfplumber-0.11.9"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.pymupdf",
-      "broken": false,
-      "derivation": "/nix/store/z9rzjhmiim6rz63n1cigphdm90nsyh21-python3.13-pymupdf-1.27.2.3.drv",
-      "description": "Python bindings for MuPDF's rendering library",
-      "install_id": "pymupdf",
-      "license": "AGPL-3.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-pymupdf-1.27.2.3",
-      "pname": "pymupdf",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:51.065491Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.27.2.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/ia9qqh39pd1azllk2xr1q2869v3f0ih1-python3.13-pymupdf-1.27.2.3-dist",
-        "out": "/nix/store/4286p23y3y6s1b8pxxz19bgczfm4a9ax-python3.13-pymupdf-1.27.2.3"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.pymupdf",
-      "broken": false,
-      "derivation": "/nix/store/wxvdyzcz79hk4n9m7ljfrahdxf8aij10-python3.13-pymupdf-1.27.2.3.drv",
-      "description": "Python bindings for MuPDF's rendering library",
-      "install_id": "pymupdf",
-      "license": "AGPL-3.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-pymupdf-1.27.2.3",
-      "pname": "pymupdf",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:40.322863Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.27.2.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/fm6n7yvyyiqygbczb53n9xqjbr38vpip-python3.13-pymupdf-1.27.2.3-dist",
-        "out": "/nix/store/nblgs9jk3s3bgnqavinimfp2d4lzj5h4-python3.13-pymupdf-1.27.2.3"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.pymupdf",
-      "broken": false,
-      "derivation": "/nix/store/vrwz50c90jkj3ri2sbvwh08935g9n0zy-python3.13-pymupdf-1.27.2.3.drv",
-      "description": "Python bindings for MuPDF's rendering library",
-      "install_id": "pymupdf",
-      "license": "AGPL-3.0-only",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-pymupdf-1.27.2.3",
-      "pname": "pymupdf",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:47.224514Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "1.27.2.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/d1w4d62pshgjbsw1pr8my5wf6fsry19a-python3.13-pymupdf-1.27.2.3-dist",
-        "out": "/nix/store/iiin1d2sxr57amzpkp050bx009582sgc-python3.13-pymupdf-1.27.2.3"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.readability-lxml",
-      "broken": false,
-      "derivation": "/nix/store/izdq2p5rgf571rpnhbpx7hwr99g6zyz8-python3.13-readability-lxml-0.8.4.1.drv",
-      "description": "Fast python port of arc90's readability tool",
-      "install_id": "readability-lxml",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-readability-lxml-0.8.4.1",
-      "pname": "readability-lxml",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:53.369949Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.8.4.1",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/4znbghmcd1l4c79hbjcr2293f4n8j5df-python3.13-readability-lxml-0.8.4.1-dist",
-        "out": "/nix/store/z19fr8rwkr9xdfqviflihfrvqmppyyrp-python3.13-readability-lxml-0.8.4.1"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.readability-lxml",
-      "broken": false,
-      "derivation": "/nix/store/07lgkf7ffln8xafz2hvfw4gz5r8jnhhi-python3.13-readability-lxml-0.8.4.1.drv",
-      "description": "Fast python port of arc90's readability tool",
-      "install_id": "readability-lxml",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-readability-lxml-0.8.4.1",
-      "pname": "readability-lxml",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:43.002329Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.8.4.1",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/0v3rp2asn796bq32isxpw7brjx5kkysp-python3.13-readability-lxml-0.8.4.1-dist",
-        "out": "/nix/store/vpyjx8lqjhbw98mlwlcgzslqnm15krdh-python3.13-readability-lxml-0.8.4.1"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.readability-lxml",
-      "broken": false,
-      "derivation": "/nix/store/aygjpjqawr6kiixi0bjrxhg56gfi07i7-python3.13-readability-lxml-0.8.4.1.drv",
-      "description": "Fast python port of arc90's readability tool",
-      "install_id": "readability-lxml",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-readability-lxml-0.8.4.1",
-      "pname": "readability-lxml",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:50.067411Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.8.4.1",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/rl8r12vky3nxfq7l1dxsbk1b2qfj4pjx-python3.13-readability-lxml-0.8.4.1-dist",
-        "out": "/nix/store/7qajmbm246w1gd7sxbxw4n9p0lxq00f7-python3.13-readability-lxml-0.8.4.1"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.semchunk",
-      "broken": false,
-      "derivation": "/nix/store/7pqbjqmz1r16y8zmf3wi602301kaw6ly-python3.13-semchunk-4.1.0.drv",
-      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
-      "install_id": "semchunk",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-semchunk-4.1.0",
-      "pname": "semchunk",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:54.302251Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "4.1.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/4yxa68kjd041kha6r3w6q5kws3gzgbqs-python3.13-semchunk-4.1.0-dist",
-        "out": "/nix/store/w2h052i2pirfr0m051dl3ljrf2x3nzy3-python3.13-semchunk-4.1.0"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.semchunk",
-      "broken": false,
-      "derivation": "/nix/store/ff2bs90ya9z41m6xgcn3ffdynhxf5cay-python3.13-semchunk-4.1.0.drv",
-      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
-      "install_id": "semchunk",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-semchunk-4.1.0",
-      "pname": "semchunk",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:44.089508Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "4.1.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/igc7ndfyk2s1jgdfziix7j1pkx474g06-python3.13-semchunk-4.1.0-dist",
-        "out": "/nix/store/zzmzz0wibp0p959pjvyazpwdhkashlqj-python3.13-semchunk-4.1.0"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.semchunk",
-      "broken": false,
-      "derivation": "/nix/store/679lsgf5qzash9hczlh3v9isqzwj9h13-python3.13-semchunk-4.1.0.drv",
-      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
-      "install_id": "semchunk",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-semchunk-4.1.0",
-      "pname": "semchunk",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:51.241630Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "4.1.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/dpvafdk4mwr3bmgz73hfi3k0inbacnji-python3.13-semchunk-4.1.0-dist",
-        "out": "/nix/store/prpgvzkfysal578gws1xq2ws5ksvhzsq-python3.13-semchunk-4.1.0"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.srt",
-      "broken": false,
-      "derivation": "/nix/store/j7jhl2iznn2f8vixljly2gm3cp80530n-python3.13-srt-3.5.3.drv",
-      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
-      "install_id": "srt",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-srt-3.5.3",
-      "pname": "srt",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:55.365498Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "3.5.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/n7fgsx2nxcy0m2xfvl4q4z9f4z48zshn-python3.13-srt-3.5.3-dist",
-        "out": "/nix/store/ivssljpi9nivgq44hlzj91f2zyfpyb3z-python3.13-srt-3.5.3"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.srt",
-      "broken": false,
-      "derivation": "/nix/store/c4m4xq98gsrigx6kz4hhwrp97rx5aczv-python3.13-srt-3.5.3.drv",
-      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
-      "install_id": "srt",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-srt-3.5.3",
-      "pname": "srt",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:45.304331Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "3.5.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/9y59vdx5664jy0hhardnqq5dl8fk0g55-python3.13-srt-3.5.3-dist",
-        "out": "/nix/store/rbnyx4y9hvhpxvxajxh0xk48n669rnky-python3.13-srt-3.5.3"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.srt",
-      "broken": false,
-      "derivation": "/nix/store/a6lj4did2gyy6qkp9q9933aikq6kvclx-python3.13-srt-3.5.3.drv",
-      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
-      "install_id": "srt",
-      "license": "BSD-3-Clause",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-srt-3.5.3",
-      "pname": "srt",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:52.570514Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "3.5.3",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/8pb5wa4a3cjavvscivh7758wdfgidr3k-python3.13-srt-3.5.3-dist",
-        "out": "/nix/store/05safc48z88iwyy3v5cgizylzgpg6phm-python3.13-srt-3.5.3"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.tiktoken",
-      "broken": false,
-      "derivation": "/nix/store/jjr9j54nqpjvj6irjacd0md5sy6iwzlr-python3.13-tiktoken-0.12.0.drv",
-      "description": "Fast BPE tokeniser for use with OpenAI's models",
-      "install_id": "tiktoken",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-tiktoken-0.12.0",
-      "pname": "tiktoken",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:56.227877Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.12.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/06xh3vic9dif54yn9yx6p6ha4iijf25n-python3.13-tiktoken-0.12.0-dist",
-        "out": "/nix/store/f4pskhh14b5l06qlcz5ps7yn9jiv9qnw-python3.13-tiktoken-0.12.0"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.tiktoken",
-      "broken": false,
-      "derivation": "/nix/store/625xircyak5rgf17pwy2z52n8jjmwym8-python3.13-tiktoken-0.12.0.drv",
-      "description": "Fast BPE tokeniser for use with OpenAI's models",
-      "install_id": "tiktoken",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-tiktoken-0.12.0",
-      "pname": "tiktoken",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:46.297099Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.12.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/jgkn5ajb88qj6xx73sczw6lcmpw5hh5p-python3.13-tiktoken-0.12.0-dist",
-        "out": "/nix/store/i2nplksjm444frk7rf52738rfxkspasr-python3.13-tiktoken-0.12.0"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.tiktoken",
-      "broken": false,
-      "derivation": "/nix/store/z4i6bnxrvrxk8kdmkrvyvb2mdnc3ax8r-python3.13-tiktoken-0.12.0.drv",
-      "description": "Fast BPE tokeniser for use with OpenAI's models",
-      "install_id": "tiktoken",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-tiktoken-0.12.0",
-      "pname": "tiktoken",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:53.682506Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.12.0",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/a1604g8m8shvv4c2x4jgxfb05vxw5279-python3.13-tiktoken-0.12.0-dist",
-        "out": "/nix/store/c7phan9lyg6zi094aapk89w0l9f2rixw-python3.13-tiktoken-0.12.0"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.unstructured",
-      "broken": false,
-      "derivation": "/nix/store/a6cbk8cfx1wnqx2q7gci7cicqxncshy8-python3.13-unstructured-0.18.31.drv",
-      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
-      "install_id": "unstructured",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-unstructured-0.18.31",
-      "pname": "unstructured",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:13:58.682341Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.18.31",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/4zbkmy5j4gkchv4h5djlap9125i57gf9-python3.13-unstructured-0.18.31-dist",
-        "out": "/nix/store/czxzd0v208lfbjh9dcqnlhkc417qx64h-python3.13-unstructured-0.18.31"
-      },
-      "system": "aarch64-darwin",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.unstructured",
-      "broken": false,
-      "derivation": "/nix/store/kzghj06myrd498r15m9bfikh3zwd346p-python3.13-unstructured-0.18.31.drv",
-      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
-      "install_id": "unstructured",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-unstructured-0.18.31",
-      "pname": "unstructured",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T03:42:49.066257Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.18.31",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/zrpxqncggcgx5m7yv873day5cy51qfgd-python3.13-unstructured-0.18.31-dist",
-        "out": "/nix/store/qz3zw3anq195v2gaif1cjlii57c12c26-python3.13-unstructured-0.18.31"
-      },
-      "system": "aarch64-linux",
-      "group": "ingest-py",
-      "priority": 5
-    },
-    {
-      "attr_path": "python313Packages.unstructured",
-      "broken": false,
-      "derivation": "/nix/store/64qj8l08gfckazmapg6xhiki56y4pl0f-python3.13-unstructured-0.18.31.drv",
-      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
-      "install_id": "unstructured",
-      "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
-      "name": "python3.13-unstructured-0.18.31",
-      "pname": "unstructured",
-      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
-      "rev_count": 1027867,
-      "rev_date": "2026-07-05T04:06:12Z",
-      "scrape_date": "2026-07-06T04:41:56.654886Z",
-      "stabilities": [
-        "unstable"
-      ],
-      "unfree": false,
-      "version": "0.18.31",
-      "outputs_to_install": [
-        "out"
-      ],
-      "outputs": {
-        "dist": "/nix/store/nfk8vr6l15fs9ffqxw179x9svy23q1bp-python3.13-unstructured-0.18.31-dist",
-        "out": "/nix/store/pizj2vykzk3rmhkg5g6m2q47f3fbvnkx-python3.13-unstructured-0.18.31"
-      },
-      "system": "x86_64-linux",
-      "group": "ingest-py",
-      "priority": 5
     }
   ],
   "compose": {
@@ -4430,9 +4524,9 @@
         "on-activate": "# Project layout + backend selection (all overridable at activation time).\nexport AI_BRIEF_ROOT=\"$FLOX_ENV_PROJECT\"\nexport SOURCES_DIR=\"${SOURCES_DIR:-$AI_BRIEF_ROOT/sources}\"\nexport WORK_DIR=\"${WORK_DIR:-$AI_BRIEF_ROOT/work}\"\nexport REPORTS_DIR=\"${REPORTS_DIR:-$AI_BRIEF_ROOT/reports}\"\nexport PROMPTS_DIR=\"${PROMPTS_DIR:-$AI_BRIEF_ROOT/prompts}\"\nexport EVALS_DIR=\"${EVALS_DIR:-$AI_BRIEF_ROOT/evals}\"\nexport NOTEBOOKS_DIR=\"${NOTEBOOKS_DIR:-$AI_BRIEF_ROOT/notebooks}\"\nexport PIPELINE_DIR=\"${PIPELINE_DIR:-$AI_BRIEF_ROOT/pipeline}\"\nexport AI_BRIEF_JUSTFILE=\"${AI_BRIEF_JUSTFILE:-$AI_BRIEF_ROOT/justfile}\"\nexport AI_BRIEF_PYTHON=\"${AI_BRIEF_PYTHON:-python3.13}\"\n\n# Backend: honor an explicit AI_BACKEND, else detect (cuda / mps / cpu).\nif [ -z \"${AI_BACKEND:-}\" ]; then\n  if [ \"$(uname -s)\" = \"Darwin\" ] && [ \"$(uname -m)\" = \"arm64\" ]; then\n    AI_BACKEND=\"mps\"\n  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then\n    AI_BACKEND=\"cuda\"\n  else\n    AI_BACKEND=\"cpu\"\n  fi\nfi\nexport AI_BACKEND\n\n# Idempotent project skeleton.\nmkdir -p \"$SOURCES_DIR\" \"$WORK_DIR\" \"$REPORTS_DIR\" \"$PROMPTS_DIR\" \\\n         \"$EVALS_DIR\" \"$NOTEBOOKS_DIR\" \"$PIPELINE_DIR\" 2>/dev/null || true\n\ncd \"$FLOX_ENV_PROJECT\"\n"
       },
       "profile": {
-        "bash": "_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\n",
-        "zsh": "_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\n",
-        "fish": "function _ai_brief_just\n    set -l jf \"$FLOX_ENV_PROJECT/justfile\"\n    test -n \"$AI_BRIEF_JUSTFILE\"; and set jf \"$AI_BRIEF_JUSTFILE\"\n    just --justfile \"$jf\" $argv\nend\nfunction ingest;    _ai_brief_just ingest $argv;    end\nfunction index;     _ai_brief_just index $argv;     end\nfunction brief;     _ai_brief_just brief $argv;     end\nfunction ai-eval;   _ai_brief_just ai-eval $argv;   end\nfunction notebook;  _ai_brief_just notebook $argv;  end\nfunction ai-doctor; _ai_brief_just ai-doctor $argv; end\n"
+        "bash": "_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\nmcp()       { _ai_brief_just mcp \"$@\"; }\n",
+        "zsh": "_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\nmcp()       { _ai_brief_just mcp \"$@\"; }\n",
+        "fish": "function _ai_brief_just\n    set -l jf \"$FLOX_ENV_PROJECT/justfile\"\n    test -n \"$AI_BRIEF_JUSTFILE\"; and set jf \"$AI_BRIEF_JUSTFILE\"\n    just --justfile \"$jf\" $argv\nend\nfunction ingest;    _ai_brief_just ingest $argv;    end\nfunction index;     _ai_brief_just index $argv;     end\nfunction brief;     _ai_brief_just brief $argv;     end\nfunction ai-eval;   _ai_brief_just ai-eval $argv;   end\nfunction notebook;  _ai_brief_just notebook $argv;  end\nfunction ai-doctor; _ai_brief_just ai-doctor $argv; end\nfunction mcp;       _ai_brief_just mcp $argv;       end\n"
       },
       "options": {
         "systems": [
@@ -4599,6 +4693,10 @@
               "pkg-group": "chromadb",
               "priority": 7
             },
+            "mcp": {
+              "pkg-path": "python313Packages.mcp",
+              "pkg-group": "mcp"
+            },
             "sentence-transformers": {
               "pkg-path": "python313Packages.sentence-transformers",
               "pkg-group": "python-deps",
@@ -4721,7 +4819,7 @@
             }
           },
           "hook": {
-            "on-activate": "# Runtime-configurable variables with defaults\nexport JUPYTER_HOST=\"${JUPYTER_HOST:-0.0.0.0}\"\nexport JUPYTER_PORT=\"${JUPYTER_PORT:-8888}\"\nexport JUPYTER_SERVER_TOKEN=\"${JUPYTER_SERVER_TOKEN:-}\"\nexport NOTEBOOK_DIR=\"${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}\"\nexport INSTALL_REQUIREMENTS=\"${INSTALL_REQUIREMENTS:-false}\"\n\n# Generate random token if not provided\nif [ -z \"$JUPYTER_SERVER_TOKEN\" ]; then\n    export JUPYTER_SERVER_TOKEN=\"$(openssl rand -hex 32)\"\n    echo \"ℹ️  Generated random token: $JUPYTER_SERVER_TOKEN\"\nfi\n\n# Setup venv\nexport VENV_DIR=\"$FLOX_ENV_CACHE/venv\"\nif [ ! -d \"$VENV_DIR\" ]; then\n    echo \"Creating Python virtual environment...\"\n    python3.13 -m venv \"$VENV_DIR\"\nfi\n\n# Activate venv with guard\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\n\n    # Install requirements if requested\n    if [ -f \"$FLOX_ENV_PROJECT/requirements.txt\" ] && [ \"$INSTALL_REQUIREMENTS\" = \"true\" ]; then\n        echo \"Installing packages from requirements.txt...\"\n        pip install -r \"$FLOX_ENV_PROJECT/requirements.txt\" --quiet\n    fi\nfi\n\n# Display minimal info\necho \"\"\necho \"✅ JupyterLab environment ready (headless mode)\"\necho \"\"\necho \"Access URL: http://localhost:$JUPYTER_PORT\"\necho \"Token: ${JUPYTER_SERVER_TOKEN}\"\necho \"\"\necho \"Start service: flox activate -s\"\necho \"Show help: jupyter-help\"\necho \"Documentation: helpf\"\necho \"\"\n\n# Fetch README if missing\n\n  # Fetch README.md if not present\n  README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n  if [ ! -f \"$README_FILE\" ]; then\n    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o \"$README_FILE\" 2>/dev/null; then\n      echo \"✓ Downloaded README.md (use 'helpf' to view)\"\n    fi\n  fi\n"
+            "on-activate": "# Runtime-configurable variables with defaults\nexport JUPYTER_HOST=\"${JUPYTER_HOST:-0.0.0.0}\"\nexport JUPYTER_PORT=\"${JUPYTER_PORT:-8888}\"\nexport JUPYTER_SERVER_TOKEN=\"${JUPYTER_SERVER_TOKEN:-floxfan4evah}\"\nexport NOTEBOOK_DIR=\"${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}\"\nexport INSTALL_REQUIREMENTS=\"${INSTALL_REQUIREMENTS:-false}\"\n\n# Setup venv\nexport VENV_DIR=\"$FLOX_ENV_CACHE/venv\"\nif [ ! -d \"$VENV_DIR\" ]; then\n    echo \"Creating Python virtual environment...\"\n    python3.13 -m venv \"$VENV_DIR\"\nfi\n\n# Activate venv with guard\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\n\n    # Install requirements if requested\n    if [ -f \"$FLOX_ENV_PROJECT/requirements.txt\" ] && [ \"$INSTALL_REQUIREMENTS\" = \"true\" ]; then\n        echo \"Installing packages from requirements.txt...\"\n        pip install -r \"$FLOX_ENV_PROJECT/requirements.txt\" --quiet\n    fi\nfi\n\n# Display minimal info — only for interactive shells. Non-interactive\n# activations (the ask-flox MCP server, scripts, CI) stay silent so nothing\n# clutters their output streams. The same details remain available via\n# `jupyter-help`.\nif [ -t 1 ]; then\n    echo \"\"\n    echo \"✅ JupyterLab environment ready (headless mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: ${JUPYTER_SERVER_TOKEN}\"\n    echo \"\"\n    echo \"Start service: flox activate -s\"\n    echo \"Show help: jupyter-help\"\n    echo \"Documentation: helpf\"\n    echo \"\"\nfi\n\n# Fetch README if missing\n\n  # Fetch README.md if not present\n  README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n  if [ ! -f \"$README_FILE\" ]; then\n    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o \"$README_FILE\" 2>/dev/null; then\n      echo \"✓ Downloaded README.md (use 'helpf' to view)\"\n    fi\n  fi\n"
           },
           "profile": {
             "bash": "jupyter-help() {\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\n}\n\n# View environment documentation\n\n  helpf() {\n    local README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n    local README_URL=\"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if [ \"$1\" = \"--help\" ]; then\n      echo \"Usage: helpf [OPTIONS]\"\n      echo \"\"\n      echo \"View environment documentation\"\n      echo \"\"\n      echo \"Options:\"\n      echo \"  --force    Force download fresh copy from GitHub\"\n      echo \"  --help     Show this help message\"\n      echo \"\"\n      echo \"The README is cached locally and only downloaded if missing.\"\n      return 0\n    fi\n\n    if [ \"$1\" = \"--force\" ]; then\n      echo \"Fetching latest README.md from GitHub...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    elif [ ! -f \"$README_FILE\" ]; then\n      echo \"README.md not found, downloading...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    fi\n\n    if [ -f \"$README_FILE\" ]; then\n      bat --style=auto --paging=always \"$README_FILE\"\n    else\n      echo \"✗ README.md not found at $README_FILE\"\n      return 1\n    fi\n  }\n  export -f helpf\n",

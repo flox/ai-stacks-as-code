@@ -1,0 +1,53 @@
+12:46:40.198 DEBUG flox: FLOX_VERSION=1.13.1
+12:46:40.198 DEBUG flox::config: Global config directory overridden path="/home/daedalus/.config/flox"
+12:46:40.199 DEBUG flox_core::sentry: Initializing Sentry with DSN: https://85c9526795f5047c99a5247aab616295:@o4506548203094016.ingest.us.sentry.io/4506548241825792
+12:46:40.206 DEBUG flox_core::sentry: Configuring Sentry user with metrics UUID
+12:46:40.206 DEBUG flox::utils::events: inherited v2 invocation_id from FLOX_INVOCATION_ID invocation_id=bd646ab9-c768-424b-af2a-d5d2bcec1c05
+12:46:40.206 DEBUG flox::utils::events: v2 events: no override URL set; production dormant
+12:46:40.206 DEBUG flox: set _FLOX_SUBSYSTEM_VERBOSITY=2
+12:46:40.209 DEBUG flox::config: Global config directory overridden path="/home/daedalus/.config/flox"
+12:46:40.209 DEBUG flox::commands: Metrics collection enabled
+12:46:40.209 DEBUG flox::utils::update_notifications: Skipping update check in development mode
+12:46:40.209 DEBUG flox::utils::init::floxhub_client: using catalog client with url: https://api.flox.dev
+12:46:40.209 DEBUG floxhub_client::client: building HTTP client base_url=https://api.flox.dev extra_headers=2
+12:46:40.219 DEBUG flox::commands: feature flags configured=Features { upload: false, qa: false, beta: false, auto_activate: false }
+12:46:40.219 DEBUG check-upgrade: flox::utils::metrics: pushing entry to metrics buffer: MetricEntry { subcommand: Some("check-upgrade"), extras: {}, timestamp: 2026-07-13 16:46:40.219436032 +00:00:00, uuid: f4a1490a-4177-4839-b000-65e583c5b1e9, flox_version: "1.13.1", os_family: Some("Linux"), os_family_release: Some("6.12.95+deb13-amd64"), os: Some("debian"), os_version: Some("13"), empty_flags: [], invocation_sources: ["agentic.claude-code.cli", "agentic.flox-mcp"] }
+12:46:40.219 DEBUG check-upgrade: floxhub_client::client: building HTTP client base_url=https://api.flox.dev extra_headers=3
+12:46:40.226 DEBUG check-upgrade: flox_rust_sdk::models::environment: detected concrete environment type: path
+12:46:40.227 DEBUG check-upgrade: flox_rust_sdk::providers::upgrade_checks: created unlocked upgrade information guard upgrade_information_path="/home/daedalus/dev/ai-stacks-as-code/envs/ai-notebook/.flox/cache/upgrade-checks.json"
+12:46:40.228 DEBUG check-upgrade: flox_rust_sdk::providers::upgrade_checks: lock acquired upgrade_information_path="/home/daedalus/dev/ai-stacks-as-code/envs/ai-notebook/.flox/cache/upgrade-checks.json"
+12:46:40.228 DEBUG check-upgrade:check-upgrade: flox_rust_sdk::models::environment::core_environment: upgrading to_upgrade=""
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jupyterlab-lsp
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=bat
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jupyterlab-widgets
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=tree
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=matplotlib
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=pydot
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=plotly
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=notebook
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jupyterlab-pygments
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=pandas
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=ripgrep
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jupyterlab-server
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=ipykernel
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=fd
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jq
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=git
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=curl
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jupyterlab
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=pyarrow
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=sympy
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_manifest::raw: updating package pkg=jupyterlab-execute-time
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_rust_sdk::models::environment::core_environment: checking group membership for requested packages
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_rust_sdk::models::environment::core_environment: using catalog client to upgrade
+12:46:40.229 DEBUG check-upgrade:check-upgrade: flox_rust_sdk::models::environment::core_environment: upgrading to_upgrade=""
+12:46:40.230 DEBUG check-upgrade:check-upgrade:resolve_manifest:resolve: floxhub_client::client: resolving package groups n_groups=1
+12:46:46.142 DEBUG check-upgrade:check-upgrade:resolve_manifest:resolve: floxhub_client::client: received resolved package groups n_groups=1
+12:46:46.143 DEBUG check-upgrade:check-upgrade:resolve_manifest: flox_rust_sdk::providers::lock_manifest: no resolution failures detected
+12:46:46.152 DEBUG flox_rust_sdk::providers::buildenv: substituting store paths in batch count=28
+12:46:46.152 DEBUG flox_rust_sdk::providers::buildenv: using 'auto' store
+12:46:48.881 DEBUG check-upgrade:check-upgrade:build: flox_rust_sdk::providers::buildenv: all store paths present per stat(), calling buildenv.nix attempt=1 MAX_RETRIES=3 paths=["/nix/store/01wp2vgd70ssmk4fmkc2lh98jkyxnxvv-bat-0.26.1", "/nix/store/0rfz69vp1nl0q2hxzig20hc60sk72z62-curl-8.17.0-bin", "/nix/store/h1fxw0xrifxvbhcp7b8hxsgirxxxfzav-curl-8.17.0-debug", "/nix/store/ikmdk37frjdblkba3wl3xws2wwgln17x-curl-8.17.0-dev", "/nix/store/jm6irg81cc0hqg43l39lkxr6pb0w2xk5-curl-8.17.0-devdoc", "/nix/store/ijd0yybyzwm98d3q6x7a9cyixgxk0i5d-curl-8.17.0-man", "/nix/store/8idis3j5l13c3x74jl8xly0k4qyk9mx6-curl-8.17.0", "/nix/store/027m34av4nx0246ia2qdbfygzy9dbikw-fd-10.3.0", "/nix/store/pjr2vd588sxa47glfg0ky0df3vk79dcs-git-2.51.2-debug", "/nix/store/9k6ivrdddy9s3z1hiwgavl0kfr2czgav-git-2.51.2-doc", "/nix/store/4qhdhmi7pzgad0zfd7c5lsg235mbf9hv-git-2.51.2", "/nix/store/98pchc1qwfa6fgv5vkpcxgq75xnp36dg-python3.13-ipykernel-6.30.1-dist", "/nix/store/2l1clxr9drfyjbgdqywb6qd17dsanhjy-python3.13-ipykernel-6.30.1", "/nix/store/qvbwz06cqra3cmlra40v0adw75j6j7wm-jq-1.8.1-bin", "/nix/store/jq07r49vk5wa10a1kk2y87nwbbl62qxz-jq-1.8.1-dev", "/nix/store/brd1gvvbq8bblpbizmyjhsfwr7nlmvyq-jq-1.8.1-doc", "/nix/store/6wpy08grkd8315ad3wsx8dd92cx5n26z-jq-1.8.1-man", "/nix/store/gs6yqc24w093xsnnz3kkhls8jz7pnffy-jq-1.8.1", "/nix/store/zq3j83y505zpb1asi75jazbdablfg554-python3.13-jupyterlab-4.5.0-dist", "/nix/store/fds83929nlq54q6xqwafnia1aw0z0ry8-python3.13-jupyterlab-4.5.0", "/nix/store/4868rgd1ficflyqnfq1pyn123ic41h01-python3.13-jupyterlab-execute-time-3.2.0-dist", "/nix/store/jyxjw38a9ya9c6mxz9zfg8gkz62zw064-python3.13-jupyterlab-execute-time-3.2.0", "/nix/store/4q49izdfrwyx1iqfl7d7b35gn7gbsd1l-python3.13-jupyterlab-lsp-5.2.0-dist", "/nix/store/1hr0h1a15d7nlqzfskmgdzic3k5gbd2g-python3.13-jupyterlab-lsp-5.2.0", "/nix/store/h7wsg0ssj7sj5jsr3bih2pm4wfrw0rc2-python3.13-jupyterlab-pygments-0.3.0-dist", "/nix/store/c6z58dzzb13wh5gci6j57l4k848jqnqz-python3.13-jupyterlab-pygments-0.3.0", "/nix/store/3y3lbd8wymnd0x45lis4amcfzp52rdh4-python3.13-jupyterlab-server-2.28.0-dist", "/nix/store/gix4v2acx2m2zrl16pzi788n09v2lp01-python3.13-jupyterlab-server-2.28.0", "/nix/store/95c1yvv0a48pxd4c9q77impiq0p9m22h-python3.13-jupyterlab-widgets-3.0.15-dist", "/nix/store/j220n7bln7r4b2kznpn0y4jw6ariikaw-python3.13-jupyterlab-widgets-3.0.15", "/nix/store/qxfyxxmjplv0gjjkca7d3522vxdpcwp6-python3.13-matplotlib-3.10.5-dist", "/nix/store/f9fm7713mdbx9b62sr53bvn8hpb9r29b-python3.13-matplotlib-3.10.5", "/nix/store/9v2j3p8q8b0zcfpa8d21v2kv36a4sdhm-python3.13-notebook-7.5.0-dist", "/nix/store/kl6rnihjwac4xc0qgl97cy3clx17s8c9-python3.13-notebook-7.5.0", "/nix/store/q4d5c7qqgrryna8wqdi69v666mvwxaw3-python3.13-pandas-2.3.1-dist", "/nix/store/952bs53wqnjk26qb6sscr54ws2l51d9r-python3.13-pandas-2.3.1", "/nix/store/x6hrj2rmwikq5vda15h1wz7nk5cqf0p9-python3.13-plotly-6.5.0-dist", "/nix/store/8d9ic9nsggq79rlih5ilwlkwb3x1j0qy-python3.13-plotly-6.5.0", "/nix/store/mxab0xc9sayyx4z1kl64bv5839vzha6p-python3.13-pyarrow-20.0.0-dist", "/nix/store/n4qv08z1l18gk73va1qwzwakfmmb8qw3-python3.13-pyarrow-20.0.0", "/nix/store/56cr486aag4c7as16sq2c5lbh224ig5g-python3.13-pydot-4.0.1-dist", "/nix/store/yqcq2mizq1s97hhip4ndzxmr07ky5ppx-python3.13-pydot-4.0.1", "/nix/store/2fngznir58zqpvg2wl7iy5amlsbzhf9p-ripgrep-15.1.0", "/nix/store/d6274anycaiswzg9z9j7sgk6ci07lwgh-python3.13-sympy-1.14.0-dist", "/nix/store/ml5cwl5v531lg24vpfpak9d150iag7c9-python3.13-sympy-1.14.0", "/nix/store/4pb61ac0y2gkncak5ik1xdvzf6yx6cba-tree-2.2.1"]
+12:46:48.881 DEBUG check-upgrade:check-upgrade:build: flox_rust_sdk::providers::buildenv: using 'auto' store
+12:46:48.881 DEBUG check-upgrade:check-upgrade:build: flox_rust_sdk::providers::buildenv: building environment cmd=/nix/store/19pd6wadybgjxj2rkinskyrav11qr3wx-nix-2.31.5/bin/nix --option extra-experimental-features 'nix-command flakes' --option pure-eval false --print-build-logs build --offline --json --no-link --file /nix/store/lxssyaszj338j724k1n1s8a8bdrvfy1a-flox-buildenv-0.0.1/lib/buildenv.nix --argstr manifestLock /home/daedalus/.cache/flox/process/.tmp1ooI0c/.tmpteR0Qi
+12:46:49.592 DEBUG check-upgrade: flox_rust_sdk::providers::upgrade_checks: wrote upgrade information upgrade_information_path="/home/daedalus/dev/ai-stacks-as-code/envs/ai-notebook/.flox/cache/upgrade-checks.json"
+12:46:49.593 DEBUG flox::commands: removing process tempdir temp_dir="/home/daedalus/.cache/flox/process/.tmp1ooI0c"

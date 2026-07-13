@@ -51,6 +51,14 @@ ai-doctor *args:
     [ -f "$f" ] || { echo "not implemented: create pipeline/doctor.py" >&2; exit 1; }
     exec "{{python}}" "$f" "$@"
 
+# Serve retrieval over MCP (stdio): the "Ask Flox" tool for agents.
+mcp *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    f="{{pipeline}}/mcp_server.py"
+    [ -f "$f" ] || { echo "not implemented: create pipeline/mcp_server.py" >&2; exit 1; }
+    exec "{{python}}" "$f" "$@"
+
 # Open JupyterLab on the same env/paths/backend (exploration surface).
 notebook *args:
     #!/usr/bin/env bash

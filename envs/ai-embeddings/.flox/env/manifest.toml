@@ -26,6 +26,11 @@ chromadb.pkg-path    = "python313Packages.chromadb"
 chromadb.pkg-group = "chromadb"
 chromadb.priority = 7
 
+# MCP Python SDK — powers the "Ask Flox" retrieval server (pipeline/mcp_server.py).
+# Own pkg-group to keep its dependency closure off the heavy torch/chroma pages.
+mcp.pkg-path = "python313Packages.mcp"
+mcp.pkg-group = "mcp"
+
 [vars]
 
 [hook]

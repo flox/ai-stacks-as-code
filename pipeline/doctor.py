@@ -63,6 +63,9 @@ def main() -> int:
     fails += check_python_import("semchunk", "semchunk import", "semchunk")
     fails += check_python_import("sentence_transformers", "sentence-transformers import", "sentence-transformers")
     fails += check_python_import("chromadb", "ChromaDB import", "chromadb")
+    # MCP SDK powers the optional "Ask Flox" retrieval server; not required for
+    # the core pipeline, so a miss warns rather than failing overall readiness.
+    check_python_import("mcp.server.fastmcp", "MCP SDK import (ask-flox server)", "mcp", critical=False)
 
     # --- PyTorch (honest about the glibc mismatch) ---
     torch = None

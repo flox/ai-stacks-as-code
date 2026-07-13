@@ -46,6 +46,7 @@ brief()     { _ai_brief_just brief "$@"; }
 ai-eval()   { _ai_brief_just ai-eval "$@"; }
 notebook()  { _ai_brief_just notebook "$@"; }
 ai-doctor() { _ai_brief_just ai-doctor "$@"; }
+mcp()       { _ai_brief_just mcp "$@"; }
 '''
 zsh = '''
 _ai_brief_just() { just --justfile "${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}" "$@"; }
@@ -55,6 +56,7 @@ brief()     { _ai_brief_just brief "$@"; }
 ai-eval()   { _ai_brief_just ai-eval "$@"; }
 notebook()  { _ai_brief_just notebook "$@"; }
 ai-doctor() { _ai_brief_just ai-doctor "$@"; }
+mcp()       { _ai_brief_just mcp "$@"; }
 '''
 fish = '''
 function _ai_brief_just
@@ -68,6 +70,7 @@ function brief;     _ai_brief_just brief $argv;     end
 function ai-eval;   _ai_brief_just ai-eval $argv;   end
 function notebook;  _ai_brief_just notebook $argv;  end
 function ai-doctor; _ai_brief_just ai-doctor $argv; end
+function mcp;       _ai_brief_just mcp $argv;       end
 '''
 
 [services]
