@@ -5,6 +5,13 @@ It captures the current, verified state of the `ai-brief` RAG stack and the next
 phase we're building. The human is `stephen.swoyer@gmail.com`, working style
 noted at the end.
 
+> **STATUS (updated 2026-07-13):** The "Ask Flox" phase is **built and committed**.
+> The Flox docs+blog corpus is indexed (1,451 chunks) and retrieval is exposed as
+> an **MCP tool** (`search_flox_docs`) registered for Claude Code via `.mcp.json`.
+> See "What already exists" and "Concrete next steps" (steps 1–3 done) below. Two
+> commits landed on top of the original handoff: `d23ae8d` (corpus build + `.mdx`
+> ingest) and `e69531f` (MCP server + offline/quiet hardening).
+
 ---
 
 ## Mission (this phase)
@@ -57,7 +64,7 @@ integrated and validated). Local, offline, deterministic, extractive RAG:
 - `common.py` — shared helpers/schemas.
 
 ### Command surface (interactive-shell functions → `just` → `pipeline/*.py`)
-`ingest`, `index`, `brief`, `ai-eval`, `notebook`, `ai-doctor`. Defined as thin
+`ingest`, `index`, `brief`, `ai-eval`, `notebook`, `ai-doctor`, `mcp`. Defined as thin
 wrappers in the `ai-brief` manifest `[profile]`; they route through `justfile` to
 the scripts. **Wrappers are interactive-only** (Flox sources `[profile]` into the
 interactive shell); for scripting/CI call `just <recipe>` directly, e.g.
@@ -70,6 +77,29 @@ Embedded library, **not a server**. `index` writes and `brief` reads via
 `PersistentClient` on `work/index/`. Running `index` *is* running Chroma.
 (A `chroma` CLI is on PATH if you ever want server mode, but the pipeline uses
 PersistentClient.)
+
+### The Ask-Flox corpus + retrieval MCP tool (BUILT — commits `d23ae8d`, `e69531f`)
+- **Corpus** lives in `corpus/` (tracked in git): `docs/` + `posts/` are Flox docs/blog
+  `.mdx`, plus a case-study PDF. `.mdx` support was added to `pipeline/ingest.py`
+  (route to markdown parser; strip YAML frontmatter but carry `title`/`description`
+  forward; strip only Capitalized MDX component tags like `<Note>`/`<Tabs>`, preserving
+  lowercase `<package>`/`<owner>` CLI placeholders). `corpus/docs` was de-cloned (its
+  `.git` removed) and non-doc cruft dropped — only `.mdx`/`.md`/`.pdf` remain.
+- **One-command build:** `scripts/build-ask-flox-index.sh` runs corpus → chunks → index
+  → verify with an `ai-doctor` preflight. Run inside the env: `flox activate -- scripts/build-ask-flox-index.sh`.
+  Idempotent; rebuild whenever the corpus changes. Current index: **1,451 chunks**.
+- **MCP server:** `pipeline/mcp_server.py` — stdio server, one tool
+  `search_flox_docs(query, k=5)` → top-k **cited** passages (source_path + score + chunk id).
+  Reuses `brief.py`'s `make_query_embedder` + the index manifest; self-contained on
+  `work/index/`. Loads the embedder **offline** (`HF_HUB_OFFLINE`), keeps **stdout clean**
+  for JSON-RPC. Command surface: `just mcp` (+ interactive `mcp` wrapper). Registered for
+  Claude Code via repo-root **`.mcp.json`** (`flox activate -- just mcp`). `ai-doctor` has a
+  non-critical MCP import check. Verified end-to-end: `tools/list`/`tools/call` return
+  correct cited passages; `ai-eval` still 18/18.
+- **`mcp` SDK** = `python313Packages.mcp` in `ai-embeddings` (own pkg-group `mcp`).
+- **Gotcha recorded:** in this env, **append to `PYTHONPATH`, never overwrite it** —
+  overwriting breaks pkg-group imports (mcp/torch/chromadb). See saved memory
+  `flox-pythonpath-append-not-overwrite`.
 
 ---
 
@@ -127,21 +157,28 @@ It's *coding-agent oriented* (banner pushes `qwen3-coder`); for docs Q&A pick a 
 
 ---
 
-## Concrete next steps (when the human is ready)
+## Concrete next steps
 
-1. Confirm the corpus/index state (`work/index/`, `work/chunks.jsonl`, `index-manifest.json`).
-   **NOTE:** as of this writing the index holds **3 chunks from the eval *fixtures*** (a
-   demo run), **not** the Flox docs — don't mistake a small count for "docs loaded."
-   Also `work/` is gitignored, so on any fresh clone/machine the index is empty. Rebuild
-   from the real corpus: a fetch/sync step to pull Flox docs/blogs into `sources/` is still
-   unbuilt (likely `git clone` the docs repo + fetch blog HTML), then `ingest`+`index`.
-2. Build an **`ask`/retrieve bridge**: embed the question → ChromaDB top-k → return
-   cited chunks (+ optional generated answer). Reuse `common.py`/`brief.py` retrieval code.
-3. Wrap that retrieval as an **MCP tool** (see `flox/flox-mcp-server` in the llamacpp env
-   for the pattern) so Claude Code can call it.
-4. Keep the index **fresh** (re-index on doc changes). Retrieval quality is the bottleneck.
-5. Verify empirically (imports, a real query returning correct cited passages), and
-   extend `ai-eval`/`ai-doctor` to cover the new surface.
+**DONE (committed):**
+1. ~~Confirm/rebuild the corpus & index from the real Flox docs.~~ Corpus is in `corpus/`
+   (tracked); `scripts/build-ask-flox-index.sh` builds it; index holds **1,451 real doc
+   chunks** (no longer the 3 eval-fixture chunks). NOTE: `work/` is still gitignored, so on a
+   **fresh clone/machine, re-run the build script** to repopulate the index before use.
+2. ~~Build an `ask`/retrieve bridge.~~ Done inside the MCP tool (`search_flox_docs`) —
+   embed → ChromaDB top-k → cited chunks. Reuses `brief.py` retrieval.
+3. ~~Wrap retrieval as an MCP tool.~~ `pipeline/mcp_server.py` + `.mcp.json`; verified.
+   (Aside: `flox/flox-mcp-server` turned out to be a prebuilt package, not readable
+   source — used the standard `mcp` Python SDK / `FastMCP` pattern instead.)
+
+**REMAINING / next levers:**
+4. Keep the index **fresh** — re-run the build script when the corpus changes. Retrieval
+   quality is the bottleneck; if it plateaus, improve *retrieval* first (better off-the-shelf
+   embedder or a cross-encoder reranker), not the generator.
+5. Optional generation path — wire an `ask` bridge that feeds retrieved chunks to a model
+   (hosted Claude via the MCP tool is already the simplest path; fully-local via `~/dev/llamacpp`
+   remains the alternative). Deliberately **not** built yet (retrieval decoupled from generation).
+6. Possible hardening: a standalone MCP smoke test in CI; corpus fetch/refresh automation
+   (currently the docs were cloned into `corpus/` by hand); dedup/rerank if recall needs it.
 
 ---
 
