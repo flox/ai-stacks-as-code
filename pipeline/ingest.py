@@ -24,7 +24,7 @@ except Exception:  # noqa: BLE001
 from common import env_path, relative_display_path, sha256_text, token_count, write_jsonl
 
 SUPPORTED_EXTENSIONS = {
-    ".pdf", ".md", ".markdown", ".txt", ".text", ".note", ".notes",
+    ".pdf", ".md", ".markdown", ".mdx", ".txt", ".text", ".note", ".notes",
     ".srt", ".vtt", ".jsonl", ".csv", ".html", ".htm",
 }
 
@@ -32,6 +32,7 @@ SOURCE_TYPES = {
     ".pdf": "pdf",
     ".md": "markdown",
     ".markdown": "markdown",
+    ".mdx": "markdown",
     ".txt": "text",
     ".text": "text",
     ".note": "notes",
@@ -239,6 +240,22 @@ def parse_jsonl(path: Path) -> tuple[str, dict[str, object]]:
 
 def parse_markdown(path: Path) -> tuple[str, dict[str, object]]:
     raw = read_text_file(path)
+    # Strip a leading YAML frontmatter block (common in .md/.mdx), but keep the
+    # human-meaningful title/description as leading text — good retrieval signal,
+    # without the structural noise (isPublished, orderBy, thumbnail, ...).
+    fm = re.match(r"---\r?\n(.*?)\r?\n---\r?\n", raw, flags=re.DOTALL)
+    if fm:
+        carried = []
+        for key in ("title", "description"):
+            m = re.search(rf"^{key}:\s*(.+?)\s*$", fm.group(1), flags=re.MULTILINE)
+            if m:
+                carried.append(m.group(1).strip().strip("'\""))
+        raw = (". ".join(carried) + "\n\n" if carried else "") + raw[fm.end():]
+    # MDX ships JSX component tags (Capitalized by convention: <Note>, <Tabs>,
+    # <Accordion>). Strip only those. Deliberately NOT lowercase <...>: docs use
+    # <package>, <owner>, <name> as CLI placeholders — real content to preserve —
+    # and a permissive lowercase match also eats prose like "a<b and c>d".
+    raw = re.sub(r"</?[A-Z][A-Za-z0-9.]*(?:\s[^>]*?)?/?>", " ", raw)
     # Keep this deterministic and dependency-light: remove structural markup
     # while preserving the words authors wrote.
     raw = re.sub(r"```.*?```", " ", raw, flags=re.DOTALL)
@@ -270,7 +287,7 @@ def parser_for(path: Path) -> Callable[[Path], tuple[str, dict[str, object]]] | 
         return parse_csv
     if ext == ".jsonl":
         return parse_jsonl
-    if ext in {".md", ".markdown"}:
+    if ext in {".md", ".markdown", ".mdx"}:
         return parse_markdown
     if ext in {".txt", ".text", ".note", ".notes"}:
         return parse_plain
