@@ -27,7 +27,10 @@ index *args:
     [ -f "$f" ] || { echo "not implemented: create pipeline/index.py" >&2; exit 1; }
     exec "{{python}}" "$f" "$@"
 
-# Generate the evidence-backed brief (main demo command).
+# Generate the extractive brief. PROOF-OF-CONCEPT ONLY: this shows the
+# retrieval+index work end-to-end; it summarizes broadly and its keyword-themed
+# output reads as off-topic on pointed questions. For "Ask Flox" Q&A use the
+# `mcp` recipe (search_flox_docs) and let the agent synthesize, not `brief`.
 brief *args:
     #!/usr/bin/env bash
     set -euo pipefail

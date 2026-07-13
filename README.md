@@ -43,8 +43,16 @@ ai-doctor            # confirm the environment is ready on this machine
 # drop files into sources/, then:
 ingest               # sources/          -> work/documents.jsonl, work/chunks.jsonl
 index                # work/chunks.jsonl -> work/index/
-brief                # chunks + index    -> reports/brief.md, reports/brief.json
+brief                # chunks + index    -> reports/brief.md (proof-of-concept only; see note)
+mcp                  # serve retrieval as an "Ask Flox" MCP tool for agents
 notebook             # open JupyterLab on the same env/paths/backend
+```
+
+For the "Ask Flox" demo, build the docs index and use the **MCP tool**, not `brief`:
+
+```bash
+flox activate -- scripts/build-ask-flox-index.sh   # corpus/ -> chunks -> index -> verify
+# `search_flox_docs` is then available to Claude Code via .mcp.json
 ```
 
 ## Command surface
@@ -53,10 +61,18 @@ notebook             # open JupyterLab on the same env/paths/backend
 |---|---|
 | `ingest` | Parse and normalize raw sources into deterministic JSONL chunks |
 | `index` | Embed chunks (per `AI_BACKEND`) and build the local vector index |
-| `brief` | Retrieve, cluster, summarize, and cite — the main output |
+| `mcp` | Serve retrieval as the `search_flox_docs` **MCP tool** — the "Ask Flox" surface for agents |
+| `brief` | Extractive retrieve/cluster/summarize digest — a proof-of-concept, **not** the Q&A surface (see note) |
 | `ai-eval` | Lightweight pipeline regression check against fixtures |
 | `notebook` | JupyterLab exploration surface |
 | `ai-doctor` | Report whether the environment is ready (backend, torch, paths) |
+
+> **Use `mcp` for questions, not `brief`.** `search_flox_docs` returns focused,
+> cited passages for a query and lets the agent synthesize the answer — that's the
+> intended "Ask Flox" flow. `brief` exists only to *prove the retrieval + index
+> work end-to-end*: it summarizes broadly across the whole corpus, so on a pointed
+> question its keyword-clustered themes read as off-topic salad. That's expected;
+> it's a demonstration artifact, not the product surface.
 
 Commands are thin shell wrappers (defined in the Flox manifest) that call `just`
 recipes, which call `pipeline/<stage>.py`. `just` is the routing layer, so an
