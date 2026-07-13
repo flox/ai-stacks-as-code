@@ -1,0 +1,109 @@
+---
+title: 'Transform SSH Host Management with sshs and Flox'
+altTitle: 'Transform SSH Host Management with sshs and Flox'
+description: 'sshs is a clean, simple TUI tool that lets you visually scroll through your SSH connections—identifying, selecting and easily establishing just the connection you want.'
+metaDescription: 'sshs is a clean, simple TUI tool that lets you visually scroll through your SSH connections—identifying, selecting and easily establishing just the connection you want.'
+isPublished: true
+isPopularPackage: true
+packageCategory: system-admin
+packageName: sshs
+author: Steve Swoyer
+publishedDate: 21 February 2025
+thumbnail: '/images/blog/chamber-of-32-doors.webp'
+orderBy: 20250225
+---
+
+Picture this: you’re awash in SSH connections. Day in and day out, you use SSH to connect to app servers, databases, Kubernetes nodes, CI/CD runners, seedboxes, Raspberry Pis, routers, switches, etc. These endpoints are dispersed across AWS, your org’s on-prem infrastructure, hosting providers in the EU, your home, your parents’ condo, and your best friend’s third-floor walk-up in the East Village.
+
+You can’t keep track of them all. You have trouble remembering what their names are, what they’re for, etc. And each requires different key pairs, usernames, and ports. Some even require [YubiKeys](https://en.wikipedia.org/wiki/YubiKey)!
+
+Maybe you don’t have to picture it, ‘cuz you’re living it. But how do you _deal_ with it?
+
+Sshs! No, I’m not [sshshing you](https://www.youtube.com/watch?v=G1PPQArkw-c), I’m introducing the package guide for [sshs](https://github.com/quantumsheep/sshs), a terminal user interface (TUI) for SSH. If you deal with a surfeit of SSH hosts, keys, ports, and so on, sshs is for you.
+
+It’s a neat tool that does one thing and one thing only. Read on to find out how it can fit into your workflow.
+
+## Getting It
+
+First thing’s first: You’ve already [downloaded](https://www.flox.dev/get) and installed Flox, right?
+
+If so, you can get our `sshs` package by initializing a Flox environment in a new project folder and installing it from the Flox Catalog. Once you activate your Flox environment, the command `sshs` is available for use.
+
+This is literally as simple as typing:
+
+```
+mkdir sshs && cd sshs
+flox init && flox install sshs
+flox activate
+```
+
+You can also `flox install sshs` into an _existing_ Flox project environment, of course.
+
+## Using It
+
+This walk-through is going to be short and sweet, because `sshs` does basically one thing—superbly.
+
+Maybe you’re familiar with `.ssh/config`, which gives you a way to define ssh host entries, but you’ve never bothered populating it. Or maybe you _have_ populated it, but you gave up trying to maintain it, because it doesn’t eliminate the cognitive overhead involved in keeping track of a slew of SSH connections. Either way, you still have to remember which names you’ve given to which hosts. For example, typing:
+
+```
+ssh foo
+```
+
+And hitting the `TAB` key might return:
+
+```
+foo		foooobar
+foobar		foo-bar
+fooo		fooo-barr
+fooobar		foooo-barrrr
+foooo		fooooo-barrrr
+```
+
+Which host do you want? (Aside: Maybe you shoulda used more descriptive names for stuff?) Usually you end up `cat`- or [bat](https://github.com/sharkdp/bat)-ing your `.ssh/config` file to figure out which host alias corresponds to which real-world host. If only there were a TUI tool that would give you a way to visually scroll through the connections you’ve predefined in `.ssh/config`—identifying, selecting and easily initiating _just_ the connection you want.
+
+Well obviously there is. This is sshs’ _raison d’etre_. Let me show you:
+
+![](/images/blog/sshs1.png)
+
+sshs displays not just the specific alias assigned to a host, but its connection details, too. Using the cursor keys navigates up and down. Hitting `ENTER` establishes an SSH connection and puts you into a remote pty.
+
+Typing in the bounded box across the top of the screen enables a kind of _very_ fuzzy matching: if the letters match a string in `.ssh/config`, sshs will show them in its window.
+
+For example, typing “epitro” (for `epitropos`, one of my internal servers) shows two results:
+
+![](/images/blog/sshs2.png)
+
+The letters in the string “flox” are a little more unique, yielding only relevant results:
+
+![](/images/blog/sshs3.png)
+
+Again, pressing `ENTER` establishes the connection and—if the contents of your `.ssh/config` file are in order—puts you into a pty on the remote system. Note: if there’s an error _anywhere_ in `config`, sshs will exit when you hit `ENTER` to establish a connection—_any_ connection, even one that’s unrelated to the error.
+
+It seems to parse and evaluate `config` when it establishes the connection. So you could get errors like this:
+
+```
+flox [sshs] daedalus@askesis:~/dev/sshs$ sshs
+Running command: ssh "anaximander"
+/home/daedalus/.ssh/config line 106: Bad port '65536'.
+/home/daedalus/.ssh/config: terminating, 1 bad configuration options
+```
+
+If your `config` file is in order, you can connect as expected. Below, I’ve connected to my test box `noein`:
+
+![](/images/blog/sshs4.png)
+
+And once you type `exit` to close your SSH session, you’re put right back into sshs.
+
+![](/images/blog/sshs5.png)
+
+The only thing it doesn’t do—a feature that could improve it, I think—is give you a way to edit host entries.
+
+## Summary
+
+That’s basically sshs. It does one thing and it does it well. And looks good doing it.
+
+You can find `sshfs` and about 150,000 other packages (along with millions of historical package-version combinations) in the Flox Catalog. Need an `ssh` package to go along with `sshs`? Need [sshfs](https://github.com/libfuse/sshfs)? Or how about [wish](https://github.com/charmbracelet/wish), from the redoubtable, irreplaceable, magnificent folks at [Charm](https://github.com/charmbracelet)? They’re in there.
+
+And with that I give you … The Weekend.
+
+Happy Hacking!

@@ -1,0 +1,34 @@
+---
+title: 'Get GitHub in Your Terminal, No Browser Required, with gh-dash and Flox'
+altTitle: 'Get GitHub in Your Terminal, No Browser Required, with gh-dash and Flox'
+description: 'gh-dash is a visual, intuitive terminal-based tool you can use to manage GitHub pull requests, issues, and code reviews.'
+metaDescription: 'gh-dash gives you an interactive TUI dashboard for tracking and managing GitHub PRs, issues, and code reviews. It allows you to filter PRs by review status, view diffs, merge requests, and assign or manage code reviews.'
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: gh-dash
+author: Michael Stahnke
+publishedDate: 04 October 2024
+thumbnail: '/images/blog/dashboard-postits.webp'
+orderBy: 20241004
+---
+
+
+It’s Friday again, and that means it’s time for Fun Packages Friday, in which we introduce and highlight a piece of software in the Flox Catalog, powered by Nixpkgs. 
+
+This week, I wanted to show off a tool called gh-dash. it’s a terminal ([ncurses](https://github.com/mirror/ncurses)-based) interface to view Pull Requests (PR) and Issues on Github. 
+
+To give it a spin with Flox, simply run: `flox install gh-dash` to place it in an environment.
+
+If you don’t already have Flox installed, you can [get it here](https://flox.dev/docs/install-flox/).
+
+The only configuration setting required is to have your `GITHUB_TOKEN` environment variable set prior to invoking `gh-dash`. 
+
+The default screen brings up pull-requests you’ve opened that need your review, or that you’re somehow involved in. Hitting the `s` key switches to “Issue” mode, where you can see the GitHub issues you’ve opened, are assigned, or are involved in.
+
+![](/images/blog/gh-dash.png)
+
+That’s about all there is to it. Maybe `gh-dash` can help your day-to-day workflows a bit, just like Flox.
+
+Happy hacking!
+

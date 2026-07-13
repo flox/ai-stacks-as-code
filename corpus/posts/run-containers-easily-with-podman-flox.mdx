@@ -1,0 +1,175 @@
+---
+title: 'Run Containers Easily with Podman + Flox'
+altTitle: 'Run Containers Easily with Podman + Flox'
+description: 'You can run containers using Podman and Flox without installiing any heavy desktop applications or starting daemons.'
+metaDescription: 'You can run containers using Podman and Flox without installiing any heavy desktop applications or starting daemons.'
+isPublished: true
+isPopularPackage: true
+packageCategory: containers
+packageName: podman
+author: Ross Turk
+publishedDate: 25 April 2024
+thumbnail: '/images/blog/underwater-datacenter.webp'
+orderBy: 20240424
+---
+
+For years, I used containers every single day.
+
+Almost always, it was the same pattern: I would spin up container with a tool or service I need - a CMS, data orchestration platform, time-series database, or old text-based adventure game - then shut it down and try again with _at least one_ volume mounted and _at least one_ port forwarded.
+
+I may not have always needed the isolation that containers provided; in fact, I would work around it a lot of the time. But they were still the easiest way to get the software I needed.
+
+Since I started using Flox, I don't use containers to consume software anymore. But they're still incredibly useful.
+
+When we really _do_ need to run something in isolation, there’s no substitute for the almighty Linux container. It is the perfect balance of isolation and convenience for most cases. And, as it turns out, it’s extremely convenient to run containers using [Podman](https://podman.io) and Flox.
+
+## Activating Podman in a FloxHub Environment
+
+The easiest way to run containers on a machine that doesn’t already have Docker or Podman installed is to activate the [flox/podman](https://hub.flox.dev/flox/podman) remote Flox environment.
+
+This Flox environment contains:
+
+- the `podman` package
+- [`podman-compose`](https://github.com/containers/podman-compose), a Podman alternative for Docker Compose
+- a hook that verifies configuration and starts the Podman machine
+
+To activate it, [Install Flox](https://flox.dev/docs/install-flox/) and run the following command:
+
+```console
+~ % flox activate -r flox/podman
+```
+
+The best thing about Podman is that it doesn’t require you to run any services or daemons. You will, however, need a Podman machine if you’re running on macOS. The profile script for this environment will ask you whether you want this Flox environment to be started automatically when you activate the environment in the future:
+
+```console
+~ % flox activate -r flox/podman
+✅ You are now using the environment 'flox/podman' (remote).
+To stop using this environment, type 'exit'
+
+Would you like to create and start the Podman virtual machine?
+> Always - start now & on future activations
+  Yes - start now only
+  No - do not start
+```
+
+Once the environment is activated and Podman is ready, you will see the following output:
+
+```console
+🍟 Podman is available.
+```
+
+This means that you can now use the `podman` command within this activated shell. To verify that it works we can run the Podman `hello` image:
+
+```console
+flox [flox/podman] ~ % podman run -it quay.io/podman/hello
+!... Hello Podman World ...!
+
+         .--"--.
+       / -     - \
+      / (O)   (O) \
+   ~~~| -=(,Y,)=- |
+    .---. /`  \   |~~
+ ~/  o  o \~~~~.----. ~~
+  | =(X)= |~  / (O (O) \
+   ~~~~~~~  ~| =(Y_)=-  |
+  ~~~~    ~~~|   U      |~~
+
+Project:   https://github.com/containers/podman
+Website:   https://podman.io
+Desktop:   https://podman-desktop.io
+Documents: https://docs.podman.io
+YouTube:   https://youtube.com/@Podman
+X/Twitter: @Podman_io
+Mastodon:  @Podman_io@fosstodon.org
+```
+
+When you no longer need to use Podman, exit the Flox environment by typing `^D` (Ctrl+D) or `exit` - it’s as easy as leaving the subshell we created when we ran `flox activate`.
+
+All of this was possible without installing a desktop app, or leaving the shell you were already working in. When you no longer need it, and you exit, it’s simply not in your `$PATH` anymore.
+
+### Seeing how it works
+
+FloxHub environments can be viewed with the `flox list` command. You can pass it `-c` to see the entire manifest (instead of just a list of packages) along with `-r` and an environment reference. To see the latest upstream state on FloxHub (rather than your local cache), add `--upstream`.
+
+To see what’s inside this environment, run `flox list -cr flox/podman`. You can see the list of packages and the contents of the script that runs when it is activated.
+
+This is just an example. It is easy to create your own Flox environments just like this one. and push them to FloxHub so you can use them everywhere you go.
+
+## Creating a Flox project with Podman
+
+Sometimes you need Podman as a permanent part of your project's stack. Perhaps you require multiple copies of a service that attempt to claim the same ports. Or you need to run a set of tests in a way that is guaranteed not to be influenced by outside software or configuration.
+
+With Flox, Podman can be included in a project the same way we would include any other piece of software.
+
+Let’s say we want to start a project where we use Python to store information inside a PostgreSQL database. We can initialize our project using Flox with the `flox init` command.
+
+```console
+~ % mkdir dataproject
+~ % cd dataproject
+dataproject % flox init
+✨ Created environment 'dataproject' (aarch64-darwin)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+
+dataproject %
+```
+
+Then, we can install Python, our PosgreSQL client, and Podman inside our new environment using `flox install`, and then activate it using `flox activate`:
+
+```console
+dataproject % flox install python311 python311Packages.psycopg2 podman
+✅ 'python311' installed to environment in current directory
+✅ 'psycopg2' installed to environment in current directory
+✅ 'podman' installed to environment in current directory
+
+dataproject % flox activate
+✅ You are now using the environment in current directory.
+To stop using this environment, type 'exit'
+
+flox [dataproject] dataproject %
+```
+
+Inside our activated Flox environment, we can start the Podman machine (if on a Mac) and then spin up an instance of PostgreSQL for us to write our data into:
+
+```console
+flox [dataproject] ~ % podman machine start   # if on macOS!
+flox [dataproject] ~ % podman run --name datastore -p 5432:5432 -e POSTGRES_PASSWORD=floxfan -d postgres
+1655040dd652a3e0544205c905b2fbfa872acf7b0578fde8be1e745f99d73c36
+flox [dataproject] ~ %
+```
+
+With our database started, we can use Python and the `psycopg2` PostgreSQL client to connect to it and do our work:
+
+```console
+flox [dataproject] dataproject % python
+Python 3.11.8 (main, Feb  6 2024, 21:21:21) [Clang 16.0.6 ] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import psycopg2
+>>> conn = psycopg2.connect("dbname=postgres user=postgres host=localhost password=floxfan")
+>>> cur.execute("SELECT data FROM test WHERE num = 74")
+[victory commences]
+>>> exit
+```
+
+So, what has Flox left behind? If we look inside our new project directory, we can see that Flox has created a set of files. They are all tidily tucked into the `.flox` directory, and they can be used to rebuild this environment in the future.
+
+```console
+flox [dataproject] dataproject % find .
+.
+./.flox
+./.flox/cache
+./.flox/env.json
+./.flox/env
+./.flox/env/manifest.toml
+./.flox/env/manifest.lock
+./.flox/.gitignore
+./.flox/run
+./.flox/run/aarch64-darwin.dataproject
+```
+
+These files can be checked into a Git repository alongside your project code. The `.gitignore` file is there to make sure that you don’t check in the runtime files in `.flox/run`, which are symlinks created on each system where you run Flox.
+
+Flox is free to [download](https://flox.dev/docs/install-flox/) and use. Next time you (or your project) needs to run a container, give it a try!

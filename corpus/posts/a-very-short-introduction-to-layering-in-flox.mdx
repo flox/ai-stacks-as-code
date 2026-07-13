@@ -1,0 +1,183 @@
+---
+title: 'A Very Short Introduction to Layering in Flox'
+altTitle: 'A Very Short Introduction to Layering in Flox'
+description: "Flox environments aren't isolated; they layer upon one another, allowing you to combine them in endless ways while keeping your toolsets discrete."
+metaDescription: "Flox environments aren't isolated; they layer upon one another, allowing you to combine them in endless ways while keeping your toolsets discrete."
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 2 Jul 2024
+thumbnail: '/images/blog/worlds-in-worlds.webp'
+orderBy: 20240702
+---
+
+In games like _Settlers of Catan_, the _Civilization_ series, or even _Monopoly_, a player's strengths or weaknesses are modified by the characteristics of the terrain they occupy, as well as the affordances of this terrain. Basically, their power and capabilities are determined _by what's underneath them_.
+
+This is the easiest way to explain the concept of layering in Flox. When you layer Flox environments, the upper layers in the stack inherit the features and capabilities of the layers beneath them.
+
+In other words, the layered Flox stack becomes at least as powerful as the sum of its constituent parts.
+
+This means you can use Flox to create simple, use case-specific environments and layer them to form very powerful combinations. So what does this look like in practice—and why would you _want_ to do this? Glad you asked! This blog demonstrates both the logic and the logistics of layering in Flox.
+
+## Stacking Environments
+
+Let's start with a quick-and-dirty example of layering in practice. It's 9 AM. You've just finished your first octuple-shot macchiato of the day. Time to activate the Flox environments you need for today's work!
+
+First, you activate `default`, the Flox environment that lives in your $HOME directory. This contains `awscli2`, `git`, `jq`, `lastpass`, your Rust toolchain, [`pokemonsay`](https://github.com/possatti/pokemonsay), and tons of other stuff. If your `cwd` is `~/dev/git/api-service`, you'd type:
+
+`~ % flox activate -d ~/`
+
+Next, you activate your Node.js environment, `node22`, which includes basic stuff like ESLint, Prettier, and Mocha, along with tools like `gcc`, `automake`, the `boost` libraries, and other stuff you use to work with [`node-gyp`](https://github.com/nodejs/node-gyp), a cross-platform tool for building and compiling native add-ons for Node.js.
+
+`~ % flox activate -d ~/dev/floxenvs/node22`
+
+Finally, you activate your `1p` environment, which includes the hooks you use to automate secrets management for your workflows in AWS, GitHub, and elsewhere.
+
+`~ % flox activate -d ~/dev/floxenvs/1p`
+
+In your terminal, this results in something like this:
+
+```
+~ % flox activate -d ~/
+✅ You are now using the environment 'default'.
+To stop using this environment, type 'exit'
+
+flox [default] ~ %/ flox activate -d ~/dev/floxenvs/node22
+✅ You are now using the environment 'node22'.
+To stop using this environment, type 'exit'
+
+flox [node22 default] ~ % flox activate -d ~/dev/floxenvs/1p
+✅ You are now using the environment '1p'.
+To stop using this environment, type 'exit'
+
+flox [1p node22 default] ~ %
+```
+
+You're now within a Flox stack, **`flox [1p node22 default]`**, comprising secrets management and Node.js + runtime dependencies layered on top of your default Flox environment. The binaries in this environment are unavailable when you're _outside_ of it; _inside_ of it, however, you can access and run them—along with any resources available to you as a user on your local system.
+
+Try doing that in a container!
+
+## Layering 101: The Coworker from Hell
+
+It's 9:01. Those Node.js v18 apps aren't going to refactor themselves.
+
+But something's bugging you. A coworker who was fond of playing practical jokes recently left your org, and by sheer bad luck, you inherited some of their projects. Last night, whilst poking around in a couple of their repos, you stumbled across several dozen strange, possibly encrypted files.
+
+They had unfamiliar extensions, like:
+
+```
+./malbouroboros/src/module8.mal
+./malbouroboros/src/module7.mal
+./malbouroboros/src/module1.mal
+./malbouroboros/src/module14.mal
+```
+
+and:
+
+```
+./hassle/config/config19.hs
+./hassle/config/config10.hs
+./hassle/config/config14.hs
+./hassle/config/config15.hs
+```
+
+You can't stop thinking about those repos—and those bizarre file extensions. What _are_ they? What are they used for? Are they encrypted—or just pseudo-random nonsense?
+
+You _could_ do a Google search to find out, but you've got [AIChat](https://github.com/sigoden/aichat), a cool tool that lets you prompt LLMs from OpenAI, Anthropic, Ollama, and others via the command line. You can even use AIChat to pass LLMs files for analysis. You quickly run AIChat via the FloxHub environment you created and pushed to FloxHub:
+
+```
+flox [1p node22 default] flox activate -r daedalus/aichat
+```
+
+FloxHub environments are cached locally after the first activation. The activation session is temporary—once you type `exit`, the session ends—but the cached environment remains for future use. They're great for ad hoc use cases, like this one. Presto! AIChat is up in less than a second in your terminal—it's now the top layer in your stack. You know you're in a FloxHub environment because your Flox prompt tells you so:
+
+```
+flox [daedalus/aichat (remote) 1p node22 default] % aichat what is a .mal file type?
+
+A .mal file type is commonly used as an abbreviation for the Malbolge
+Programming language, a difficult-to-understand esoteric programming
+language. Malbolge is known for being one of the most challenging
+languages to learn and understand due to its complex and confusing design.
+```
+
+It tracks. It is absolutely on-brand for your former coworker, who always reminded you of _The Office's_ Dwight Schrute. Okay. So you've got a mysterious repo of [Malbolge](https://en.wikipedia.org/wiki/Malbolge) code. What can you do with this?
+
+```
+flox [daedalus/aichat (remote) 1p node22 default] % aichat \
+    can i port malbolge code to python or javascript?
+
+Yes, it is possible to port Malbolge code to Python or JavaScript.
+However, Malbolge is known as one of the most difficult programming
+languages to understand and work with, so it may be challenging. You
+will need a good understanding of both Malbolge and the target
+language in order to successfully translate the code.
+```
+
+Curious, you decide to take a look at one of the files:
+
+```
+flox [daedalus/aichat (remote) 1p node22 default] % cat malbouroboros/config/01.mal
+
+(=<`#9]~6ZY32VxwvutTSRqp+mlk\*ihg&edcbA98w76)4X2Vtsrqpomjilgfdcba\_^]ZYXWVTSRQPOMKJIHG?}
+=<#9]7<)1s-xvtr-ponm+lkjih*g&fe(bY<6ZZZZZZZX4V2RQPO+MKJ*HGEDCB~A?=<:#9]~6ZY32VxwvutTSRqp+mlk\*ihg&edcbA98w76)4X2Vtsrqpomjilgfdcba\_^]ZYXWVTSRQPOMKJIHG?}
+=<#9]7<)1s-xvtr-ponm+lkjih*g&fe(bY<6ZZZZZZZX4V2RQPO+MKJ*HGEDCB~A?=<:#9]~6ZY32VxwvutTSRqp+mlk\*ihg&edcbA98w76)4X2Vtsrqpomjilgfdcba\_^]ZYXWVTSRQPOMKJIHG?}
+=<#9]7<)1s-xvtr-ponm+lkjih*g&fe(bY<6ZZZZZZZX4V2RQPO+MKJ*HGEDCB~A?=<:#9]~6ZY32VxwvutTSRqp+mlk\*ihg&edcbA98w76)4X2Vtsrqpomjilgfdcba\_^]ZYXWVTSRQPOMKJIHG?}
+=<#9]7<)1s-xvtr-ponm+lkjih*g&fe(bY<6ZZZZZZZX4V2RQPO+MKJ*HGEDCB~A?=<:#9]~6ZY32VxwvutTSRqp+mlk\*ihg&edcbA98w76)4X2Vtsrqpomjilgfdcba\_^]ZYXWVTSRQPOMKJIHG?}
+```
+
+That looks ... terrifying. But maybe the Power of AI can help you make short work of this cryptic code?
+
+```
+flox [daedalus/aichat (remote) 1p node22 default] % cat ./malbouroboros/config/01.mal \
+    | aichat can you tell me what this does
+
+This code appears to be a series of encoded messages in a specific format.
+It seems to consist of characters and symbols that do not follow a common
+or recognizable pattern. Without more information about the encoding method
+used, it is difficult to make sense of the code. Additional context or
+decoding instructions would be needed to decipher the messages.
+```
+
+Yikes! Not gonna happen. But what about those `.hs` files? What's in _that_ repo? More of the same?
+
+```
+flox [daedalus/aichat (remote) 1p node22 default] % aichat \
+    what type of file lives in a repo called hassle and has the extension .hs?
+
+A Haskell source code file would live in a repository called "hassle" and
+have the extension ".hs". Haskell is a functional programming language
+commonly used for writing source code files with the ".hs" extension.
+```
+
+That's more like it. You've actually heard of Haskell! Maybe you could do something with this repo?
+
+```
+flox [daedalus/aichat (remote) 1p node22 default] % aichat \
+    is porting haskell code to python or javascript something i could do on my lunchbreak?
+
+Porting Haskell code to Python or JavaScript on your lunch break can be quite
+challenging due to the fundamental differences in these languages and may
+require a significant amount of code restructuring and rewriting to achieve
+the same functionality in the target languages. Overall, porting Haskell code
+to Python or JavaScript would be a daunting task that would likely require
+more time than you have available on your lunch break.
+```
+
+With that, you decide it's time to get to work. It's 9:15, and you've still got to figure out how to work around breaking changes in Node v22. That's a daunting enough task for you, thank you very much. But at least you've got a sense of where to start researching next.
+
+Shaking your head, you type `exit`, killing your temporary Flox AIChat environment. Not only does this put you back in your layered Flox stack, but because you were using a FloxHub environment, there's no clean up: you don't have to uninstall any packages, or hunt down and delete orphaned libraries, config files, etc.
+
+## Wanna Take a Test Drive?
+
+There's a lot more to layering in Flox, and we'll get down to the nitty gritty in a follow-up article.
+
+SPOILER ALERT: We'll show how you can create a layered Flox stack that replicates a multi-container environment on your local system, with seamless access to all of your local resources. In a Flox stack, your environment variables are available and just work. You don't have to configure Flox to mount storage in your home directory or source code repo. You don't need to set environment variables and pass them into Flox, as with containers. And when you're "inside" a Flox environment, you're also "inside" your local system, so you won't ever be blocked because the tools you need aren't available.
+
+And did we mention that it's super easy to containerize your Flox environments, should you need to?
+
+Anyway, if you're at all intrigued by this walk-through, why not take Flox for a test drive?
+
+[You can download](https://www.flox.dev/get) Flox for MacOS, as well as Red Hat- and Debian-flavored Linuxes.
+
+Discover how Flox can transform your workflow in ways both subtle and stupendous.

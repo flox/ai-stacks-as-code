@@ -1,0 +1,111 @@
+---
+title: 'Intro to the Flox CLI, Part One: Easy Environments'
+altTitle: 'Intro to the Flox CLI, Part One: Easy Environments'
+description: 'Flox makes it easy to create ephemeral environments and try new tools without making a mess all over your desk.'
+metaDescription: 'Flox makes it easy to create ephemeral environments and try new tools without making a mess all over your desk.'
+isPublished: true
+category: guides
+author: Ross Turk
+publishedDate: 26 March 2024
+thumbnail: '/images/blog/magic-toy-box.jpg'
+orderBy: 20240319
+---
+
+This happens to me all the time, and it’s one of my favorite things. Someone sends me an instant message that looks like this:
+
+![](/images/blog/charasay-is-the-bomb.png)
+
+This is good. Generally speaking, I like fun stuff like this. My pulse quickens.
+
+But I also start to notice the earliest signs of skepticism forming. Too many times in the past, a curiosity like this turns into a multi-hour project that leaves my system in a weird state. The last thing I need is to break my working setup.
+
+I hit the README anyway. This is a Rust app - a fun one, from the looks of it - and that means running `cargo install charasay` is the mainstream way to go. Here’s the problem: I am not a Rust dev, I don’t have the [Rust stack](https://www.rust-lang.org/tools/install) installed, and this is starting to sound like a heavier lift than it’s worth.
+
+Fortunately, this can be installed with Flox. I know because I can use [`flox search`](https://flox.dev/docs/reference/command-reference/flox-search/) to find it:
+
+```
+% flox search charasay
+charasay  The future of cowsay - Colorful characters saying something
+
+Use 'flox show <package>' to see available versions
+
+%
+```
+
+This command searches through the Flox Catalog for [charasay](https://github.com/latipun7/charasay), which is based on [Nixpkgs](https://github.com/NixOS/nixpkgs) and contains over 80,000 packages. Nixpkgs is the largest package repository in the world and holds an amazing assortment of stuff for powering desktops, servers, and clusters. It’s the closest to “everything” that a package repository has come thus far, and it’s maintained by an amazing global Nix community.
+
+Let’s install it!
+
+First, we'll need a directory to work in. I tend to put stuff in a directory called `playgrnd` when they’re for fun, inconsequential experiments like this. That makes them easier to cull later, but, more importantly, they are a good reminder that it’s important (even for serious adults like me) to play.
+
+Let's call our new subdirectory `cows`, for reasons which will soon become apparent. Once we have made it, let's and activate a new environment inside it with `flox init`:
+
+```
+% mkdir -p ~/playgrnd/cows && cd ~/playgrnd/cows
+% flox init
+✨ Created environment cows (aarch64-darwin)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+
+%
+```
+
+The [`flox install`](https://flox.dev/docs/reference/command-reference/flox-install/) command installs my new toy into this new environment.
+
+```
+% flox install charasay
+✅ 'charasay' installed to environment cows at /Users/rturk/playgrnd/cows
+
+%
+```
+
+This environment is not yet active. Flox has not installed anything into our system, just into this discrete environment. Because we haven't activated it, nothing has changed. Let’s do so now with [`flox activate`](https://flox.dev/docs/reference/command-reference/flox-activate/):
+
+```
+% flox activate
+✅  You are now using the environment cows at /Users/rturk/playgrnd/cows.
+    To stop using this environment, type 'exit'
+
+flox [cows] %
+```
+
+So what does it mean for an environment to be “active”? Most importantly:
+
+- Entries are added to your `PATH` that point to the environment’s package locations
+- New environment variables and aliases are set, if the environment contains them
+- Shell hooks are executed
+
+We haven’t provided any environment variables or aliases yet. We also haven’t created any shell hooks, although those are really useful - they allow you to run things when environments activate (like `echo "hello world"` or `venv/bin/activate`, for starters).
+
+In short, since we just created this environment, only the first of these things matters. You can see that our new environment is activated by looking at the first entry in our `PATH`:
+
+```
+flox [cows] % echo $PATH | cut -f1 -d:
+/Users/rturk/playgrnd/cows/.flox/run/aarch64-darwin.cows/bin
+
+flox [cows] %
+```
+
+Once we run our new favorite tool, `charasay`, we can see that it is, indeed, a lot of fun. It’s like cowsay, but more colorful and with more characters to choose from.
+
+![](/images/blog/flox-is-cool-mooo.webp)
+
+This was neat. I’m thoroughly glad I checked this tool out, and I can think of a few ways to use it to spice up an otherwise boring terminal session. Perhaps I can have a chicken congratulate me on my commits. Fun!
+
+But, even more importantly, I’ve had all of my fun in an isolated playground. I can deactivate this new Flox environment by exiting the subshell created by `flox activate`:
+
+```
+flox [cows] % exit
+
+% chara
+zsh: command not found: chara
+
+%
+```
+
+And just like that, it’s all gone. No charasay, no Rust, none of it. Everything is exactly as it was before, and I don’t have to spend the morning restoring order to a working environment that I’ve inadvertently toasted while playing with new toys. If I ever want my playground back, it’s still there and can be instantly activated.
+
+You can install Flox on Linux, Mac, and Windows using [instructions on the download page](https://flox.dev/docs/install-flox/). Environments work the same across them all. Try it!

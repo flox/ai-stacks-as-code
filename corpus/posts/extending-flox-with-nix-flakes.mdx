@@ -1,0 +1,310 @@
+---
+title: 'Extending Flox with Nix Flakes'
+altTitle: 'Extending Flox with Nix Flakes'
+description: 'Using Flakes in Flox give you more flexibility, allowing you to access or create unique package versions and custom configurations not available in Flox Catalog.'
+metaDescription: 'Using Flakes in Flox give you more flexibility, allowing you to access or create unique package versions and custom configurations not available in Flox Catalog.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 24 July 2024
+thumbnail: '/images/blog/flox-gets-flaky.webp'
+orderBy: 20240724
+---
+
+With the latest release of Flox, you can now define and install software packages as [Nix flakes](https://nix.dev/manual/nix/2.18/command-ref/new-cli/nix3-flake.html#url-like-syntax)!
+
+This lets you take advantage of the most powerful features in Nix, the proven open-source package manager, to build rich environments without resorting to complex workarounds. All you’ve got to do is include a reference to a `flake.nix` in your Flox environment’s `manifest.toml`.
+
+Flakes in Flox give you more flexibility, and a compelling new option, in situations where:
+
+- **You need something special.** The Flox Catalog has almost everything, with 3+ years of history and more than 1 million package/version combinations. But sometimes you need something it doesn’t have—whether it’s a legacy version of a package or a cutting-edge release that isn’t yet available.
+
+- **You need to _do_ something special.** You can use flakes to define package overrides, provide special build instructions, or create unique combinations of components. There’s no need to build advanced logic into the `[hook]` or `[profile]` sections of Flox manifests to customize the behavior of packages. Environments run more predictably and are easier to maintain.
+
+Anyway you look at it, this is a powerful new feature.
+
+## Why Flakes in Flox?
+
+Up to now we've focused on abstracting much of the complexity—and almost all of the learning curve—involved in scaling Nix across an organization. Flox makes it simple to install packages, create reproducible environments, and compose layered, multi-application runtimes. It’s designed to be used by people who are not Nix experts.
+
+Support for flakes in Flox is different.
+
+We engineered this feature for those who already understand Nix. Flakes support is a nuts-and-bolts feature that probably _won't_ matter to most Flox users, but _will_ matter a great deal to Nix experts who rely on Flox to scale Nix across their teams.
+
+Nix experts can now ship rich, reproducible software environments to their users with Flox—without having to take on the additional burden of teaching Nix.
+
+## Example 1: Using Flakes to Install a Missing Version
+
+Let’s briefly explore how this works. And why it’s so neat!
+
+Say you need a quite specific version of Node.js—20.13.1, which is missing from the Flox Catalog.
+
+Not that the catalog doesn’t have plenty of versions of Node.js:
+
+```
+daedalus@eidos:~/dev$ flox search nodejs
+
+nodejs Event-driven I/O framework for the V8 JavaScript engine
+nodejs_22 Event-driven I/O framework for the V8 JavaScript engine
+nodejs_21 Event-driven I/O framework for the V8 JavaScript engine
+nodejs_20 Event-driven I/O framework for the V8 JavaScript engine
+nodejs_18 Event-driven I/O framework for the V8 JavaScript engine
+nodejs_16 Event-driven I/O framework for the V8 JavaScript engine
+nodejs_14 Event-driven I/O framework for the V8 JavaScript engine
+nodejs-slim Event-driven I/O framework for the V8 JavaScript engine
+nodejs-19_x Event-driven I/O framework for the V8 JavaScript engine
+nodejs-18_x Event-driven I/O framework for the V8 JavaScript engine
+Showing 10 of 54 results. Use `flox search nodejs --all` to see the full list.
+```
+
+Or even plenty of versions of Node.js 20.x:
+
+```
+daedalus@eidos:~/dev$ flox show nodejs_20
+
+nodejs_20 - Event-driven I/O framework for the V8 JavaScript engine
+nodejs_20@nodejs-20.14.0
+nodejs_20@nodejs-20.12.2
+nodejs_20@nodejs-20.11.1
+nodejs_20@nodejs-20.10.0
+nodejs_20@nodejs-20.9.0
+nodejs_20@nodejs-20.8.0
+nodejs_20@nodejs-20.6.1
+nodejs_20@nodejs-20.5.1
+nodejs_20@nodejs-20.5.0
+nodejs_20@nodejs-20.3.1
+nodejs_20@nodejs-20.2.0
+```
+
+It just doesn’t have that _exact version_ of Node. What can you do? In the past, you probably would have...downloaded Node manually on every system where you needed it, then managed the inevitable drift over time.
+
+Now, you can write a Nix flake that installs the exact version you need, Node 20.13.1, and add it to your Flox environment alongside your other project requirements.
+
+Here's an example flake that does exactly that:
+
+```nix
+{
+  description = "Flake for Node.js v20.13.1";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs";
+  };
+
+  outputs = { self, nixpkgs }:
+    let
+      supportedSystems = [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    in
+    {
+      packages = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+
+          nodejsFor = {
+            x86_64-linux = {
+              url = "https://nodejs.org/dist/v20.13.1/node-v20.13.1-linux-x64.tar.xz";
+              sha256 = "sha256-78Dyld2HjlEKsS6ja7rcPbA8aHqzDAfobHzbp+7Yeak=";
+            };
+            x86_64-darwin = {
+              url = "https://nodejs.org/dist/v20.13.1/node-v20.13.1-darwin-x64.tar.gz";
+              sha256 = "sha256-gL3pXcl2uE21ylZnOMBzBQh65Xj187BRkeDm/1Sq6vI=";
+            };
+            aarch64-darwin = {
+              url = "https://nodejs.org/dist/v20.13.1/node-v20.13.1-darwin-arm64.tar.gz";
+              sha256 = "sha256-ww/llfWdzSxRWNpr+LwlH/yFyjcwSvqJ2xUPs8YsRQc=";
+            };
+            aarch64-linux = {
+              url = "https://nodejs.org/dist/v20.13.1/node-v20.13.1-linux-arm64.tar.xz";
+              sha256 = "sha256-0lHNo+4KU52K6k6iMn6YmYyyNIdWkHOQLjXvsFJtV0s=";
+            };
+          };
+          nodejs = pkgs.stdenv.mkDerivation {
+            pname = "nodejs";
+            version = "20.13.1";
+            src = pkgs.fetchurl nodejsFor.${system};
+            dontStrip = true;
+            installPhase = ''
+              mkdir -p $out
+              cp -r * $out/
+              ${if pkgs.stdenv.isLinux then ''
+              patchelf \
+                --set-rpath "${pkgs.stdenv.cc.cc.lib}/lib" \
+                --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
+                $out/bin/node
+              '' else ""}
+            '';
+          };
+        in
+        {
+          default = nodejs;
+        }
+      );
+    };
+}
+```
+
+We have made this flake available to Flox by placing it into a repository on GitHub: [https://github.com/flox/flox-nodejs-flake-example](https://github.com/flox/flox-nodejs-flake-example)
+
+If you are not already working inside a Flox environment, you can create a new one by running `flox init` in your project folder.
+
+To add this new flake to your environment, run `flox edit` and add it to the `[install]` section of the manifest. Here’s what this looks like using our example flake:
+
+```
+# This is a Flox environment manifest.
+# Visit flox.dev/docs/concepts/manifest/
+# or see flox-edit(1), manifest.toml(5) for more information.
+#
+version = 1
+
+# List packages you wish to install in your environment inside
+# the `[install]` section.
+[install]
+nodejs.flake = "github:flox/flox-nodejs-flake-example"
+```
+
+In the example above, the `nodejs` bit can be anything of your choosing, but we recommend matching the `pname` of the flake. As a value, provide the flake location in the format `github:<owner>/<repo>`. That’s it.
+
+Once you save your changes, the Flox environment will automatically build the flake:
+
+```
+daedalus@eidos:~/dev/node20.13.1$ flox edit
+
+⠼ Building environment to validate edit
+```
+
+When it is successful, you will get the familiar green checkmark emoji:
+
+```
+daedalus@eidos:~/dev/node20.13.1$ flox edit
+
+✅ Environment successfully updated.
+```
+
+And you will be able to activate the environment and access the version of Node you needed:
+
+```
+daedalus@eidos:~/dev/node20.13.1$ flox activate
+✅ You are now using the environment 'node20.13.1'.
+To stop using this environment, type 'exit'
+
+flox [node20.13.1] daedalus@eidos:~/dev/node20.13.1$ node --version
+v20.13.1
+flox [node20.13.1] daedalus@eidos:~/dev/node20.13.1$ npm --version
+10.5.2
+flox [node20.13.1] daedalus@eidos:~/dev/node20.13.1$ node server.js
+Server running at http://127.0.0.1:3000/
+```
+
+Just for completeness’ sake, here’s our flake running in macOS on an Intel system:
+
+```
+daedalus@kakos:~/dev/node20.13.1 % uname -a
+Darwin kakos.local 23.5.0 Darwin Kernel Version 23.5.0: Wed May  1 20:09:52 PDT 2024; root:xnu-10063.121.3~5/RELEASE_X86_64 x86_64 i386 Darwin
+daedalus@kakos:~/dev/node20.13.1 % flox activate
+✅ You are now using the environment 'node20.13.1'.
+To stop using this environment, type 'exit'
+
+flox [node20.13.1] kakos% node --version
+v20.13.1
+```
+
+## Example: Using Flakes to Change Package Behavior
+
+Sometimes it’s not that a package is missing from the Flox Catalog, it’s that there is a package that needs to be modified or augmented using a Nix expression.
+
+VS Code is a great example of this. The package `vscode-with-extensions` is designed to be used with overrides, which allow you to specify which VS Code extensions are made available. This can be useful for those situations where you need to create a very specific, repeatable IDE experience.
+
+This example flake contains VS Code combined with Jupyter Notebook extensions.
+
+```nix
+{
+  description = "VSCode with Jupyter Notebook extensions";
+
+  inputs = {
+    nixpkgs.url = "github:flox/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          config.allowUnfree = true;
+          inherit system;
+        };
+
+        vscode-with-extensions = pkgs.vscode-with-extensions.override {
+          vscodeExtensions = with pkgs.vscode-extensions; [
+            ms-toolsai.jupyter
+            ms-toolsai.jupyter-keymap
+            ms-toolsai.jupyter-renderers
+          ];
+        };
+      in
+      {
+        packages.default = vscode-with-extensions;
+      }
+    );
+}
+```
+
+You can use this flake by editing your `manifest.toml` and adding it to the `[install]` section, just like we saw in the first example.
+
+But there's an easier way! This time, we’ll show you how you can install it from the command line:
+
+```
+daedalus@kakos:~/dev/vscode-jupyter % flox install github:flox/flox-vscode-with-extensions-flake-example
+```
+
+Once you activate this environment and run `code --list-extensions`, you'll see that only the required extensions are included.
+
+```
+daedalus@kakos:~/dev/vscode-jupyter % flox activate
+✅ You are now using the environment 'vscode-jupyter'.
+To stop using this environment, type 'exit'
+
+flox [vscode-jupyter] daedalus@kakos:~/dev/vscode-jupyter %
+
+flox [vscode-jupyter] daedalus@kakos:~/dev/vscode-jupyter % code --list-extensions
+
+ms-toolsai.jupyter
+ms-toolsai.jupyter-keymap
+ms-toolsai.jupyter-renderers
+```
+
+You can easily share your flake-enriched Flox environment just by pushing it to FloxHub.
+
+```
+flox [vscode-jupyter] daedalus@kakos:~/dev/vscode-jupyter % flox push
+You are not logged in to FloxHub. Logging in...
+Go to https://auth.flox.dev/activate?user_code=GMZM-RFZT in your browser
+
+Your one-time activation code is: GMZM-RFZT
+
+✅ Authentication complete
+✅ Logged in as barstoolbluz
+✅ vscode-jupyter successfully pushed to FloxHub
+
+Use 'flox pull barstoolbluz/vscode-jupyter' to get this environment in any other location.
+```
+
+You can `flox pull` it from any other supported system and it'll run, no questions asked. But you can _also_ activate it remotely, without installing it, on any supported system. Just by doing this:
+
+```
+daedalus@eidos:~/dev/vscode-jupyter$ flox activate -r barstoolbluz/vscode-jupyter
+✅ You are now using the environment 'barstoolbluz/vscode-jupyter (remote)'.
+To stop using this environment, type 'exit'
+
+flox [barstoolbluz/vscode-jupyter (remote)] daedalus@eidos:~/dev/vscode-jupyter$
+```
+
+This gives you a FloxHub environment you can activate at a moment's notice, use, and exit—without having to clean anything up.
+
+## Next-Level Flox with Flakes
+
+Flox can now extend the power of Nix into your workflow, making it easier for you to deliver rich environments that are portable, reliable, and reproducible. Flox has always allowed you to create advanced build environments, or complex, multi-application runtimes, but sometimes this required complicated, shell-specific logic in your manifests. No more.
+
+Flakes in Flox make it easier for you to scale Nix across your org. It's simplicity emerging from complexity.
+
+So if you’re a Nix user and you haven’t tried Flox, check it out! You can download it [here](https://flox.dev/docs/install-flox/).

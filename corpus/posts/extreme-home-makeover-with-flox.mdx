@@ -1,0 +1,253 @@
+---
+title: 'Extreme $HOME Makeover with Flox'
+altTitle: 'Extreme $HOME Makeover with Flox'
+description: 'With the Flox default environment, you can take your $HOME with you wherever you go...and keep your tooling consistent across systems and distros.'
+metaDescription: 'With the Flox default environment, you can take your $HOME with you wherever you go...and keep your tooling consistent across systems and distros.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 12 July 2024
+thumbnail: '/images/blog/cottage-with-wings.webp'
+orderBy: 20240712
+---
+
+“So what’s in your default environment?”
+
+Flox co-founder Michael Brantley was asking about my `default` Flox environment, which lives in my `$HOME` directory and includes all of the stuff I use on a regular basis. There was just one catch. I didn’t have a `default` Flox environment. I hadn’t yet gotten that far in my journey.
+
+I could’ve made something up, but I decided to be honest. Besides, I had a question of my own. “Help me understand something,” I asked him. “Why do you need this?”
+
+Michael’s face seemed to fill my Zoom screen, almost as if he were leaning closer, preparing to confide a secret. “Because I want an experience that’s consistent across OSs, even though Linux hands me a bash shell, or MacOS hands me zsh,” he said. “If I can pull off that trick and have those experiences be almost identical anywhere, that's no mean feat, is it?”
+
+It certainly is not.
+
+It turns out Michael has an even neater trick up his sleeve: He can take $HOME with him wherever he goes–so long as he has an internet connection.
+
+## No place like $HOME
+
+Once Michael showed me the config file he’d created for his `default` Flox environment, the Big Picture started coming into focus.
+
+Flox has a catalog of more than 1 million package and version combinations.
+
+With it, I could install exactly the same versions of exactly the same software...everywhere. This meant I’d no longer need to map `build-essentials` in Debian to `Development Tools` + `@development-libs` in Fedora. And that’s just one example! Suddenly I saw a future where inconsistencies and incompatibilities between different versions of tools and libraries on different systems were basically nonissues.
+
+Even better, I saw how with my Floxified $HOME environment I’d have just one place to define environment variables for any shell I use, be it bash, zsh, or fish. I’d have just one place for specifying all of the things I want and need to remain consistent across disparate systems and any shells I run within those systems. And, of course, different shells handle things in different ways. To give you one example: if I need to disable hashing in bash, I have to type `hash -r` (or put `unset HISTFILE` in my `.bashrc` to make this permanent). But zsh expects to use a different command for this (`unsetopt hash_list`). With Flox, I can do all of this in just one place: my environment’s `manifest.toml` file.
+
+These and other thoughts crystallized for me as I studied the contents of Michael’s `default` profile. It includes the following packages:
+
+```
+bash
+coreutils-full
+gnumake
+gnused
+gnutar
+findutils
+man
+openssh
+zsh
+```
+
+In one sense, Michael uses these packages to Linux-ify his MacOS terminal.
+
+“These are tools where I want to have the same identical versions across all OSs,” he told me, adding that packages like `coreutils-full` are “a must for MacOS, containing all of the versions of tools you’d normally think of as just for Linux.”
+
+Frustratingly, some of the core GNU utilities that ship with MacOS are quite old. Others take different arguments, or (in the case of the venerable `man` utility) don’t have all the features of their GNU variants.
+
+As for OpenSSH, Michael explained that MacOS ships with an older version that’s incompatible with hardware authentication devices like Yubikey.
+
+In addition to the essential packages he relies on to Linux-ify his MacOS $HOME environment, Michael’s `default` Flox profile includes another, separate category of software: stuff that isn’t guaranteed to be available across all operating systems. This list is far larger. It includes:
+
+```
+_1password
+ack
+bat
+curl
+fish
+getent
+git-lfs
+gitFull
+htop
+jq
+mtr
+procps
+pstree
+psutils
+tailscale
+tmux
+tree
+vimHugeX
+```
+
+Some of these omissions are frustrating, but all too real. On Debian, Ubuntu, Fedora, and other distributions, `curl` is maddeningly not available by default. (On Debian, `wget` isn’t even available by default!) On MacOS, `getent` isn't available, either, although Apple’s `zsh` shell does create a function called `getent()`, which doesn’t quite seem to work.
+
+## Making it my own
+
+At first I was tempted to take Michael’s list, make just a few changes, and copy it into my `default` profile. Flox environments are declarative, so their “configuration” consists of a software manifest (`manifest.toml`) and a software versioning lock file (`manifest.lock`). That’s basically it.
+
+To bootstrap a new `default` environment with exactly the same packages, all you’ve got to do is `flox init` in your $HOME directory, navigate to the `manifest.toml` file located in `~/.flox/env/`, and paste the names of your packages into its `[install]` section.
+
+Ultimately, I decided to pick and choose a few things from Michael’s `default` profile. After all, one’s `env` is a highly personal thing, right? It consists of the tools, aliases, variables, and other stuff that matter to you. If (like Flox’s Ross Turk) you’ve got to have `cowsay` in your `env`, that’s your right. So I created a `default` of my own:
+
+```
+daedalus@hybris:~$ flox init -d $HOME
+✨ Created environment 'default' (x86_64-linux)
+
+Next:
+  $ flox search  <- Search for a package
+  $ flox install  <- Install a package into an environment
+  $ flox activate <- Enter the environment
+  $ flox edit <- Add environment variables and shell hooks
+
+daedalus@hybris:~$
+```
+
+Then I started populating it with stuff:
+
+```
+daedalus@hybris:~$ flox install openssh curl rsync wget byobu tmux img-cat htop ncdu toilet aichat duf bat diff-so-fancy scc exa aria2 fdupes fzf
+ coreutils procs jq ripgrep
+✅ 'openssh' installed to environment 'default'
+✅ 'curl' installed to environment 'default'
+✅ 'rsync' installed to environment 'default'
+✅ 'wget' installed to environment 'default'
+✅ 'byobu' installed to environment 'default'
+✅ 'tmux' installed to environment 'default'
+✅ 'img-cat' installed to environment 'default'
+✅ 'htop' installed to environment 'default'
+✅ 'ncdu' installed to environment 'default'
+✅ 'toilet' installed to environment 'default'
+✅ 'aichat' installed to environment 'default'
+✅ 'duf' installed to environment 'default'
+✅ 'bat' installed to environment 'default'
+✅ 'diff-so-fancy' installed to environment 'default'
+✅ 'scc' installed to environment 'default'
+✅ 'exa' installed to environment 'default'
+✅ 'aria2' installed to environment 'default'
+✅ 'fdupes' installed to environment 'default'
+✅ 'fzf' installed to environment 'default'
+✅ 'coreutils' installed to environment 'default'
+✅ 'procs' installed to environment 'default'
+✅ 'jq' installed to environment 'default'
+✅ 'ripgrep' installed to environment 'default'
+```
+
+This [SBOM](https://www.cisa.gov/sbom#:~:text=A%20%E2%80%9Csoftware%20bill%20of%20materials,that%20make%20up%20software%20components.) is by no means complete. I’m definitely going to build `duf`, `bat`,`diff-so-fancy`, and (dog help me) `toilet` into my `default` environment, because that’s my right!
+
+But instead of manually installing this stuff via the command-line, I’ll mainly populate my Flox `manifest.toml` directly. I can easily do this just by typing `flox edit`, or by opening `./.flox/env/manifest.toml` in my favorite editor. (If you do opt to use `flox edit`, be sure to set your `EDITOR` env variable ahead of time. Otherwise it will open in `vi`!)
+
+```
+# This is a Flox environment manifest.
+# Visit flox.dev/docs/concepts/manifest/
+# or see flox-edit(1), manifest.toml(5) for more information.
+#
+version = 1
+
+# List packages you wish to install in your environment inside
+# the `[install]` section.
+[install]
+openssh.pkg-path = "openssh"
+curl.pkg-path = "curl"
+rsync.pkg-path = "rsync"
+wget.pkg-path = "wget"
+byobu.pkg-path = "byobu"
+tmux.pkg-path = "tmux"
+img-cat.pkg-path = "img-cat"
+htop.pkg-path = "htop"
+ncdu.pkg-path = "ncdu"
+toilet.pkg-path = "toilet"
+aichat.pkg-path = "aichat"
+duf.pkg-path = "duf"
+bat.pkg-path = "bat"
+diff-so-fancy.pkg-path = "diff-so-fancy"
+scc.pkg-path = "scc"
+exa.pkg-path = "exa"
+aria2.pkg-path = "aria2"
+fdupes.pkg-path = "fdupes"
+fzf.pkg-path = "fzf"
+coreutils.pkg-path = "coreutils"
+procs.pkg-path = "procs"
+jq.pkg-path = "jq"
+ripgrep.pkg-path = "ripgrep"
+```
+
+Let’s say I wanted to add `gitFull` to this file. If I needed a specific version of Git, I’d type `flox show gitFull` to list available versions of the `gitFull` package:
+
+```
+    gitFull@git-with-svn-2.45.2
+    gitFull@git-with-svn-2.45.1
+    gitFull@git-with-svn-2.44.1
+    gitFull@git-with-svn-2.44.0
+    gitFull@git-with-svn-2.43.2
+    gitFull@git-with-svn-2.43.1
+    gitFull@git-with-svn-2.43.0
+    gitFull@git-with-svn-2.42.0
+    gitFull@git-with-svn-2.41.0
+    gitFull@git-with-svn-2.40.1
+    gitFull@git-with-svn-2.39.2
+    gitFull@git-with-svn-2.39.1
+    gitFull@git-with-svn-2.39.0
+    gitFull@git-with-svn-2.38.1
+    gitFull@git-with-svn-2.38.0
+    gitFull@git-with-svn-2.37.2
+    gitFull@git-with-svn-2.36.0
+```
+
+Then I can paste the one I want into my environment’s `manifest.toml`.
+
+But if I just type `flox install gitFull`, I get version 2.45.2–the latest.
+
+```
+[install]
+
+openssh.pkg-path = "openssh"
+curl.pkg-path = "curl"
+rsync.pkg-path = "rsync"
+wget.pkg-path = "wget"
+byobu.pkg-path = "byobu"
+tmux.pkg-path = "tmux"
+img-cat.pkg-path = "img-cat"
+htop.pkg-path = "htop"
+ncdu.pkg-path = "ncdu"
+toilet.pkg-path = "toilet"
+aichat.pkg-path = "aichat"
+duf.pkg-path = "duf"
+bat.pkg-path = "bat"
+diff-so-fancy.pkg-path = "diff-so-fancy"
+scc.pkg-path = "scc"
+exa.pkg-path = "exa"
+aria2.pkg-path = "aria2"
+fdupes.pkg-path = "fdupes"
+fzf.pkg-path = "fzf"
+coreutils.pkg-path = "coreutils"
+procs.pkg-path = "procs"
+jq.pkg-path = "jq"
+ripgrep.pkg-path = "ripgrep"
+gitFull.pkg-path = "gitFull"
+```
+
+That’s about it. I’m going to add more tools to my `default` environment as I go along, including (probably) some of the other build tools that Michael, Ross, and other Flox Folx use. I’m also going to replicate my preferred aliases, alerts, variables, automations, and other settings, using the `[vars]`, `[hook]`, and `[profile]` sections of `manifest.toml`.
+
+And once I’ve Floxified my $HOME with all of this stuff, I'll work up to the Next Big Step: adding the following line to my `.bashrc`file:
+
+```
+eval "$(flox activate -r daedalus/default)"
+```
+
+With this, my `default` Flox environment will auto-activate when I login!
+
+## $HOME Sweet Home
+
+I’ve saved the best part for last, although I teased it above.
+
+I can also take my `default` $HOME environment with me wherever I go.
+
+By pushing my `default` environment to FloxHub, I can easily pull and install it on new systems. But I can do something else with Flox and FloxHub that I can’t do with GitHub, GitLab, Google Drive, or any other service. I can activate my `default` profile as a FloxHub environment. This gives me Michael Brantley’s other trick: $HOME away from home.
+
+The `eval "$(flox activate -r daedalus/default)` I teased above is an example of this. The `-r` switch tells Flox to activate `default` as a FloxHub environment. When you exit, the session ends (but the local copy of the environment remains cached for next time). It's roughly analogous to having a $HOME environment that's a virtual overlay.
+
+In my Flox $HOME away from home, I’ve got access to allmodcons: all of the stuff I use each and every day to procrasti—I mean, to work ceaselessly on new Floxified walk-throughs, tutorials, and similar content. I’m actually understating how cool this is! But that is a story for another blog...
+
+Has this walk-through piqued your interest? Are you ready to take Flox for a test drive? Check out the quick-start guide [here](https://flox.dev/docs/).
+
+Or take the plunge: download Flox [here](https://flox.dev/docs/install-flox/) and dive right in. It has less than a dozen commands, and it’s super easy to learn. If you’re comfortable in a terminal, you’ll be comfortable using (and customizing) Flox!

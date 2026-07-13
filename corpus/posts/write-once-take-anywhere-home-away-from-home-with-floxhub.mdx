@@ -1,0 +1,155 @@
+---
+title: 'Write Once, Take Anywhere $HOME Away from Home with FloxHub'
+altTitle: 'Write Once, Take Anywhere $HOME Away from Home with FloxHub'
+description: 'With FloxHub, it’s easy to share and manage Flox environments, making them available to your teammates. Even better, FloxHub provides a one-stop shop for changing your environments.'
+metaDescription: 'With FloxHub, it’s easy to share and manage Flox environments, making them available to your teammates. Even better, FloxHub provides a one-stop shop for changing your environments.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 18 September 2024
+thumbnail: '/images/blog/dishes-on-the-plains.webp'
+orderBy: 20240918
+---
+
+With [FloxHub](https://hub.flox.dev), it’s simple to share your Flox environments. By `flox push`-ing an environment to FloxHub, you can make it available to all of your teammates.
+
+Even better, FloxHub doubles as a one-stop shop for _managing and changing_ your Flox environments. Need to update a package version, change an environment variable, add automation logic, or modify a service—while making sure your changes get picked up by everyone who relies on your environment? Just use FloxHub!
+
+This article provides a brief overview of how FloxHub works.
+
+
+## Taking $HOME with You—Everywhere
+
+I’ll use the [`default`](https://flox.dev/blog/extreme-home-makeover-with-flox) Flox environment that lives in my `$HOME` directory as an example. It runs on Linux, macOS, and Windows (with WSL2), across more than a dozen different physical and virtual systems, on x86-64 and ARM hardware. This environment gives me exactly the same userland, with exactly the same packages, _everywhere_. If I shared this environment with my teammates, they could `flox pull` it from FloxHub and get access to the same tools and services I use, too.
+
+Here’s a screencap of my `default` environment’s landing page in FloxHub.
+
+![](/images/blog/floxhub_1.png)
+
+Notice the red box? Hovering my mouse over the icon inside of it brings up an “Edit manifest.toml” tooltip.
+
+For the uninitiated, [`manifest.toml`](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments) is the configuration artifact that Flox uses to define software packages and versions, variables, services, and other environmental settings. Clicking that icon puts me into FloxHub’s built-in editor, which not only lets me make changes to my environment, but also validates them in real-time.
+
+I prefer to work with the same versions of Go and Python across all of my systems, so I used to install specific versions of both languages via their official toolchains, instead of using `apt` (on Debian systems) or `brew` (on my x86-64 Darwin system). But Flox Catalog has the exact versions I need of both, which not only makes fresh installs easy (on new systems), but also automates updates (on existing systems). If I build Go and Python into my `default` environment, I’ll no longer have to maintain the scripts I used to depend on to install and manage both toolchains. These scripts tend to break at least once a year, thanks to upstream changes.
+
+“Installing” Go and Python in my default environment is as easy as adding the following lines:
+
+```
+go.pkg-path = “go”
+python311.pkg-path = “python311”
+```
+
+That’s it. Once I make my modifications with FloxHub’s editor, I can click “Commit Changes” and FloxHub does the rest. 
+
+![](/images/blog/floxhub_2.png)
+
+Under the covers, FloxHub makes sure both packages can install into my environment without conflicting with what’s already there. After thinking and evaluating for a bit, it displays a message telling me “Successfully saved changes to ‘default’”. Now I can use the new environment across all of my systems!
+
+![](/images/blog/floxhub_3.png)
+
+There’s one more thing. On my macOS system, I use Flox to install and run the OpenSSH Server package, because it’s newer and better than the OpenSSH Server I get with macOS Sonoma. But I quite like the versions of OpenSSH server that I get on my Linux systems, and even on Windows with WSL2.
+
+So if this is going to be a truly cross-platform `default` environment, I need to restrict `openssh` to install and run on just macOS. I also want it to start automatically, which means configuring an `openssh` service for Flox to manage. Just to make sure Flox doesn’t try to start macOS’ default `sshd` binary (which lives in `/usr/sbin`), I’ll specify a path to the `sshd` executable in my Flox environment, and I’ll also export the path to my Flox-specific `sshd_config` file as an environment variable. I can do this using the FloxHub editor, too!
+
+![](/images/blog/floxhub_5.png)
+
+
+## Write Once, Run Anywhere
+
+The beauty of managing everything in FloxHub is that I can make my changes _in just one place_ and have them propagate anywhere. For example, watch what happens when I pull `default` on one of my Debian test boxes.
+
+```
+daedalus@eidos:~$ flox pull barstoolbluz/default
+⠦ ⬇️  Remote: pulling and building barstoolbluz/default from https://hub.flox.dev/ into the current directory        
+```
+
+I had not yet created a `default` Flox environment in my `$HOME` on this system, so Flox first had to build it. Once it finished doing this, however, I had access to all of the packages I should...
+
+```
+flox [barstoolbluz/default] daedalus@eidos:~$ which python
+/home/daedalus/.cache/flox/run/barstoolbluz/default.8b7825a2/bin/python
+flox [barstoolbluz/default] daedalus@eidos:~$ which go
+/home/daedalus/.cache/flox/run/barstoolbluz/default.8b7825a2/bin/go
+flox [barstoolbluz/default] daedalus@eidos:~$ which dysk
+/home/daedalus/.cache/flox/run/barstoolbluz/default.8b7825a2/bin/dysk
+flox [barstoolbluz/default] daedalus@eidos:~$ dysk
+┌──────────────┬────┬────┬────┬─────────┬────┬────┬────────────┐
+│  filesystem  │type│disk│used│   use   │free│size│mount point │
+├──────────────┼────┼────┼────┼─────────┼────┼────┼────────────┤
+│/dev/sda1     │ext4│SSD │341G│35% █▊   │642G│983G│/mnt/scratch│
+│/dev/nvme1n1p4│ext4│SSD │ 79G│13% ▋    │513G│592G│/mnt/arkiv  │
+│/dev/nvme1n1p3│ext4│SSD │ 62G│15% ▊    │343G│405G│/           │
+│/dev/nvme0n1p1│ext4│SSD │ 90G│36% █▊   │160G│251G│/mnt/usr    │
+│/dev/nvme1n1p2│vfat│SSD │ 10M│ 2% ▏    │518M│529M│/boot/efi   │
+```
+
+...and none of the ones I shouldn’t:
+
+```
+flox [barstoolbluz/default] daedalus@eidos:~$ which sshd
+flox [barstoolbluz/default] 1 daedalus@eidos:~$ 
+```
+My Flox-provided OpenSSH Server package should only be available on macOS platforms. On my Debian test system, the `sshd` executable lives in `/usr/sbin`, which isn’t in my user’s path, so running `which sshd` returns nothing—as expected. On my macOS system, by contrast, when I run `flox pull` to update `default`, the `sshd` executable is exactly where it should be, and Flox manages `openssh` as a service:
+
+```
+daedalus@kakos:~ % flox services start
+✅ Service 'openssh' started.
+daedalus@kakos:~ % which sshd
+/Users/daedalus/.cache/flox/remote/barstoolbluz/default/.flox/run/bin/sshd
+``` 
+
+Now let’s try this on an Ubuntu WSL2 system, which I’ve configured to run my `default` profile automatically whenever I log in. When I `ssh` into that box, then, I’ll be put right into my `default` Flox environment.
+
+Will my new Go and Python toolchains be there too?
+
+```
+daedalus@anaximander:~$ which python
+/home/daedalus/.cache/flox/remote/barstoolbluz/default/.flox/run/bin/python
+daedalus@anaximander:~$ which go
+/home/daedalus/.cache/flox/remote/barstoolbluz/default/.flox/run/bin/go
+daedalus@anaximander:~$ which sshd
+/usr/sbin/sshd
+```
+
+Neat. Changes I made seconds ago on FloxHub propagated to my WSL2 Ubuntu system! But _how_? Is this some kind of quantum action-at-a-distance phenomenon? Or—colour me skeptical—has Flox discovered magic? 
+
+Neither—although what Flox does can often seem like magic. The answer is that I’m activating `default` as a **FloxHub environment**, using the `-r` option.
+
+I can do this on my Debian test system, too:
+
+```
+daedalus@eidos:~$ flox activate -r barstoolbluz/default
+✅ You are now using the environment 'barstoolbluz/default (remote)'.
+To stop using this environment, type 'exit'
+```
+
+FloxHub environments are cached locally. You can activate and use them when you need them, and when you're done—i.e., when you type `exit` in your terminal—the session ends. But the environment stays cached, so next time you activate, it's instantly ready. New changes on FloxHub can be pulled in via `flox pull -r <owner>/<environment>`.
+
+You can make this turn-key by adding the following line to your `.profile` or `.zprofile` shell startup files:
+
+```
+eval "$(flox activate -r <owner>/default)"
+```
+
+If you aren’t ready to pull your `default` environment live from FloxHub, but you still want a local version that starts automatically, just add the following line to your `.[z]profile`:
+
+```
+eval "$(flox activate -d $HOME)"
+```
+
+If I make changes locally that I want to incorporate into my canonical `default` environment on FloxHub, I can either `flox push` them from the terminal or make them using FloxHub's built-in editor. If you're working with a cached FloxHub environment (activated with `-r`), you can make changes to the cached copy and use `flox push -r owner/name` to sync those changes back to FloxHub.
+
+Hopefully, you can see how what works for my (or your) `default` environment will work with _any_ Flox environment—like our Flox [example environments](https://flox.dev/environments). We built these as proofs-of-concept to showcase what Flox could do, and also to double as tools you can `flox pull` and use in your own projects. If we were to update our [Postgres example environment](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox) so it supports built-in integration with [Citus](https://github.com/citusdata/citus), we’d make the change just once, in a single place: FloxHub. You could then access the updated version by running `flox pull -r` to update your local cache, or run `flox pull` to download an up-to-date copy to your current directory.
+
+It’s not difficult to imagine how you can integrate FloxHub into your own projects!
+
+
+
+## New Thinking about Building, Managing, Using, and Sharing Software
+
+FloxHub is a central resource for viewing, editing, and managing your Flox environments. It gives you an at-a-glance understanding of the current state of an environment, and also lets you explore its history so you can see how often it has changed. Best of all, FloxHub gives you a way to make changes once, _in just one place_, and have them propagate to everyone who uses your environment.
+
+Getting started with FloxHub is super simple: all you need is a GitHub account! You can go to `https://hub.flox.dev` and create a FloxHub account, or `flox push` your first environment from a terminal. Both methods use GitHub as an OAuth identity provider to automatically sign you up for FloxHub.
+
+Flox is changing the way people build, manage, use, and think about software. It makes it easy to create declarative, deterministic dev environments that run and behave the same way anywhere. And it’s as easy to [get started with Flox](https://flox.dev/docs/) as it is to sign up for FloxHub: You can [download Flox](https://flox.dev/docs/install-flox/) and customize a `default` environment of your own today!

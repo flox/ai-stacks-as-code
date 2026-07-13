@@ -1,0 +1,327 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "schema-version": "1.13.0",
+    "install": {
+      "chromadb": {
+        "pkg-path": "python313Packages.chromadb",
+        "pkg-group": "chromadb",
+        "priority": 7
+      },
+      "sentence-transformers": {
+        "pkg-path": "python313Packages.sentence-transformers",
+        "pkg-group": "python-deps",
+        "priority": 6
+      },
+      "torch-cuda": {
+        "pkg-path": "flox-cuda/python3Packages.torch",
+        "pkg-group": "cuda",
+        "systems": [
+          "x86_64-linux",
+          "aarch64-linux"
+        ]
+      },
+      "torch-mps": {
+        "pkg-path": "python313Packages.torch",
+        "pkg-group": "mps-torch",
+        "priority": 6,
+        "systems": [
+          "aarch64-darwin"
+        ]
+      }
+    },
+    "hook": {},
+    "profile": {},
+    "options": {
+      "systems": [
+        "x86_64-linux",
+        "aarch64-linux",
+        "aarch64-darwin"
+      ]
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "python3Packages.torch",
+      "broken": false,
+      "derivation": "/nix/store/myjfjpc31pcif1idswiffpwsbbwxwjkb-python3.13-torch-2.10.0.drv",
+      "description": "PyTorch: Tensors and Dynamic neural networks in Python with strong GPU acceleration",
+      "install_id": "torch-cuda",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=6c9a78c09ff4d6c21d0319114873508a6ec01655",
+      "name": "python3.13-torch-2.10.0",
+      "pname": "torchWithCuda",
+      "rev": "6c9a78c09ff4d6c21d0319114873508a6ec01655",
+      "rev_count": 967235,
+      "rev_date": "2026-03-21T15:16:39Z",
+      "scrape_date": "2026-07-07T20:24:40.051508814Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-torch-2.10.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "cxxdev": "/nix/store/750bf106crl7p4fnw5f2qmj2k8kdpmhx-python3.13-torch-2.10.0-cxxdev",
+        "dev": "/nix/store/ah09a043flq3d4ssr69gcly3xr3jq82p-python3.13-torch-2.10.0-dev",
+        "dist": "/nix/store/xa2ihzf7nmank01w90aw5f6gd0x89ymh-python3.13-torch-2.10.0-dist",
+        "lib": "/nix/store/19fa8v5p9n4x59v8652n7y6q9xxmqqhl-python3.13-torch-2.10.0-lib",
+        "out": "/nix/store/3yiici44dm1w5dyajp89wvvf6iw4zh7l-python3.13-torch-2.10.0"
+      },
+      "system": "aarch64-linux",
+      "group": "cuda",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3Packages.torch",
+      "broken": false,
+      "derivation": "/nix/store/ajyxli1a8zqr0s1nyfa1kmghzpkbf74z-python3.13-torch-2.10.0.drv",
+      "description": "PyTorch: Tensors and Dynamic neural networks in Python with strong GPU acceleration",
+      "install_id": "torch-cuda",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=6c9a78c09ff4d6c21d0319114873508a6ec01655",
+      "name": "python3.13-torch-2.10.0",
+      "pname": "torchWithCuda",
+      "rev": "6c9a78c09ff4d6c21d0319114873508a6ec01655",
+      "rev_count": 967235,
+      "rev_date": "2026-03-21T15:16:39Z",
+      "scrape_date": "2026-07-07T20:24:40.051525037Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-torch-2.10.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "cxxdev": "/nix/store/3sw0gzpdwk2jp7kh4hhy69v75lzjfvdn-python3.13-torch-2.10.0-cxxdev",
+        "dev": "/nix/store/ncv0z35hl0l9qnnycbk3hrj1gmipnn4g-python3.13-torch-2.10.0-dev",
+        "dist": "/nix/store/j5722dz15mxwzv81h0amcv3py5nhwsyc-python3.13-torch-2.10.0-dist",
+        "lib": "/nix/store/rs78ghvaf9d4xf27wcd6pfl63nqz6q7d-python3.13-torch-2.10.0-lib",
+        "out": "/nix/store/qhc7ddf7zh8r35nqa37wgyphsfqf232i-python3.13-torch-2.10.0"
+      },
+      "system": "x86_64-linux",
+      "group": "cuda",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.torch",
+      "broken": false,
+      "derivation": "/nix/store/2zlnmvsy4lwiyyascjmac4mdk429d1r4-python3.13-torch-2.12.0.drv",
+      "description": "PyTorch: Tensors and Dynamic neural networks in Python with strong GPU acceleration",
+      "install_id": "torch-mps",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-torch-2.12.0",
+      "pname": "torch",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:56.388274Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "cxxdev": "/nix/store/8bc44gjyv27kzbxzxc96cbmza8fbmimf-python3.13-torch-2.12.0-cxxdev",
+        "dev": "/nix/store/v4dssq5pvi3lqz4m2vi46470cnxmgcrg-python3.13-torch-2.12.0-dev",
+        "dist": "/nix/store/7mqwpqdj9pz4m11axi8n08ip5bwcn8v2-python3.13-torch-2.12.0-dist",
+        "lib": "/nix/store/q9ny4hiw1q4zqpmliym20vq8clzcxrxj-python3.13-torch-2.12.0-lib",
+        "out": "/nix/store/32ngf4sv7p6fs9rb6lszpqkrnvl86c7b-python3.13-torch-2.12.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "mps-torch",
+      "priority": 6
+    },
+    {
+      "attr_path": "python313Packages.sentence-transformers",
+      "broken": false,
+      "derivation": "/nix/store/xs01gpnhpclkhgzisk479bdicaqi49lx-python3.13-sentence-transformers-5.3.0.drv",
+      "description": "Multilingual Sentence & Image Embeddings with BERT",
+      "install_id": "sentence-transformers",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
+      "name": "python3.13-sentence-transformers-5.3.0",
+      "pname": "sentence-transformers",
+      "rev": "4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
+      "rev_count": 980183,
+      "rev_date": "2026-04-14T12:31:25Z",
+      "scrape_date": "2026-04-16T06:06:14.170394Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "5.3.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/nvdyc7crp84aihrhhwsi48ascr0n5pcl-python3.13-sentence-transformers-5.3.0-dist",
+        "out": "/nix/store/rsvqybx416mlv9gscn39w935dbm2sw92-python3.13-sentence-transformers-5.3.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "python-deps",
+      "priority": 6
+    },
+    {
+      "attr_path": "python313Packages.sentence-transformers",
+      "broken": false,
+      "derivation": "/nix/store/d1njyx15qjszbyy97ipqdyhszjr0gny1-python3.13-sentence-transformers-5.3.0.drv",
+      "description": "Multilingual Sentence & Image Embeddings with BERT",
+      "install_id": "sentence-transformers",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
+      "name": "python3.13-sentence-transformers-5.3.0",
+      "pname": "sentence-transformers",
+      "rev": "4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
+      "rev_count": 980183,
+      "rev_date": "2026-04-14T12:31:25Z",
+      "scrape_date": "2026-04-16T06:38:32.457588Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "5.3.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2bziwhgr8rp81nzin9vqd207mfr9dn8n-python3.13-sentence-transformers-5.3.0-dist",
+        "out": "/nix/store/zd2n1nj8lwqm8sfxpyz6d8qn3bhdg49d-python3.13-sentence-transformers-5.3.0"
+      },
+      "system": "aarch64-linux",
+      "group": "python-deps",
+      "priority": 6
+    },
+    {
+      "attr_path": "python313Packages.sentence-transformers",
+      "broken": false,
+      "derivation": "/nix/store/z1ad94pwa7f95wba4kfwm8ii56ggmn49-python3.13-sentence-transformers-5.3.0.drv",
+      "description": "Multilingual Sentence & Image Embeddings with BERT",
+      "install_id": "sentence-transformers",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
+      "name": "python3.13-sentence-transformers-5.3.0",
+      "pname": "sentence-transformers",
+      "rev": "4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
+      "rev_count": 980183,
+      "rev_date": "2026-04-14T12:31:25Z",
+      "scrape_date": "2026-04-16T07:44:04.069130Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "5.3.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/v4xjnk11vbdmp3jwrza5ihpvpknyxazl-python3.13-sentence-transformers-5.3.0-dist",
+        "out": "/nix/store/h86jnasz20br2ba0mq2wjimffcbpj1wm-python3.13-sentence-transformers-5.3.0"
+      },
+      "system": "x86_64-linux",
+      "group": "python-deps",
+      "priority": 6
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/ww3ac4b0dmd2c7mvxp3qwk9q0cs73sfi-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:39.540674Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/65xzf5ms3n2hypzh727wmcc0j6lf75yb-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/r5gmal2dpyx5amdvp5lf2adf480mzw28-python3.13-chromadb-1.5.9"
+      },
+      "system": "aarch64-darwin",
+      "group": "chromadb",
+      "priority": 7
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/c3b1cc8767l75jlcq07kxdjdmdw063d8-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:25.868787Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/b6zhjkj3b64wm4wypyy4safa1s7c9j7b-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/my8jfm1j9nzkkhq5iahn9b03gg4qvb1p-python3.13-chromadb-1.5.9"
+      },
+      "system": "aarch64-linux",
+      "group": "chromadb",
+      "priority": 7
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/qnlvag59f52xmj0f9zz7yrsqrvq7w0vj-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:32.545878Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/s8s3k9cgf6f53nzy1c51lbnc94b28dii-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/8gpk8d52mpzxcfv42q1azrhbr7pakwxx-python3.13-chromadb-1.5.9"
+      },
+      "system": "x86_64-linux",
+      "group": "chromadb",
+      "priority": 7
+    }
+  ]
+}

@@ -1,0 +1,402 @@
+---
+title: 'Agentic Development Environments with Nix and Flox'
+metaTitle: 'Agentic Development Environments with Nix and Flox'
+description: 'If you’re vibe coding or prototyping, you can prompt Cursor, CoPilot, Claude Code, Codex, and other tools to quickly and reliably create Flox environments for workflows, and workloads, of all kinds.'
+metaDescription: 'If you’re vibe coding or prototyping, you can prompt Cursor, CoPilot, Claude Code, Codex, and other tools to quickly and reliably create Flox environments for workflows, and workloads, of all kinds.'
+isPublished: true
+publishedDate: 26 Sept 2025
+author: Steve Swoyer
+authorKey: steve-swoyer
+thumbnail: /images/blog/god-from-the-machine.webp
+orderBy: 20250926
+---
+
+Flox is a cross-platform, cross-language package manager, built on top of [open source Nix](https://nixos.org/guides/how-nix-works/) that's perfect for vibe coding, prototyping, or agentic development. A [Flox-powered agentic development environment](https://flox.dev/blog/a-turnkey-toolkit-for-agentic-development-with-flox/) gives Cursor, CoPilot, Claude Code, Codex, and other tools everything they’ll need to create portable, reproducible solutions. 
+
+## Why do agentic coding with Flox (and Nix)?
+
+The same semantics that make Flox such an intuitive lift for humans are also ideal for large language models: Agents use imperative commands to discover (**`flox search`**), find versions of (**`flox show`**), and install (**`flox install`**) dependencies. And because Flox is also a **virtual environment manager**, agentic tools won’t squander time (and tokens) debugging dependency conflicts. In fact, Flox makes it possible to run conflicting versions of software dependencies _in the same environment, on the same system, at the same time_. 
+
+The upshot is that agentic development with Flox can get you from zero to working prototype much more quickly—without modifying your **`$HOME`** or making global changes of any kind to your system.
+
+**tl;dr**: With a little help from a Flox-aware `CLAUDE.md`, `llms.txt`, `AGENT.md`, `README.md`, or `FLOX.md`, coding assistants and ai agents can use a Flox-based agentic development environment to quickly and reliably build and improve working solutions.
+
+Even better, the Flox Catalog has _millions_ of historical package-version combinations, so agents can almost always find what they need.
+
+## Bootstrapping agentic dev environments
+
+For work with your preferred programming languages and/or toolchains, start with a [**FLOX.md**](https://github.com/barstoolbluz/flox-md/blob/main/FLOX.md) that gives the agent the context and knowledge it needs to use and work with Flox. 
+
+You can optimize this document to suit your requirements: for example, if you want the agent to build language- and/or tool-chain-specific Flox environments, focus on Flox features that promote [reproducibility](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/), simplify [conflict management](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/), and permit [cross-platform portability](https://flox.dev/blog/hassle-free-cross-platform-dev-with-flox/).
+
+### Python
+
+The first example prompts the agent to create a Python 3.12 dev environment, with all dependencies pulled from the Flox Catalog. It also includes **`pip`** and **`uv`** for interoperability with existing Python projects.
+
+![](/images/blog/flox-and-llms0.png)
+
+Agents use imperative commands (**`flox search`**, **`flox show`**, and **`flox install`**) to search for and install packages from the Flox Catalog. Setup usually finishes in less than a minute, on average.
+
+![](/images/blog/flox-and-llms1.png)
+
+Changing into the **`flox-for-python`** sub-directory and running the **`flox edit`** command confirms that the environment not only exists but is populated with a panoply of Python dependencies:
+
+```
+[install]
+python312Full.pkg-path = "python312Full"
+pandas.pkg-path = "python312Packages.pandas"
+numpy.pkg-path = "python312Packages.numpy"
+polars.pkg-path = "python312Packages.polars"
+duckdb.pkg-path = "python312Packages.duckdb"
+pyarrow.pkg-path = "python312Packages.pyarrow"
+scipy.pkg-path = "python312Packages.scipy"
+scikit-learn.pkg-path = "python312Packages.scikit-learn"
+matplotlib.pkg-path = "python312Packages.matplotlib"
+seaborn.pkg-path = "python312Packages.seaborn"
+jupyter.pkg-path = "python312Packages.jupyter"
+jupyterlab.pkg-path = "python312Packages.jupyterlab"
+requests.pkg-path = "python312Packages.requests"
+pydantic.pkg-path = "python312Packages.pydantic"
+sqlalchemy.pkg-path = "python312Packages.sqlalchemy"
+pip.pkg-path = "python312Packages.pip"
+uv.pkg-path = "uv"
+```
+
+This includes _most_ of what a data engineer might need, along with JupyterLab. But Flox also supports built-in service management, so you (or the agent) can configure it to automatically start and stop your JupyterLab instance. The next prompt directs the agent to define JupyterLab as a Flox-managed service:
+
+![](/images/blog/flox-and-llms2.png)
+
+This task, too, usually completes in less than one minute. Once the agent finishes, you can run **`flox activate -s`** or (from within your activated agentic development environment) **`flox services start jupyterlab`** to start JupyterLab.
+
+![](/images/blog/flox-and-llms3.png)
+
+Running **`flox edit`** shows the logic the agent created to bootstrap the JupyterLab service:
+
+```
+[hook]
+on-activate = '''
+  # Create jupyter config directory if it doesn't exist
+  mkdir -p "$FLOX_ENV_CACHE/jupyter/runtime"
+'''
+
+[profile]
+common = '''
+  jupyter_token() {
+    flox services status 2>/dev/null | grep -q "^jupyterlab.*Running" || {
+      echo "JupyterLab not running. Start with: flox services start jupyterlab"
+      return 1
+    }
+    jupyter lab list 2>/dev/null | grep "http://" || echo "http://localhost:8888 (token pending...)"
+  }
+
+  if flox services status 2>/dev/null | grep -q "^jupyterlab.*Running"; then
+    echo "JupyterLab running. Use 'jupyter_token' for auth URL"
+  fi
+'''
+
+[services]
+[services.jupyterlab]
+command = "jupyter lab --no-browser --ip=0.0.0.0 --port=8888"
+vars.JUPYTER_DATA_DIR = "$FLOX_ENV_CACHE/jupyter"
+vars.JUPYTER_CONFIG_DIR = "$FLOX_ENV_CACHE/jupyter/config"
+vars.JUPYTER_RUNTIME_DIR = "$FLOX_ENV_CACHE/jupyter/runtime"
+is-daemon = false
+shutdown.command = "jupyter lab stop 8888"
+```
+
+Now run **`flox activate -s`** to use your Python 3.12 agentic development environment—with a built-in JupyterLab service:
+```
+$ flox activate -s
+✅ You are now using the environment 'flox-for-python'.
+To stop using this environment, type 'exit'
+
+JupyterLab service is running at http://localhost:8888
+Run 'jupyter_token' to get the authentication URL
+```
+
+![](/images/blog/flox-and-llms4.png)
+
+You can customize this as much as you like. If you tend to work with [a specific relational database](https://flox.dev/popular-packages/creating-a-reproducible-bi-and-analytics-stack-that-just-works-anywhere-with-flox/), for example, you can add Python bindings for that platform, as well as required C/C++ dependencies via **`gcc-unwrapped`** and other packages. If you depend on dbt, you (or the agent) can add current or historical versions of the **`dbt`** or **python312packages.dbt-core`** packages. 
+
+If you need to build with a different version of Python, you—or the agent—can modify your Flox manifest.
+
+![](/images/blog/flox-and-llms5.png)
+
+In this case, the agent (Claude Code) isn’t clever enough to recognize that this can be accomplished by copying the manifest and running a scripted search-and-replace, but it nevertheless gets the job done.
+
+![](/images/blog/flox-and-llms6.png)
+
+
+### C or C++
+
+This example prompts Claude Code to set up a Flox environment for C and C++ development. It tells the agent  to create a new subfolder (**`flox-for-cpp`**), switch into it, and initialize the Flox agent development environment. From there, the agent is to build out a functional toolchain for C/C++ work: platform-specific compilers (**`gcc`** on Linux, **`clang`** on macOS), build systems (**`cmake`**, **`ninja`**, **`make`**), debuggers (**`gdb`**, **`lldb`**), and other essentials (**`valgrind`**, **`clang-tools`**). All dependencies come from the Flox Catalog; in this case we’ll also tell the agent to pin dependencies to enable reproducibility across platforms/over time.
+
+![](/images/blog/flox-and-llms7.png)
+
+With the default **`FLOX.md`**, the agent typically completes initial setup in less than two minutes.
+
+![](/images/blog/flox-and-llms8.png)
+
+You can also tell the agent to pin the packages in your agentic development environment to specific versions. This way, it's always reproducible across space (locally, in CI, in production) and time (today, tomorrow, five years from now).
+
+![](/images/blog/flox-and-llms9.png)
+
+Changing into the **`flox-for-cpp`** directory and running **`flox edit`** shows the following:
+
+```
+[install]
+## Core Compilers - Platform-specific defaults
+gcc13.pkg-path = "gcc13"
+gcc13.version = "13.4.0"
+gcc13.pkg-group = "compilers"
+gcc13.systems = ["x86_64-linux", "aarch64-linux"]
+
+clang_18.pkg-path = "clang_18"
+clang_18.pkg-group = "compilers"
+clang_18.systems = ["x86_64-darwin", "aarch64-darwin"]
+
+## Essential for C++ stdlib headers/libs
+gcc-unwrapped.pkg-path = "gcc-unwrapped"
+gcc-unwrapped.version = "14.3.0"
+gcc-unwrapped.priority = 6
+gcc-unwrapped.pkg-group = "libraries"
+
+## Build Systems
+cmake.pkg-path = "cmake"
+cmake.version = "3.31.7"
+cmake.pkg-group = "build"
+
+ninja.pkg-path = "ninja"
+ninja.version = "1.12.1"
+ninja.pkg-group = "build"
+
+gnumake.pkg-path = "gnumake"
+gnumake.version = "4.4.1"
+gnumake.pkg-group = "build"
+...
+```
+
+This is an abridged list. The complete manifest runs to almost 200 lines. You can [view it here](https://hub.flox.dev/barstoolbluz/flox-for-cpp/manifest) if you’re curious.
+
+Claude Code again populated the agentic development environment with standard amenities (like a **`./build`** directory) without being prompted. It also created aliases in the **`[profile]`** section of the manifest.
+
+```
+[hook]
+on-activate = '''
+  # Create build directory if it doesn't exist
+  if [ ! -d "$FLOX_ENV_PROJECT/build" ]; then
+    mkdir -p "$FLOX_ENV_PROJECT/build"
+  fi
+
+  # Set up ccache if available
+  if command -v ccache &> /dev/null; then
+    export CC="ccache gcc"
+    export CXX="ccache g++"
+  fi
+
+  echo "C/C++ Development Environment Activated"
+  echo "Compilers: gcc13 (Linux) / clang_18 (Darwin)"
+  echo "Build Systems: cmake, ninja, make"
+  echo "Debuggers: gdb (Linux) / lldb (Darwin)"
+  echo "Build directory: $FLOX_ENV_PROJECT/build"
+'''
+
+[profile]
+common = '''
+  # Convenience aliases for C/C++ development
+  alias cmakebuild='cmake -B build -S . -G Ninja'
+  alias cmakeclean='rm -rf build && mkdir build'
+  alias makedbg='make -j$(nproc) DEBUG=1'
+  alias valmem='valgrind --leak-check=full --show-leak-kinds=all'
+'''
+```
+
+If inclined, you could ask the agent to create extra ease-of-use aliases and functions for you. The **`[profile]`** section of the Flox manifest is a great place to put this logic.
+
+![](/images/blog/flox-and-llms10.png)
+
+
+### Reuse Your Environments Anytime + Anywhere
+
+Once you have configured your environment to your liking, you can push it to FloxHub:
+
+```
+$ flox push
+✅ Updates to flox-for-cpp successfully pushed to FloxHub                                                                                                                       View the environment at: https://hub.flox.dev/barstoolbluz/flox-for-cpp
+Use this environment from another machine: 'flox activate -r barstoolbluz/flox-for-cpp'
+$ cd ../flox-for-python313 && flox push
+✅ Updates to flox-for-python313 successfully pushed to FloxHub                                                                                                                       View the environment at: https://hub.flox.dev/barstoolbluz/flox-for-python313
+Use this environment from another machine: 'flox activate -r barstoolbluz/flox-for-python313'
+```
+
+The **`flox activate -r`** command is useful for ad hoc use cases—like if you’ve just **`git clone`**-ed a project repo and need temporary access to a set of tools (such as a specific version of Python, a pre-baked Python data engineering environment, or a turn-key C/C++ agentic development environment). Change into your Git repo’s directory, run **`flox activate -r <your-floxhub-handle>/<your-environment’s-name>`**, and you’re ready to work.
+
+If you’re vibe coding with your team, participating in a hackathon, reviewing or testing someone else’s PR / branch, or just having fun, FloxHub and remotely activated Flox environments are pluperfectly convenient.
+
+
+## Working with complex project requirements
+
+Ever wanted to build software from source … only to throw in the towel (with a shiver of repugnance) after scrolling through screen after screen of the project’s `README.md`? This is the kind of situation for which the combination of Flox and your preferred AI-coding assistant are tailor-made.
+
+The following example uses [ComfyUI](https://github.com/comfyanonymous/ComfyUI), the open-source, node-based UI for designing Stable Diffusion workflows. To be clear: ComfyUI’s `README.md` is _not_ an example of the interminable type; however, getting ComfyUI up and running locally—especially with GPU-acceleration (if available)—can be challenging. It’s extremely useful software that people want to download and play with, but which is hard to get working on all systems, particularly CUDA-accelerated Linux systems.
+
+First, **`git clone`** the `ComfyUI` repo and change into it. Then copy in the **`FLOX.md`** referenced in this article, or create your own. Then tell the agent you want it to create a Flox environment for ComfyUI.
+
+![](/images/blog/flox-and-llms12.png)
+
+This can take anywhere from four to eight minutes. In most cases, the agent won’t get everything exactly right the first time, but always figures it out. It also knows to take advantage of Flox features, like [package groups](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/), to work around dependency conflicts:
+
+```
+● We have a conflict between blas and openblas. Let's fix this by using package groups:
+…
+● We have a conflict between gcc packages. Let me fix this by adjusting the priorities:
+```
+
+Thanks to the **`FLOX.md`**, the agent knows how to create Flox package groups and adjust the [priority levels](https://flox.dev/docs/reference/command-reference/manifest.toml/#catalog-descriptors) of specific packages. This makes it possible to install dependencies that would otherwise conflict—for example, both **`gcc`** (the Nix-wrapped compiler package, which adds environment hooks) and **`gcc-unwrapped`** (the raw GCC build that provides the actual binaries and **`libstdc++`**)—side by side, in the same agentic development environment.
+
+![](/images/blog/flox-and-llms13.png)
+
+We can do better than this. The ComfyUI environment created by the agent works, but doesn’t include Flox’s prebuilt, pre-patched CUDA packages: CUDA-accelerated PyTorch, NumPy, and SciPy, among others. 
+
+So let’s instruct the agent to create a cross-platform, GPU-enabled ComfyUI environment. That way, on CUDA-enabled systems, ComfyUI will use the **`flox-cuda`** packages; on Apple Silicon and x86-64 macOS systems, it will use regular PyTorch with flags that tell it which compute backend and precision mode to use: Metal/MPS, if on Apple Silicon; CPU if on x86. The result is a ComfyUI environment that always takes advantage of GPU acceleration, if available, and falls back to CPU if not.
+
+The good news is that all the information the agent needs to do this is contained in `FLOX.md`.
+
+![](/images/blog/comfyui-screenshot-2.png)
+
+Once finished, run **`flox edit`** to view the manifest authored by the agent. It might look something like this:
+
+```
+[install]
+# cuda-accelerated pytorch for x86_64-linux
+cudatoolkit.pkg-path = "flox-cuda/cudaPackages_12_9.cudatoolkit"
+cudatoolkit.systems = ["x86_64-linux"]
+torch-cuda.pkg-path = "flox-cuda/python3Packages.torch"
+torch-cuda.systems = ["x86_64-linux"]
+torchvision-cuda.pkg-path = "flox-cuda/python3Packages.torchvision"
+torchvision-cuda.systems = ["x86_64-linux"]
+numpy-cuda.pkg-path = "flox-cuda/python3Packages.numpy"
+numpy-cuda.systems = ["x86_64-linux"]
+scipy-cuda.pkg-path = "flox-cuda/python3Packages.scipy"
+scipy-cuda.systems = ["x86_64-linux"]
+
+# non-cuda pytorch for all other platforms
+torch.pkg-path = "python312Packages.pytorch"
+torch.systems = ["aarch64-linux", "x86_64-darwin", "aarch64-darwin"]
+torchvision.pkg-path = "python312Packages.torchvision"
+torchvision.systems = ["aarch64-linux", "x86_64-darwin", "aarch64-darwin"]
+numpy.pkg-path = "python312Packages.numpy"
+numpy.systems = ["aarch64-linux", "x86_64-darwin", "aarch64-darwin"]
+scipy.pkg-path = "python312Packages.scipy"
+scipy.systems = ["aarch64-linux", "x86_64-darwin", "aarch64-darwin"]
+
+# python deps
+python312Full.pkg-path = "python3Full"
+tqdm.pkg-path = "python312Packages.tqdm"
+pillow.pkg-path = "python312Packages.pillow"
+pyyaml.pkg-path = "python312Packages.pyyaml"
+aiohttp.pkg-path = "python312Packages.aiohttp"
+yarl.pkg-path = "python312Packages.yarl"
+psutil.pkg-path = "python312Packages.psutil"
+safetensors.pkg-path = "python312Packages.safetensors"
+einops.pkg-path = "python312Packages.einops"
+transformers.pkg-path = "python312Packages.transformers"
+tokenizers.pkg-path = "python312Packages.tokenizers"
+sentencepiece.pkg-path = "python312Packages.sentencepiece"
+pydantic.pkg-path = "python312Packages.pydantic"
+pydantic-settings.pkg-path = "python312Packages.pydantic-settings"
+alembic.pkg-path = "python312Packages.alembic"
+sqlalchemy.pkg-path = "python312Packages.sqlalchemy"
+soundfile.pkg-path = "python312Packages.soundfile"
+av.pkg-path = "python312Packages.av"
+pytest.pkg-path = "python312Packages.pytest"
+websocket-client.pkg-path = "python312Packages.websocket-client"
+opencv-python.pkg-path = "python312Packages.opencv4"
+
+# python + other deps
+uv.pkg-path = "uv"
+gcc.pkg-path = "gcc"
+gcc-unwrapped = { pkg-path = "gcc-unwrapped", priority = 3, pkg-group = "libraries" }
+curl.pkg-path = "curl"
+git.pkg-path = "git"
+
+[vars]
+COMFYUI_HOST = "0.0.0.0"
+COMFYUI_PORT = "8188"
+
+[hook]
+on-activate = '''
+  venv="$FLOX_ENV_CACHE/venv"
+  [ ! -d "$venv" ] && uv venv "$venv" --python python3
+  [ -f "$venv/bin/activate" ] && source "$venv/bin/activate"
+  if [ ! -f "$FLOX_ENV_CACHE/.comfyui_deps_installed" ]; then
+    echo "Installing ComfyUI packages..."
+    uv pip install --python "$venv/bin/python" comfyui-frontend-package comfyui-workflow-templates comfyui-embedded-docs || { echo "Error: Failed to install ComfyUI packages"; return 1; }
+    uv pip install --python "$venv/bin/python" kornia spandrel torchsde trampoline --quiet || true
+    touch "$FLOX_ENV_CACHE/.comfyui_deps_installed"
+  fi
+  mkdir -p models/checkpoints "$FLOX_ENV_CACHE/logs"
+  if [ ! -f "models/checkpoints/v1-5-pruned-emaonly.safetensors" ]; then
+    echo "📥 Downloading SD 1.5 model (4.3 GB)..."
+    curl -L "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors" -o "models/checkpoints/v1-5-pruned-emaonly.safetensors" --progress-bar
+    echo "✅ Model downloaded!"
+  fi
+  cd models/checkpoints 2>/dev/null && { ln -sf v1-5-pruned-emaonly.safetensors default.safetensors 2>/dev/null; ln -sf v1-5-pruned-emaonly.safetensors sd_v1-5.safetensors 2>/dev/null; cd - > /dev/null; }
+'''
+
+[services.comfyui]
+command = '''
+  cd "$FLOX_ENV_PROJECT"
+  venv="$FLOX_ENV_CACHE/venv"
+  [ ! -d "$venv" ] && uv venv "$venv" --python python3
+  source "$venv/bin/activate"
+  for pkg in comfyui-frontend-package comfyui-workflow-templates comfyui-embedded-docs; do
+    python -m pip show $pkg &>/dev/null || uv pip install --python "$venv/bin/python" $pkg || exit 1
+  done
+  python -c "import kornia" 2>/dev/null || uv pip install --python "$venv/bin/python" kornia spandrel torchsde trampoline --quiet
+  FLAGS="--listen $COMFYUI_HOST --port $COMFYUI_PORT"
+  [[ "$(uname)" == "Darwin" ]] && FLAGS="$FLAGS --cpu" || { command -v nvidia-smi &>/dev/null && FLAGS="$FLAGS --lowvram" || FLAGS="$FLAGS --cpu"; }
+  exec python main.py $FLAGS 2>&1 | tee -a "$FLOX_ENV_CACHE/logs/comfyui.log"
+'''
+```
+
+The most important test of all—**`flox activate`**-ing and running it—shows that it works.
+
+![](/images/blog/flox-and-llms21.png)
+
+Once satisfied with the ComfyUI agentic development environment, you can **`flox push`** it to FloxHub. That way you or anyone you share it with can **`flox pull --copy`** it to run it locally. You could also use Flox to build and package your ComfyUI environment, then publish it to your private FloxHub catalog of packages. That way you could install it _anywhere_, at any time, just by running **`flox install <your-floxhub-handle/comfyui>`**.
+
+
+## Good vibrations: Floxifying your agentic stack
+
+Vibe coding or prototyping in Flox eliminates the blockers, dampeners, and drag forces that slow you down:
+
+-  Conflicting dependencies break dev setups or OS installs;
+-  Runtime environments don’t build or run reproducibly when shared;
+-  Agents not only fail at setup or building, they wreck your environment, too.
+
+Flox gives you all the advantages of using Nix and drops into your existing workflows, giving you a reliable foundation for whatever you (or your AI-coding partner-nemesis) want to build.
+
+Whether you’re hacking together a quick prototype, collaborating with your team, or titivating something for production, a Flox-based agentic development environment makes sure that conflicts or missing runtime dependencies _never_ get in the way. 
+
+Want to learn more? [Download Flox](https://flox.dev/docs/install-flox/install/) and take it for a spin!
+
+
+## FAQs about agentic development with Flox
+
+### What is agentic development and how does it differ from traditional coding?
+
+Agentic development is a software engineering approach where autonomous AI agents plan, execute, debug, and iterate on complex coding tasks with minimal human intervention. Unlike traditional workflows where AI merely suggests code snippets, agentic systems act as proactive collaborators that can manage files, run terminal commands, and interact with version control systems to achieve high-level goals. This shift allows developers to focus on architectural strategy and supervision while the agents handle implementation details and routine problem-solving.
+
+### How does Flox improve the reliability of AI development agents?
+
+Flox enhances agentic workflows by providing a cross-platform package manager that creates isolated, reproducible environments, ensuring agents always have access to the correct dependencies without conflicting with system settings. By using declarative manifests and imperative commands, agents can reliably install and manage software stacks, eliminating the common errors caused by version mismatches or missing tools. This stability prevents agents from wasting computational resources on debugging environment issues, allowing them to move from setup to working prototypes much faster.
+
+### How do agents interact with the FLOX.md file?
+
+A `FLOX.md` file serves as a context document that provides AI agents with the specific knowledge and instructions needed to bootstrap and maintain a development environment. It outlines the necessary tools, preferred configurations, and context-aware commands, enabling agents to autonomously build functional toolchains for languages like Python or C++. By referencing this file, agents can intelligently handle complex tasks such as conflict resolution and service management without requiring constant manual guidance from the developer.
+
+### Can agentic environments handle complex hardware requirements like GPUs?
+
+Yes, agentic environments managed by Flox can handle complex requirements, including GPU acceleration, by utilizing package groups and platform-specific dependency rules. Agents can be instructed to install different versions of libraries based on the underlying hardware, such as selecting CUDA-enabled packages for Linux or Metal-optimized versions for macOS. This capability ensures that resource-intensive applications, such as machine learning workflows or node-based UIs, perform optimally across different operating systems.
+

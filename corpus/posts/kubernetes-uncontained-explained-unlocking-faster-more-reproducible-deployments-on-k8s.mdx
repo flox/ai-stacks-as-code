@@ -1,0 +1,192 @@
+---
+title: 'Kubernetes, Uncontained: Unlocking Faster, More Reproducible Deployments on K8s'
+altTitle: 'Kubernetes, Uncontained: Unlocking Faster, More Reproducible Deployments on K8s'
+description: 'Flox lets you run imageless workloads on Kubernetes using declarative environments in Pod templates for faster, more reproducible deployments.'
+metaDescription: 'Flox lets you run imageless workloads on Kubernetes using declarative environments in Pod templates for faster, more reproducible deployments.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 24 February 2026
+thumbnail: '/images/blog/laptop-helm.webp'
+orderBy: 20251110
+---
+
+Kubernetes delivers a rock-solid, highly available foundation for running and scaling workloads.
+
+Its superpower is extensibility. From the start, Kubernetes was built like an operating system for cloud-native workloads: It defines a “kernel” (the control plane), elegant, well-defined APIs, and background services—controllers and operators—that reconcile cluster state. Driver-style plug-ins ([CRI](https://kubernetes.io/docs/concepts/containers/cri/) for runtime, [CNI](http://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/) for networking, [CSI](https://kubernetes.io/blog/2019/01/15/container-storage-interface-ga/) for storage) plus [CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) and [operators](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) let teams extend and swap components without modifying this core.
+
+With **Kubernetes, Uncontained**, Flox builds on that extensibility to run _imageless_ container workloads. Instead of pulling digest-pinned images, you simply reference declarative Flox environments in your Pod templates. On start, a Flox-maintained [containerd shim](https://kubernetes.io/docs/setup/production-environment/container-runtimes/) pulls the versioned environment from FloxHub and realizes dependencies into an immutable, hash-addressed node-local store.
+
+This gives you fast, predictable deployments. Other benefits include: 
+
+-  **No registry push/pull cycles for updates.**. CI updates a reference in a Pod template instead of rebuilding and pushing images.
+
+-  **No more runtime image pulls/unpacks**. Mount hash-addressed package paths from a read-only, node-local cache; pull in _only_ required dependencies, no base image bloat.
+
+-  **One environment, everywhere**. The same declarative env runs in dev → CI → prod. On x86 _and_ ARM.
+
+-  **SBOMs by default**. Packages get persisted as SHA-256-hashed store paths to an immutable, node-local store. Dependencies defined in Flox environments map precisely to these store paths. This gives you tamper-evident provenance by construction. Even better, it means the set of store paths _is_ the SBOM.
+
+-  **Simplified CI pipelines, same CI patterns**. Keep your CI as-is; cut down on image rebuilds and registry round-trips. and atomic roll backs with one-line changes.
+
+This article shows how **Kubernetes, Uncontained** plugs into Kubernetes itself—without changing its API.
+
+<iframe width="700" height="422" src="https://www.youtube-nocookie.com/embed/_XBaKxODVFc"></iframe>
+
+## What is Kubernetes, Uncontained?
+
+Like [Kata Containers](https://katacontainers.io/) and [gVisor](https://gvisor.dev/), **Kubernetes, Uncontained** uses [CRI](https://kubernetes.io/docs/concepts/containers/cri/) hooks to control pod startup behavior. 
+
+Notwithstanding its name, **Kubernetes, Uncontained** _still runs standard containers inside of pods_. At startup, Flox’s runtime shim loads a 49-byte **`flox/empty:1.0.0`** stub image. In this sense **Kubernetes, Uncontained** is an _imageless_ container pattern: **`flox/empty:1.0.0`** is an “image” only in a pedantic sense; it exists solely to comply with the CRI/OCI standard, while the container’s root filesystem is realized from the input-addressed Flox environment that the shim activates.
+
+This works because of the CRI: the locus of control at the **kubelet→containerd** boundary. When you define a **`RuntimeClass`** with **`handler: flox`** and set **`spec.runtimeClassName: flox`**, kubelet passes that handler to the runtime daemon (e.g., containerd) via CRI, which routes pod startup to the Flox shim.
+
+![](/images/blog/imageless_kubernetes_diagram.svg)
+
+The upshot: the Flox shim changes _how the runtime realizes pods at startup_; **it doesn’t change how Kubernetes works**—you continue to use the same primitives and the same API. You submit the same manifests (Helm/Kustomize, GitOps PRs), target the same objects (Pods, Deployments, Jobs, CRDs), and use the same mechanics (apply/patch, watch, RBAC). Observability logs to **`stdout/stderr`**, events, metrics, and traces flow as they do today. The only change involves selecting a different runtime handler (**`spec.runtimeClassName: flox`**) and adding a Pod template annotation (**`flox.dev/environment`**).
+
+Your security, compliance, policy, and process layers plug in exactly as they do now. Kubernetes admission control can gate on the Flox environment annotation in the Pod template and its SBOM—just as it gates on image digests today. OIDC/IAM, SSO, audit policies, quotas, and admission-time policy engines remain in force; registries plus file/image scanners keep working. **Kubernetes stays Kubernetes**—Flox changes _how the pod is realized at start_, not your operational investments—and definitely not the Kubernetes API.
+
+### **How imageless Kubernetes works**
+
+The Flox‑maintained shim is exactly that: a shim, much like the containerd shim Kubernetes uses on cluster nodes. It registers as an additional containerd runtime and sits alongside this default one. It’s small (≈20 MB, versus ≈20–25 MB for the standard containerd shim) and can safely coexist on the same node.
+
+* Opt‑in at the Pod level. You set runtimeClassName: flox in the Pod/Deployment. Kubernetes maps this to a RuntimeClass whose handler is flox (typically paired with a nodeSelector for labeled nodes).  
+* Schedule to capable nodes. The scheduler uses RuntimeClass.scheduling.nodeSelector to place the Pod on nodes labeled, for example, flox.dev/enabled=true.  
+* Hand off to the CRI/runtime. On the target node, kubelet calls the CRI with the runtime handler flox. containerd looks up flox in its config and launches containerd-shim-flox-v2 (i.e., the Flox shim).  
+* Generate OCI-compliant spec. containerd generates the OCI config.json, which defines namespaces, mounts, commands, etc. for the container.  
+* Prepare the environment. The shim pulls the specified Flox environment; fetches packages that aren’t already available in the node’s immutable store; amends the OCI config.json with required bind-mounts and the Flox activation wrapper; and verifies that mount targets exist in the bundle’s rootfs/.  
+* Create the container. The shim invokes runc to create/start the container; runc performs the mounts defined by the OCI config.json spec in the previous step.
+
+The result is fast, predictable startup, with most bytes reused from the node-local cache. Every dependency running in the environment is input-addressed by its hash, so reproducibility is baked in. By labeling nodes that have the Flox runtime installed (e.g., flox.dev/enabled=true) and configuring the RuntimeClass with a matching nodeSelector, Flox-managed pods are only scheduled on nodes with the Flox shim.
+
+If you omit or delete runtimeClassName from a Pod spec, you revert to stock behavior: Kubernetes simply uses the default containerd shim. Kubernetes, Uncontained is a drop-in pattern that keeps Kubernetes as the control plane, adds a targeted, optional runtime, and leaves everything else untouched.
+
+The benefits of Nix-Powered Kubernetes deployments
+
+## Declarativity, uncontained
+
+The Kubernetes API is a canonical example of the declarative or “desired-state” model at work: You declare a desired state, expressing it in YAML or JSON, and the Kubernetes API server persists this as a validated, versioned object, encoding your intent in the object’s **`.spec`** field. Kubernetes controllers watch these objects, reconciling the observed state of the cluster toward the desired state as materialized in the **`.spec`**. But while Kubernetes _deployments_ are declarative, the workloads they declare are not.
+
+A Dockerfile is not, by itself, declarative. An image pinned by digest is not declarative. Creating Dockerfiles that build deterministic images—i.e., the same digest hash, at any time, on any machine—requires a combination of sustained discipline…and luck. In many orgs, this is so difficult as to be practically impossible.
+
+[Flox, powered by Nix](https://flox.dev/blog/enterprise-nix-its-time-to-bring-nix-to-work/), closes this gap, bringing the virtues of the declarative, desired-state model to Kubernetes _workloads_ as well. Nix works by modeling a build or runtime environment as a purely functional [derivation](https://nix.dev/manual/nix/2.20/glossary). A derivation is a declarative build recipe that lists all of the inputs (including not just sources, but environment variables, build flags, steps, etc.) that go into building and packaging software. A Nix package is a _content-addressed dependency set_: not just an application, tool, service, etc., but all of its transitive dependencies. These outputs live in [an immutable store](https://nixos.org/guides/nix-pills/18-nix-store-paths.html) at paths like **`/nix/store/<hash>-<name>`**, where the **`<hash>`** is always derived from the environment’s declared inputs. 
+
+**Kubernetes, Uncontained** isn’t in any sense an unproven pattern. Anthropic [uses something similar](https://www.socallinuxexpo.org/scale/22x/presentations/docker-was-too-slow-so-we-replaced-it-nix-production/) in its environment. Separately, [companies like SysEleven](https://flox.dev/nixinthewild/nix-in-the-wild-syseleven/), one of Germany’s most popular cloud services providers, trusts Nix to bring declarative determinism to its Kubernetes workloads—including, surprisingly, its CRDs. Though nominally declarative, these are difficult to package and version reproducibly. Nix gets it right every time.
+
+![](/images/blog/kubernetes-uncontained-comparison.svg)
+
+## Reproducibility, uncontained
+
+Both Flox environments and container images enable build-time and runtime reproducibility, but of different kinds, and in different ways. Much like the difference between a photographic negative (a container image) and an ideal recipe (Nix/Flox), a container image preserves an exact snapshot of an already-realized state; a Nix or Flox environment describes _how to realize that state_ using a pinned set of ingredients.
+
+Another good metaphor is that of [genotype versus phenotype](https://en.wikipedia.org/wiki/Genotype%E2%80%93phenotype_distinction): a Flox environment encodes the pinned “genotype” (e.g., build inputs and dependency graph) used to produce the realized “phenotype” of a runtime; a container image, by contrast, _is_ this phenotype. You can clone the container image and reproduce the phenotype bit-for-bit. In the same way, you can use the Flox environment to regenerate exactly the same phenotype, bit-for-bit, but you can _also_ “mutate” the genotype: i.e., change versions of dependencies, add or subtract dependencies, swap in new ones.
+
+Why would you want or need to “mutate” this spec?
+
+For many of the same reasons you “want” or need to rebuild container images:
+
+-  You’re testing/staging dependency upgrades, validating behavior and/or regressions before promoting.
+-  You’re rolling back, patching, or removing vulnerable dependencies in response to a zero-days or CVE. 
+-  You’re A/B testing and want to compare the behavior of dependencies in a controlled environment.
+-  You’re changing build flags/hardening (LTO/PIE/FORTIFY, static vs dynamic, musl vs glibc).
+
+
+### Traditional building + testing + shipping with container images 
+
+With container images, the workflow for each of these tasks usually looks like this:
+
+![](/images/blog/container_basic_workflow_standard.svg)
+
+After a few push–pull test cycles, teams bless an image for production. They reference it by digest in the Pod template and may also push a tag like **`prod`** to that digest in the registry.
+
+In most cases, then, the actual workflow used to produce or maintain a container image looks like this:
+
+![](/images/blog/container_workflow_costs_standard.svg)
+
+In this image-centric pipeline, the digest is the unit of change and promotion: updates require rebuilding, scanning/signing, pushing to a registry, pulling for tests, retagging, and deploying. This pattern is tightly coupled to registries and requires wasteful round-trips. It entails operational overhead even for small changes.
+
+
+## Your workloads, uncontained
+
+By contrast, **Kubernetes, Uncontained** replaces the image-centric push-pull cycle with a declarative, reference-driven workflow that radically simplifies your CI pipelines. You publish an immutable generation to FloxHub, reference it in the Pod spec, and the Flox runtime realizes the pinned dependency set at pod start. This shortens CI runs, cuts down on operator effort, and reduces registry bandwidth/storage/egress.
+
+The imageless variation of this workflow looks like this:
+
+![](/images/blog/flox_workflow_standard.svg)
+
+For the tasks described in **Section 3**, above, **Kubernetes, Uncontained** eliminates hours of **build → push → pull** testing loops, along with gigabytes of registry storage and egress costs.
+
+Let’s say you’re A/B testing ML models. Switching between models is as simple as commenting/uncommenting package definitions in a declarative Flox environment definition. You could even create separate environment definitions and test them against one another. There’s no waste or overhead from building, pushing, and pulling two separate multi-gigabyte images. On first start per node, the Flox shim fetches only dependencies that aren’t already cached, so models load once and get reused across pods. (This pattern gives you **zero-copy model serving**). Once you determine which model performs better, you can promote it by editing a single reference; if you run into issues in prod, you can roll back the same way.
+
+![](/images/blog/zero_copy_ml_workflow.svg)
+
+
+## Security and compliance, uncontained
+
+**Kubernetes, Uncontained** makes it much easier and faster to respond to zero-days, remediate CVEs, and demonstrate compliance, too. Don’t believe me? Let’s walk through it.
+
+First, each Flox environment defines an _input-addressed dependency set_, so the runtime software that powers your workloads is always pinned to an SHA-256 hash. Second, this software comes from the Flox Catalog, which uses [Nixpkgs](https://github.com/NixOS/nixpkgs)—the world’s best-maintained repository of open source software—as its upstream. It’s built in a hermetic sandbox using purely functional Nix expressions, so every build input—packages, env vars, feature flags, build steps, etc.—is declaratively defined. 
+
+The upshot: What’s defined in your Flox manifest is what’s in your runtime—and traceable back to its source.
+
+What does this give you?
+
+-  **Baked in provenance**. Every workload running in your pods is pinned to a fixed generation or content-addressed digest. You get a tamper-evident chain from sources and build inputs to runtime packages.
+-  **SBOMs by default**. _The dependency graph itself_ emits deterministic build-time and runtime SBOMs, giving you **build-graph attestation**: proof derived from declared input hashes, not inferred after the fact.
+-  **Atomic rollbacks**. Reverting involves a one-line change to your Pods’ template spec, specifying a prior generation. You get fast, deterministic rollouts without image rebuilds and registry round trips.
+-  **Policy-enforced deployments**. At [admission](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/), you can require that **(a)** a valid SBOM exists for each Flox environment’s generation; **(b)** the Flox environment referenced in the Pod’s spec template matches that generation/digest, and **(c)** this SBOM complies with your CVE policy. Otherwise the rollout is rejected.
+-  **Determinism across the SDLC**. The same Flox environment—a content-addressed dependency set—runs on laptops, in CI, and on production Kubernetes clusters. Workloads run reproducibly: anytime, anywhere.
+
+Say that a new CVE is released. You query your SBOMs to identify affected workloads. Flox’s SBOMs-by-construction design gives you a list of all your vulnerable deployments; no rescanning required. “Patching” vulnerable Flox environments involves editing their manifests, pushing new generations to FloxHub, and referencing these generations in your Pod spec templates. From there, you can run regression tests against any changed references, promote them through UAT and/or staging, and roll them into production. Your Kubernetes admission controllers verify the new SBOMs against policy at each step. You get rapid identification, simplified testing, and an auditable chain from remediation to runtime.
+
+You didn’t have to rebuild, push, pull, test, debug, and repeat (_da capo_) a single image.
+
+![](/images/blog/cve_remediation_workflow.svg)
+
+## **Why Flox (powered by Nix)?**
+
+All of this invites a question: How or why is this a problem for Flox to solve?  
+
+Because running workloads reproducibly on Kubernetes is also a software packaging problem.  
+
+By themselves, OCI images do not guarantee the provenance, traceability, and (as it were) “identity” of the artifacts they contain. The one thing OCI images can guarantee is that these packages haven’t been tampered with after being pushed to a registry and pinned to a digest hash. But even though the Dockerfile or lockfiles you use to build your OCI images might specify the same versions of packages, are these packages in fact identical to the ones you validated at build time? That is, do they contain exactly the same bits? To get this assurance, you need an input- or content-addressed building and packaging step.  
+
+Package management is, then, the “last mile” in workload reproducibility—on Kubernetes or anywhere. 
+
+So why [Flox](https://flox.dev)? Because Flox is powered by [Nix](https://flox.dev/blog/nix-pure-genius/), the open source package/environment manager and universal build system. 
+
+Deterministic building and packaging is one of Nix’s superpowers. Flox brings that superpower to everybody by surfacing intuitive ergonomics—Git-like CLI semantics; declarative environment definitions expressed as TOML—that abstract Nix’s complexity. And beyond what Nix itself provides, Flox adds a managed, curated catalog of software and a hosted hub that function as a shared system of record for environment versions (called “generations”), SBOMs, promotion/rollback, CVE remediation, and so on.
+
+## Ready to Go Uncontained?
+
+**Kubernetes, Uncontained** paves the last mile in Kubernetes-driven and GitOps workflows.
+
+That last mile is **software packaging**: the content- or input-addressed build step that binds what you _intend_ to run—your declared state—to the workloads that actually run in your Kubernetes pods.
+
+With **Kubernetes, Uncontained**, you make changes to a declarative Flox definition, push that to FloxHub, change a single line in your workload’s Kubernetes Pod spec, and run. That’s it. You test, ship, deploy, and/or roll back faster, easier, and more reliably—without building and testing images locally, then pushing them to a registry...only to pull, run, and test them again in CI. That vicious build-push-pull-repeat cycle just goes away.
+
+What you get:
+
+![](/images/blog/kubernetes-uncontained-takeaways.svg)
+
+Ready to go Uncontained? Get started [here](https://flox.dev/kubernetes/)!
+
+## FAQs about Kubernetes, Nix and Flox
+
+### How does imageless Kubernetes with Flox differ from standard container deployments?
+
+Unlike traditional deployments that rely on pulling pre-built OCI images from a registry, this approach uses a runtime shim to realize declarative environments directly on the node at startup. By referencing a specific environment version in the Pod template, the system fetches only the necessary dependencies into a node-local cache rather than downloading and unpacking a monolithic image. 
+
+### Can I use Nix-based deployments without changing my Kubernetes API?
+
+Yes. It integrates seamlessly with your existing cluster by acting as a plug-in via the Container Runtime Interface (CRI) without altering the Kubernetes API. You continue to use standard manifests and operational tools. This allows the declarative runtime to coexist alongside standard container workloads on the same nodes without disrupting current workflows.
+
+### How does an imageless workflow improve CI/CD pipeline efficiency?
+
+It accelerates CI/CD pipelines by removing the time-consuming steps of rebuilding, signing, and transferring heavy container images for every code change. Developers simply update a reference in the Pod template, allowing the runtime to fetch only the changed dependencies. This streamlined process reduces bandwidth usage and storage costs while enabling atomic rollbacks through simple configuration updates.
+
+### What are the security benefits of using declarative environments for workloads?
+
+You can quickly generate a comprehensive Software Bill of Materials (SBOM). Because the software is stored in an immutable store, the system provides tamper-evident provenance that links runtime artifacts directly back to their build inputs. This structure allows for immediate identification of vulnerable workloads and simplifies compliance without relying on post-build image scanners.

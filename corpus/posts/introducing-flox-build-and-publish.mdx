@@ -1,0 +1,777 @@
+---
+title: 'Introducing Flox Build and Publish'
+metaTitle: 'Introducing Flox Build and Publish'
+description: 'With Flox Build and Publish, your local dev environment is the same as your CI environment, which are the same as your build and runtime environments. You use the same environment across the entirety of the SDLC.'
+metaDescription: 'With Flox Build and Publish, your local dev environment is the same as your CI environment, which are the same as your build and runtime environments. You use the same environment across the entirety of the SDLC.'
+isPublished: true
+publishedDate: 26 Jun 2025
+author: Steve Swoyer
+authorKey: steve-swoyer
+thumbnail: /images/blog/box-of-power.webp
+orderBy: 20250626
+---
+
+Articles about DevOps tend to focus on an outsized abstraction: the DevOps "pipeline." The usual move is to frame this pipeline as something consistent and uniform, rather than a loose collection of steps, environments, and processes.
+
+Something similar happens with software packaging. The premise of packaging is that it gives you portability and reproducibility; however, without the right safeguards in place, a software package is arguably just a _wrapper_ that embodies the local conditions of wherever it was built.
+
+In both cases, we mistake an abstraction for something _airtight_—something that doesn’t leak.
+
+Pipelines and packages are abstractions, but they're also _distractions_. They overshadow the core challenge in producing software: _reproducibility_. What builds and runs in one context (like CI), doesn't always behave the same in staging, let alone production. What works when engineers build locally doesn't always work when pushed to CI. And what works on each engineer's machine doesn't always work when they share it with their team.
+
+So "works on my machine" becomes both a metaphor and a mantra for software builds at scale.
+
+Time to change that.
+
+
+## Flox Build & Publish Explained
+
+Many teams already use Flox to address some of these issues. They rely on Flox to create, share, and ship reproducible dev environments that Just Work anywhere. They depend on Flox for access to the world's largest collection of open source software.
+
+As of today, they can also use Flox to build, package, and install _their own_ software, too. Flox gives teams one tool they can use across the whole of the SDLC.
+
+Starting with Flox version 1.5.0, you can use it as an **integrated build system**. With the new **`flox build`** command, you can be certain your software will always build in a reproducible way–inside a completely sandboxed environment. You can even build and package artifacts across multiple platforms (macOS, Linux, and Windows with WSL2) and architectures (x86-64, ARM). When you build in a sandbox, not only are your _builds_ always reproducible, but your _packages_ encapsulate the environment in which they were built, so they, too, always run reproducibly across platforms. 
+
+Even better, you can use **`flox publish`** to package and publish not just your build artifacts _but all required runtime dependencies_ to your private [Flox Catalog](https://flox.dev/docs/concepts/packages-and-catalog/). In addition to binaries and libraries, you can package up shell scripts, config files, example data, and virtually any other artifact. This gives you a complete, self-contained runtime. You can either **`flox install`** your packages imperatively or define them declaratively in the Flox manifest. Either way, your software and all required dependencies are available for you to use—anywhere. 
+
+To sum up:
+
+-  **flox build** – The **`build`** subcommand builds and packages software in a reproducible, optionally sandboxed, environment, with support for building and packaging across operating system platforms and CPU architectures.
+
+-  **flox publish** – The **`publish`** sub-command performs a complete build before packaging and uploading build artifacts, along with all runtime dependencies, to your private Flox Catalog. Once published, you can **`flox search`**, **`flox show`** and **`flox install`** your packages.
+
+
+## Building Software with Flox: A Canonical Example
+
+You define your build instructions in a new section in the Flox manifest called **`[build]`**. 
+
+Each entry in the **`[build]`** section specifies a build target—typically an artifact such as one or more binaries, libraries, scripts, config file(s)—and defines how to build it from source.
+
+Each build definition includes:
+
+-  A name, like **`[build.myproject]`**, which identifies the artifact;
+-  A short build script containing the same commands you would normally run manually;
+-  (_Optional_) Metadata fields, like **`description`**, **`version`**, 
+-  (_Optional_) A sandbox, defined by **`sandbox = pure`** to isolate the build from the host;
+-  (_Optional_) A list of **`runtime-packages`**, to keep down the size of the resulting artifact's dependency tree.
+
+For example, the following build definition runs **[cowsay](https://hub.flox.dev/packages/base/cowsay)** in a sandboxed environment, writes its output to a text file, and stores that file in the build output directory.
+
+```
+version = 1
+
+[install]
+cowsay.pkg-path = "cowsay"
+
+
+[build.cow-greeting]
+version = "0.0.1"
+description = "Minimal build using cowsay to write a greeting"
+sandbox = "pure"
+runtime-packages = []
+command = '''
+  mkdir -p "$out"
+  cowsay "Ceci n'est pas une commande de build Unix" > "$out/greeting.txt"
+'''
+```
+
+Let's briefly explore this manifest's most distinctive features:
+
+-  We define **`version`** and **`description`** metadata keys for the build;
+-  The **`runtime-packages`** key is empty; the "package" itself is a textfile; there's no runtime.
+-  The **`sandbox = "pure"`** line isolates the build from the host system. This promotes build determinism and reproducibility, and also surfaces undeclared dependencies at build time.
+
+All output goes to **`$out`**, which is one of the most interesting features of **`flox build`**.
+
+Let's spend a few minutes exploring that. Spoiler: You can put a lot more than just build artifacts in **`$out`**.
+
+
+## The magic of `$out`
+
+Think of **`$out`** as the complete, self-contained output of your build, organized according to the [Filesystem Hierarchy Standard](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html) (FHS). It can include binaries (**`$out/bin/`**), libraries (**`$out/lib/`**), configs (**`$out/etc/`**), documentation or examples (**`$out/share/`**), and any other runtime artifacts your software needs.
+
+For example, after building **`cow-greeting`** and before publishing, the resultant contents of **`$out`** look like:
+
+```
+$out/
+└── greeting.txt
+```
+
+Even though our `cow-greeting` build is intentionally minimal, it's easy to imagine extending it to follow standard Unix packaging conventions. For example, if we were to add typical FHS directories to our build command with simple `cp` operations, the resulting `$out` structure would mirror what you'd expect from a well-behaved Unix package:
+
+```
+$out/
+├── greeting.txt
+├── bin/
+│   └── show-greeting
+├── share/
+│   ├── applications/
+│   ├── icons/
+│   ├── man/
+│   └── pixmaps/
+```
+
+In other words, **`$out`** _isn't_ just for binaries or libraries—it's your package's own isolated, **`/usr/`**-like prefix, containing everything it brings to an activated runtime environment. So if your package has runtime requirements like example data, language files, schema definitions, or templates, you can put them in **`share/`**. For a package called **`continuum-transfunctioner`**, its post-build **`$out`** might look like:
+
+-  **`$out/share/continuum-transfunctioner`**: package-specific resources;
+-  **`$out/share/locale`**: translation files;
+-  **`$out/share/examples`**: sample input, usage demos, etc.;
+-  **`$out/share/templates`**:  reusable templates used at runtime;
+-  **`$out/share/schema`**: for format descriptions like JSON Schema, OpenAPI, or Protobuf.
+
+If you publish this package to the Flox Catalog, install it to a Flox environment, and activate that environment, Flox materializes the package as part of a unified runtime closure that includes both package- and system-level dependencies. Under the hood, so to speak, this runtime closure is implemented as a **symlink forest**, such that the contents of **`bin/`**, **`lib/`**, **`share/`**, **`etc.,`** are symlinked to corresponding Nix store paths like **`/nix/store/<hash>-package-version`**.
+
+For example, the materialized runtime for a popular real-world package, **[htop](https://github.com/htop-dev/htop)** (see the **C** build example, below), looks like this:
+
+```
+.
+├── activate -> /nix/store/0dzzdjpj6d56galcykfxgczs6zi95n6l-flox-interpreter/activate
+├── activate.d/
+├── bin/
+├── checksums -> /nix/store/6w13f3xx4qdyxf5wcyfn8zzqyihqjsb9-gcc-14.2.1.20250322-checksum/checksums
+├── etc -> /nix/store/0dzzdjpj6d56galcykfxgczs6zi95n6l-flox-interpreter/etc
+├── include/
+├── lib/
+├── libexec -> /nix/store/qs54xir5n4vhhbi22aydbkvyyq4v8p0l-gcc-14.2.1.20250322/libexec
+├── manifest.lock -> /nix/store/i51q43rl2wqvslw4c5msfc02p44vzj8c-manifest/manifest.lock
+├── package-builds.d -> /nix/store/i51q43rl2wqvslw4c5msfc02p44vzj8c-manifest/package-builds.d
+├── requisites.txt
+├── sbin -> /nix/store/qg3q4ya6z9jw2szl8j7ssjf7f70i4w48-libcap-2.75/sbin
+└── share/
+```
+
+The store paths themselves vary based on the package, its version, and the hash derived from its build inputs, but the _overall pattern_ is foundational to how Flox and Nix deliver runtime portability and reproducibility.
+
+
+## Publishing Software with Flox
+
+Once you've built your project, publishing it to your private catalog is simple. You just run:
+
+```
+$ flox publish -o <your_floxhub_handle> <your_package_name>
+```
+
+_Before_ you publish, however, you'll need to take care of a few basics:
+
+-  The package must be defined in the **`[build]`** section of manifest.toml;
+
+-  The Flox environment must be inside a Git repo and have at least one package defined in its manifest;
+
+-  The Git working tree must be clean, with _no_ uncommitted changes to tracked files;
+
+-  The current commit must be pushed to a Git remote. If you have just one remote, Flox uses it. With multiple remotes, Flox looks only for `upstream` first, then `origin`, and disregards any others.
+
+-  All files referenced during the build must be tracked by Git.
+
+The Git constraints exist in order to lock the published package to a controlled input state. This keeps it from inheriting ambient state from the local build environment. It's a way of creating the conditions for reproducible builds–as well as for traceability and auditability over time.
+
+The built package's payload includes essential metadata, like its name, version, dependencies, and its source Git URL and revision. During the build, Flox locks and tracks every input to the build—the contents of **`$out`** plus every package listed under **`runtime-packages`** (and what those packages themselves depend on) in your **`[build]`** definition. This is its "runtime closure." When you run **`flox publish`**, the entire closure gets uploaded to your catalog. And when you **`flox install`** your package, this pulls in the closure–not just your software, but any store paths (i.e., dependencies) that aren't already in your Nix store.
+
+Once you've successfully built and tested your package, you're ready to publish it, like so:
+
+```
+$ flox publish
+```
+
+This triggers a validation build, at the end of which you'll see a message indicating that the derivation you've built is being uploaded to your catalog. Once this is complete, you'll see a status message like this:
+
+```
+Completed build of cow-greeting 0.0.1a in local mode
+
+✅ Package published successfully.
+
+Use 'flox install barstoolbluz/cow-greeting' to install it.
+```
+
+Just running **`flox publish`** is sufficient when your manifest defines a single package and you're publishing to your default private catalog.
+
+If you’ve defined multiple packages or want to publish to a different catalog, Flox Publish gives you several options:
+
+- **`flox publish -o <username>`**: publish a single package (when only one is defined) to a specific destination
+- **`flox publish -o <username> <package>`**: publish a specific package to a specific destination
+- **`flox publish <package>`**: publish a specific package to your default destination
+
+For example, if your **`[build]`** section includes targets like **`[build.cow-greeting]`**, **`[build.cow-greeting-tests]`**, and **`[build.cow-greeting-lint]`**, you’ll want to publish just the main package—not the test or lint targets:
+
+```
+flox publish cow-greeting
+```
+
+
+You can install your package imperatively, using the **'flox install`** command, or define it in your manifest:
+
+```
+[install]
+"barstoolbluz/cow-greeting".pkg-path = "barstoolbluz/cow-greeting"
+"barstoolbluz/cow-greeting".systems = ["x86_64-linux"]
+"barstoolbluz/cow-greeting".pkg-group = "barstoolbluz/cow-greeting"
+```
+
+Your packages and their constraints include your FloxHub handle and package name; otherwise, they're defined just like other packages you'd get from the Flox Catalog.
+
+In fact, you can search for your package using its name:
+
+```
+$ flox search cow-greeting
+barstoolbluz/cow-greeting Minimal build using cowsay to write a greeting
+```
+
+Or show information about available package versions:
+
+```
+$ flox show barstoolbluz/cow-greeting
+barstoolbluz/cow-greeting – Minimal build using cowsay to write a greeting
+    barstoolbluz/cow-greeting@0.0.1a (x86_64-linux only)
+```
+
+There's one other difference to take note of, however. When you **`flox install`** a package from the Flox Catalog, it's almost always available for both Linux and macOS, running on either Intel or ARM.
+
+But with Flox Build, you must build and publish your package for each platform you want it to run on. So building and publishing your **`cow-greeting`** package on an x86-64 Linux system shows the following message:
+
+```
+⚠️  'barstoolbluz/cow-greeting' installed only for the following systems: x86_64-linux
+```
+
+Building and publishing your **`cow-greeting`** package on an ARM-based MacBook afterwards would show this:
+
+```
+⚠️   'barstoolbluz/cow-greeting' installed only for the following systems: aarch64-darwin, x86_64-linux
+```
+
+Plus, the **`flox show barstoolbluz/cow-greeting`** command now lists both platforms:
+
+```
+barstoolbluz/cow-greeting – Minimal build using cowsay to write a greeting
+    barstoolbluz/cow-greeting@0.0.1a (x86_64-darwin, x86_64-linux only)
+```
+
+And running **`flox edit`** shows your **`cow-greeting`** package constrained to two target platforms in your manifest:
+
+```
+[install]
+"barstoolbluz/cow-greeting".pkg-path = "barstoolbluz/cow-greeting"
+"barstoolbluz/cow-greeting".systems = ["aarch64-darwin", "x86_64-linux"]
+"barstoolbluz/cow-greeting".pkg-group = "barstoolbluz/cow-greeting"
+```
+
+That's it. That's Flox Publish in a nutshell.
+
+
+## Build-time and Runtime Reproducibility You Can Take with You
+
+Building and shipping software isn't as straightforward as it could be. As for knowing _exactly_ what you built, how you built it, where it came from, what it needs to run … while being able to track all of this as it evolves?
+
+That sometimes feels impossible. Flox's new Build and Publish feature is the missing piece. With Flox, your local dev environment is always the same as your CI environment. And _both_ are always the same as your software's build and runtime environments. You use the same environment across the entirety of the SDLC.
+
+You can now build your own software, publish it to the private software repo your organization uses for internal packages, and then—to close the loop—_install_ that software back into your local dev, CI, runtime, and build environments. Flox gives you one tool for all of your language ecosystems. Best of all, you can keep the workflows you already use: you run your existing build commands, push the same repo, publish to your private catalog, and then **`flox install`** your packages straight back into dev, CI, and production.
+
+Best of all, the Flox environment is itself _a declarative definition_: it's a TOML manifest describing everything your software needs to build and run _anywhere_. The packages you **`flox publish`** to your private catalog take that manifest with them, so every installable artifact doubles as an immutable record of what was built, how, when, and with which inputs. You get portable proof of provenance you can install and run anywhere.
+
+Want to learn more? Why not start by reading all about Flox **[Build](https://flox.dev/docs/concepts/manifest-builds/)** and **[Publish](https://flox.dev/docs/concepts/publishing/)**, or discover how Flox is different from, and a complement to, **[containers](https://flox.dev/docs/concepts/flox-vs-containers/)**. Or just take the plunge: **[Download Flox](https://flox.dev/docs/install-flox/)**, create your first package, build it, publish it–and install it anywhere!
+
+To help you get started, let's dig into build examples using real-world software, spanning several popular languages and toolchains.
+
+
+##  Build Examples: C
+
+You'll detect a theme with all of the build examples: We'll be working with interactive terminal UI (TUI) system monitors. First up is **[htop](https://github.com/htop-dev/htop)**, a mature tool written in [C](https://flox.dev/docs/cookbook/languages/c/). **Note**: In this and the sections that follow, the first mention of a language links to its Flox Build [cookbook entry](https://flox.dev/docs/cookbook/languages/c/).
+
+
+To build **[htop](https://github.com/htop-dev/htop)** from source using **`flox build`**, you'd clone its repo, initialize a new Flox environment, then create this manifest:
+
+```
+version = 1
+
+[install]
+ # build tools
+autoconf.pkg-path = "autoconf"
+automake.pkg-path = "automake"
+libtool.pkg-path  = "libtool"
+pkg-config.pkg-path = "pkg-config"
+gnumake.pkg-path = "gnumake"
+gnused.pkg-path = "gnused"
+
+ # runtime + link-time deps
+ncurses.pkg-path = "ncurses"
+sockstat.pkg-path = "sockstat"
+sockstat.systems = ["x86_64-darwin", "aarch64-darwin"]
+libbsd.pkg-path = "libbsd"
+libcap.pkg-path = "libcap"
+libcap.systems = ["x86_64-linux", "aarch64-linux"]
+libucl.pkg-path = "libucl"
+bash.pkg-path = "bash" # promotes consistent behavior across platforms
+
+ # platform-specific build tools
+IOKit.pkg-path = "darwin.apple_sdk.frameworks.IOKit"
+IOKit.systems = ["x86_64-darwin", "aarch64-darwin"]
+CoreFoundation.pkg-path = "darwin.apple_sdk.frameworks.CoreFoundation"
+CoreFoundation.priority = 2
+CoreFoundation.systems = ["x86_64-darwin", "aarch64-darwin"]
+gcc.pkg-path = "gcc"
+gcc.systems = ["x86_64-linux", "aarch64-linux"]
+clang.pkg-path = "clang"
+clang.systems = ["x86_64-darwin", "aarch64-darwin"]
+
+
+[build.htop]
+ # sandboxed build
+version = "3.5.0-dev"
+description = "Demo fork of interactive process viewer"
+sandbox = "pure"
+runtime-packages = ["gcc", "ncurses", "libbsd", "libcap", "libucl", "bash"]
+command = '''
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # patches kIOMainPortDefault  ^f^r kIOMasterPortDefault for older macOS SDKs
+    sed -i.bak 's/kIOMainPortDefault/kIOMasterPortDefault/g' darwin/DarwinMachine.c
+  fi
+
+  autoreconf -i
+  ./configure --prefix=$out \
+              --with-ncurses \
+              --enable-unicode
+  make -j$(nproc)
+  make install
+'''
+```
+
+There are a couple of useful things to note about the **`[build]`** definition in this manifest::
+
+-  We define platform-specific dependencies (compilers and libraries) in the **`[install]`** section;
+-  We build with autoconf on both Linux and MacOS, using each platform's default compiler;
+-  We use conditional logic (**`if [[ "$(uname)" == "Darwin" ]]; then`**) to patch the project source code on macOS. This addresses a common type of platform-specific or version-specific issue;
+-  We're again doing a **`sandbox = "pure"`** build, so we need to define more build-time dependencies than with a basic build. Sandbox builds are _reproducible_; basic builds are _repeatable_: inside the sandbox, only the dependencies defined in the manifest are available.
+
+Once you **`flox activate`** and run **`flox build`**, you'll see output like this:
+
+```
+Completed build of htop-3.5.0-dev in local mode
+
+✨ Build completed successfully. Output created: ./result-htop
+```
+
+You can run **`flox publish`** to publish to your private FloxHub catalog.
+
+
+
+## Build Examples: C++
+
+The [C++]([C](https://flox.dev/docs/cookbook/languages/c/)) build example is **[btop](https://github.com/aristocratos/btop)**, which might be the coolest **`htop`** alternative going. This build example uses [**cmake**](https://github.com/Kitware/CMake), but you can build for Linux and macOS using **`make`**, too.
+
+To build **`btop`** from source, clone its repo and initialize a new Flox environment. Then paste the TOML below into your manifest:
+
+```
+version = 1
+
+[install]
+cmake.pkg-path = "cmake"
+gcc.pkg-path = "gcc"
+gcc.systems = ["x86_64-linux","aarch64-linux"]
+
+clang.pkg-path = "clang"
+clang.systems = ["x86_64-darwin","aarch64-darwin"]
+
+binutils.pkg-path = "binutils"
+binutils.priority = 7
+
+apple-sdk_15.pkg-path = "apple-sdk_15"
+apple-sdk_15.systems = ["aarch64-darwin", "x86_64-darwin"]
+
+
+[build.btop]
+description = "Custom demo fork of btop"
+version = "1.4.3"
+command = '''
+mkdir -p build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=$out -DBTOP_LTO=false
+make -j3
+make install PREFIX=$out
+'''
+```
+
+Once you activate the environment and run **`flox build`**, you'll see a message like this:
+
+```
+Completed build of btop-1.4.3 in local mode
+
+✨ Build completed successfully. Output created: ./result-btop
+```
+
+You can run **`flox publish`** to publish to your private FloxHub catalog.
+
+
+## Build Examples: Rust
+
+[Rust](https://flox.dev/docs/cookbook/languages/rust/) offers several **`htop`**-like alternatives, the most popular of which is probably **bottom**, or **btm**.
+
+The TOML below defines not just a build command (**[build.bottom]**), but lint (**[build.lint]**) and unit tests (**[build.unit-tests]**) too. If you prefer, you could incorporate these into a single build command.
+
+```
+version = 1
+ 
+[install]
+# rust toolchain
+rustc.pkg-path = "rustc"
+cargo.pkg-path = "cargo"
+rustfmt.pkg-path = "rustfmt"
+clippy.pkg-path = "clippy"
+ 
+# cross compilation helper (optional)
+cargo-cross.pkg-path = "cargo-cross"
+ 
+ 
+[build.bottom]
+version = "0.11.0"
+description = "Custom fork of btm"
+command = '''
+set -euo pipefail
+mkdir -p "$out/bin"
+ 
+cargo build --release --locked
+ 
+cp target/release/btm "$out/bin/"
+ 
+# generates shell completions & manpages
+if cargo metadata --no-deps | grep -q '"generate_completions"'; then
+  mkdir -p "$out/share/completions" "$out/share/man/man1"
+  cargo run --release --features deploy -- completions --out-dir "$out/share/completions"
+  cargo run --release --features deploy -- man --out-dir "$out/share/man/man1"
+fi
+'''
+
+# lints results into $out/lint
+[build.lint] 
+version = "0.11.0"
+description = "Custom fork of btm"
+command = '''
+set -euo pipefail
+mkdir -p "$out/lint"
+cargo clippy --all-targets --all-features -- -D warnings | tee "$out/lint/clippy.txt" || true
+'''
+ 
+# dumps test suite results into $out/test
+[build.unit-tests]
+version = "0.11.0"
+description = "Custom fork of btm"
+command = '''
+set -euo pipefail
+mkdir -p "$out/test"
+cargo test --locked --all-features -- --nocapture | tee "$out/test/tests.txt"
+'''
+```
+
+Paste the TOML above into your Flox manifest, run **`flox build`**, and you're off to the races. Just running **`flox build`** will queue up all three commands, showing final output like this:
+
+```
+Completed build of bottom-0.11.0 in local mode
+… 
+Completed build of lint-0.11.0 in local mode
+…
+Completed build of unit-tests-0.11.0 in local mode
+
+✨ Builds completed successfully.
+Outputs created: ./result-bottom, ./result-lint, ./result-unit-tests
+```
+(**Note**: The ellipses, `…`, indicate redacted output messages between each build command.)
+
+
+Because your build also includes definitions for **`[build.lint]`** and **`[build.unit-tests]`**, you must name the **`bottom`** package explicitly when you go to publish it:
+
+
+```
+flox publish bottom
+```
+
+
+
+## Build Examples: Go
+
+There's an **`htop`** alternative called **`gotop`** for [Go](https://flox.dev/docs/cookbook/languages/go/#go-compiler-adds-metadata), but **[ctop](https://github.com/bcicen/ctop)** seems like an even better alternative. It's a terminal ui (TUI) tool for monitoring OCI containers: basically, **`htop`** for Docker. The TOML below defines a build plan for **`ctop`**, complete with coverage tests:
+
+```
+version = 1
+
+[install]
+go.pkg-path = "go_1_22"
+
+# upx for compressing binaries
+upx.pkg-path = "upx"
+
+# git for version string extraction
+git.pkg-path = "git"
+
+# jq for processing test output
+jq.pkg-path = "jq"
+
+
+[build.ctop]
+description = "Custom fork of ctop"
+version = "0.7.7"
+command = '''
+set -euo pipefail
+mkdir -p "$out/release" "$out/test"
+
+# runs tests with coverage
+go test -v -coverprofile="$out/test/coverage.out" ./... > "$out/test/test.log" 2>&1 || exit 1
+
+# generates coverage report
+go tool cover -html="$out/test/coverage.out" -o "$out/test/coverage.html"
+
+# detects target platform
+GOOS=$(go env GOOS)
+GOARCH=$(go env GOARCH)
+CTOP_VERSION=$(git describe --tags --dirty --always 2>/dev/null || echo "dev")
+BIN="ctop-${CTOP_VERSION}-${GOOS}-${GOARCH}"
+
+# builds it
+env CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH \
+    go build -tags static -ldflags "-w -s -X=main.Version=$CTOP_VERSION" \
+    -o "$out/release/$BIN" .
+
+upx --lzma "$out/release/$BIN" >/dev/null 2>&1 || true
+'''
+```
+
+A successful build shows output like this:
+
+```
+Completed build of ctop-0.7.7 in local mode
+
+✨ Build completed successfully. Output created: ./result-ctop
+```
+
+Next just run **`flox publish`** to push your package to your private catalog.
+
+
+## Build Examples: Python
+
+Although there's an **`htop`**-like tool called **`pytop`**, the obvious choice for [Python](https://flox.dev/docs/cookbook/languages/python/) is **[glances](https://github.com/nicolargo/glances)**, which by most measures is a more informative tool.
+
+The manifest below defines everything needed to build both **`glances`** and its web server, which provides a TUI-style browser interface. The **`glances`** web server requires a few extra packages to work on MacOS:
+
+
+```
+version = 1
+
+
+[install]
+python312.pkg-path   = "python312"
+uv.pkg-path        = "uv"
+nodejs.pkg-path    = "nodejs_20"      # req'd for vue.js build
+
+# iproute2mac req'd for netifaces2 on macos
+iproute2mac.pkg-path = "darwin.iproute2mac"
+iproute2mac.systems = ["x86_64-darwin", "aarch64-darwin"]
+
+
+[build.glances]
+description = "Custom fork of glances"
+version = "4.3.2_dev05"
+runtime-packages = ["python312"]
+command = '''
+set -euo pipefail
+mkdir -p "$out/bin"
+
+# sets up support for compiling netifaces2
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    export ARCHFLAGS="-arch $(uname -m)"
+fi
+
+uv pip install --no-cache-dir --target "$out/lib/python3.12/site-packages" .[all]
+
+# creates tui entry point
+cat > "$out/bin/glances" << EOF
+exec "\${FLOX_ENV}/bin/python3" -c "
+import sys, os
+sys.path.insert(0, os.path.join('$out', 'lib', 'python3.12', 'site-packages'))
+from glances import main
+main()
+"
+EOF
+
+# creates httpd entry point
+cat > "$out/bin/glances-webserver" << EOF
+exec "\${FLOX_ENV}/bin/python3" -c "
+import sys, os
+sys.path.insert(0, os.path.join('$out', 'lib', 'python3.12', 'site-packages'))
+from glances import main
+import sys
+sys.argv.append('-w')
+main()
+"
+EOF
+
+chmod +x "$out/bin/glances" "$out/bin/glances-webserver"
+'''
+```
+
+Once your build finishes you'll see a message like this:
+
+```
+Completed build of glances-4.3.2_dev05 in local mode
+
+✨ Build completed successfully. Output created: ./result-glances
+```
+
+Then just run **`flox publish`** to push your package to your private catalog.
+
+
+
+## Build Examples: Java
+
+There's nothing _quite_ like **`htop`** in the Java world. But there is **[visualvm](https://github.com/oracle/visualvm)**, which provides comparable visibility into the inner workings of [Java](https://flox.dev/docs/cookbook/languages/jvm/) and the JVM.
+
+The manifest below defines everything you need to build **`virtualvm`** for Linux, MacOS, or even Windows:
+
+```
+version = 1
+ 
+ 
+[install]
+# jdk for NetBeans
+jdk8.pkg-path = "jdk8"
+jdk8.priority = 1
+ 
+# platform-specific compilers
+gcc.pkg-path = "gcc"
+gcc.systems = ["x86_64-linux", "aarch64-linux"]
+clang.pkg-path = "clang"
+clang.systems = ["x86_64-darwin", "aarch64-darwin"]
+ 
+# build essentials
+ant.pkg-path = "ant"
+gnumake.pkg-path = "gnumake"
+coreutils.pkg-path = "coreutils"
+gnused.pkg-path = "gnused"
+gawk.pkg-path = "gawk"
+ 
+# build deps
+wget.pkg-path = "wget"
+unzip.pkg-path = "unzip"
+zip.pkg-path = "zip"
+patch.pkg-path = "patch"
+ 
+ 
+[build.visualvm]
+description = "Demo fork of visualvm"
+version = "VisualVM-Dev"
+runtime-packages = ["jdk8"]
+command = '''
+set -euo pipefail
+ 
+# sets up environment
+JAVA_HOME="$(dirname $(dirname $(readlink -f $(which java))))"
+export JAVA_HOME PATH="${JAVA_HOME}/bin:${PATH}"
+export ANT_HOME="$(dirname $(dirname $(readlink -f $(which ant))))"
+ 
+echo "Building VisualVM..."
+cd visualvm
+ 
+# cleans NetBeans environment if exists
+if [ -d "netbeans" ]; then
+    rm -rf netbeans
+fi
+ 
+# builds NetBeans
+echo "Building NetBeans Platform 22..."
+bash build-nb.sh || echo "build-nb.sh completed (possibly already up to date)"
+ 
+ 
+# finds + extracts NetBeans zip
+NBZIP=$(find build -name "*nb220*.zip" -type f | head -1)
+if [ -n "$NBZIP" ] && [ -f "$NBZIP" ]; then
+     unzip -q "$NBZIP" -d .
+else
+    echo "Error: NetBeans Platform zip not found"
+    exit 1
+fi
+ 
+# builds visualvm
+export nb_platform_home="netbeans"
+ant -Dnb_platform_home="$nb_platform_home" build-zip
+ 
+mkdir -p "$out"
+if [ -f "dist/visualvm.zip" ]; then
+     unzip -q "dist/visualvm.zip" -d "$out"
+else
+    # defensive programming to detect where ant puts visualvm.zip
+    build_zip=$(find build -name "visualvm*.zip" -type f | head -1)
+    if [ -n "$build_zip" ]; then
+        unzip -q "$build_zip" -d "$out"
+    else
+        echo "Error: Could not find built visualvm.zip"
+        exit 1
+    fi
+fi
+ 
+chmod +x "$out"/*/bin/visualvm
+```
+
+Once your build finishes, you'll see a message like this:
+
+```
+Completed build of visualvm-VisualVMDev in local mode
+
+✨ Build completed successfully. Output created: ./result-visualvm
+```
+
+Again, just run **`flox publish`** to push your package to your private catalog.
+
+
+
+## Build Examples: JavaScript / Node.js
+
+The final build example is **[vtop](https://github.com/MrRio/vtop)**, a quite pretty **`htop`** alternative written mostly in [JavaScript](https://flox.dev/docs/cookbook/languages/nodejs/).
+
+
+```
+version = 1
+
+[install]
+nodejs.pkg-path      = "nodejs_20"
+
+# gnu make gets called by an upstream makefile
+gnumake.pkg-path     = "gnumake"
+
+
+
+[build.vtop]
+description = "Custom demo fork of vtop"
+version = "0.6.1"
+runtime-packages = ["nodejs"]
+command = '''
+set -euo pipefail
+mkdir -p "$out/bin"
+
+# sets up npm cache
+export npm_config_cache="${FLOX_ENV_CACHE:-/tmp}/npm"
+mkdir -p "$npm_config_cache"
+
+npm install --omit=dev
+
+cp bin/vtop.js "$out/bin/vtop"
+chmod +x "$out/bin/vtop"
+
+# copies the entire source for runtime closure
+mkdir -p "$out/lib/vtop"
+cp -r *.js package.json sensors/ themes/ bin/ "$out/lib/vtop/"
+cp -r node_modules "$out/lib/vtop/"
+
+# creates a wrapper script that sets NODE_PATH
+cat > "$out/bin/vtop" << 'EOF'
+#!/bin/bash
+VTOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/vtop" && pwd )"
+cd "$VTOP_DIR"
+exec node bin/vtop.js "$@"
+EOF
+```
+
+The build should finish quickly. Then you'll see a message like:
+
+```
+Completed build of vtop-0.6.1 in local mode
+
+✨ Build completed successfully. Output created: ./result-vtop
+```
+
+One last time, run **`flox publish`** to push your package to your private catalog.

@@ -1,0 +1,109 @@
+---
+title: 'Flox and Teams: Managing Your Code and Your Runtime Environment in Just One Place'
+altTitle: 'Flox and Teams: Managing Your Code and Your Runtime Environment in Just One Place'
+description: 'Flox lets you manage both your code and your project environment’s runtime dependencies in the same repository, so your environment’s configuration becomes part of your codebase.'
+metaDescription: 'Flox lets you manage both your code and your project environment’s runtime dependencies in the same repository, so your environment’s configuration becomes part of your codebase.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 22 November 2024
+thumbnail: '/images/blog/loading-truck.webp'
+orderBy: 20241122
+---
+
+For teams, the best part about using Flox is how it eliminates so much drudge work.
+
+It’s no longer a grind to [onboard](https://flox.dev/blog/flox-and-teams-onboarding-made-easy-with-github-and-flox/) onto a new team or project. Fixing, managing, or recreating your local dev environment (or those of your teammates) is no longer a weekly ordeal. Gone, too, are the problems that always seem to pop up whenever it’s time to share what you’ve built, to test it in CI, or run it in prod.
+
+Flox also puts an end to the most frustrating drudgery of all: working around [the operational drag](https://flox.dev/blog/flox-and-teams-using-shared-flox-environments/) that slows your team down and makes it so. darned. hard. to collaborate on building and shipping reliable software.
+
+But did you know Flox also reduces the drudge work (and drag) in _refactoring_ projects? That you can define both your project and its runtime as code, enabling features and dependencies to be reviewed, tested, and deployed together? You didn’t? Strap in, because that’s the subject of this article!
+
+
+## 1. Adding a Feature to a Project
+
+Your company’s design team has created a new palette for its customer portal’s theming system, consisting of both light and dark themes. Your team gets assigned the task of implementing this, and _you_ draw the short straw/golden ticket, owing to your expertise with front-end tools. You select [Dart Sass](https://github.com/sass/dart-sass) because it supports variables and mixins for theming, and because it works well with the Node.js and React stack you're using.
+
+_Selecting_ a tool is the easy part. Now comes the drudge work! First you’ve got to update the project’s README so you can document which version of Dart Sass you’re using, along with the steps involved in installing it. And because you’re using containers, you’re also going to have to edit a Dockerfile, rebuild the project’s container, and test the rebuilt container—just so you can work locally on your MacBook Pro.
+
+Then, after that, you’re going to—_But wait_, you think, _I’m using Flox. I don’t have to do any of this_!
+
+With Flox, you don’t have to touch containers, let alone spin up a multi-container runtime locally.
+
+Adding Dart-Saas to your project is as simple as `git clone`-ing your project, changing into it, and running
+
+```
+flox install dart-sass
+```
+
+That really is it. Nested inside your project repo, tucked in with other dotfolders like `.git`, `.gitignore`, and `.ci`, is a folder named `.flox`. The contents of this folder consist of at least three files:
+
+-  An environment configuration manifest (`manifest.toml`), which lives in `./flox/env/`;
+-  An environment configuration lockfile (`manifest.lock`), which also lives in `./flox/env/`; and
+-  An environment definition file (`env.json`), which lives in `.flox` itself.
+
+To copy these files and an environment’s folder structure is to copy the environment. This makes it almost as easy to `git push` a project repo containing a `.flox` environment to GitHub as it is to `git clone` it.
+
+
+## Have Code and Runtime, Will Travel
+
+Once you’ve cloned your repo and `flox install`-ed the Flox Catalog’s `dart-sass` package, you can make the code changes required to enable theming support. These include:
+
+-  Defining SCSS variables for distinct light and dark themes in `themes.scss`;
+-  Creating a new JavaScript function in `src/theme.js` to enable theme toggling;
+-  Adding logic to persist the theme choice in [localStorage](https://javascript.info/localstorage) so it’s retained across sessions;
+-  Modifying `index.js` to initialize the correct theme when your web app loads.
+
+With Flox you can manage both your code and your project environment’s dependencies _in the same repository_, such that the environment’s configuration becomes part of the project's codebase.
+
+The beauty of this is that when you `git push` your branch back to origin/main and create a pull request (PR), your PR includes not only the feature code—the updates to `themes.scss`, `src/theme.js`, and `index.js`—but also the Flox environment’s updated configuration. By _defining both the project and the environment as code_, the entire feature and its dependencies can be reviewed, tested, and deployed atomically.
+
+
+## 2. Changing Services in a Project
+
+Imagine you maintain a Go-based service that provides low-latency access to templates, user-submitted data, and competition states for a mobile gaming app. You run multiple instances of your service in [Fly Kubernetes](https://fly.io/docs/kubernetes/) pods, dynamically scaling them to meet demand. Each instance has its own MySQL database, because your service needs ACID transactional safeguards to support concurrent operations.
+
+The choice of MySQL was made by your predecessor. However, your service syncs leaderboard rankings, player inventory updates, and gameplay analytics to a central database, which is currently Oracle but will soon be replaced by PostgreSQL. For the better part of a week, you’ve been refactoring and testing your service with PostgreSQL instead of MySQL. The good news is that your service is built using Flox!
+
+So believe it or not, you’re _almost_ ready to ship your project to CI. While you still need to refactor your code to work with PostgreSQL, swapping out one relational database for another in your runtime was a non-issue. Strangely, unexpectedly, this turned out to be the very definition of "easy."
+
+After cloning your project, all you had to do was run **`flox remove mysql`** to uninstall the existing mysql package, followed by **`flox install postgresql@15.7`** to define a pinned version of PostgreSQL for your environment. Finally, you had to replace your existing MySQL environment variables with PostgreSQL-specific versions, add some bootstrapping shell logic, and define a `postgresql` service.
+
+You modified just one file, your Flox environment’s [manifest.toml](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/) configuration artifact, copying the variables, shell logic, and service definitions from an existing Flox [PostreSQL example environment](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox) and modifying them to suit your requirements. You didn’t have to worry about updating or debugging any of the dependencies in your environment, because Flox figures that out for you. Automatically.
+
+
+## Bigger, Better, Faster Testing
+
+Let's recap: Rebuilding and testing your Go service’s runtime environment took you all of … 30 minutes? Plus, you inherited your PostgreSQL schema from the upstream database, so initializing and testing that took maybe another 30 minutes? Forty-five minutes tops?
+
+This allowed you to move quickly into tracing errors, fixing bugs, ferreting out corner cases, and writing unit tests to validate query behavior and performance against the co-located PostgreSQL database. Flox helped accelerate these tasks, too. For one thing, it gave you a way to run an exact replica of your production service on your system, with transparent access to all your local tools, data, variables, and secrets.
+
+For another, your Flox environment _is defined as code_, so making changes to it doesn't involve debugging and rebuilding a containerized runtime, or cutting through a Gordian Knot of dependency conflicts.
+
+Thanks to Flox, you were even able to _expand_ the scope of your testing, designing and running
+
+-  **Smoke tests** to catch regressions early;
+-  **Basic integration tests** to validate schema compatibility with the upstream database; and
+-  **Basic soak tests** to validate performance under simulated production-like conditions.
+
+Your local testing is done, which means that—for the moment—your work is done. It’s time to `git push` your branch back to `origin` and create a PR. Your service has a ways to go before it’s ready to be deployed, including undergoing a gamut of tests in CI, followed by a lengthy try-out in staging.
+
+But at least you know it will run and behave exactly as expected in those contexts.
+
+
+## Making Software Engineering Fun Again
+
+With Flox, developing and refactoring software as part of a team is a radically different experience.
+
+Flox enables you to manage both your code and its runtime dependencies in the same repository, such that the runtime environment is defined _as part of the project’s codebase_. This means you can use the same environment across your SDLC, from local development, to building and testing in CI, to deployment in prod. Changes you make to the environment are by definition versioned, tracked, and integrated alongside code changes.
+
+This Just Works whether you're using GitHub, GitLab, Azure DevOps, AWS CodeCommit, or other platforms.
+
+And since a Flox environment’s manifest functions as both an [SBOM](https://insights.sei.cmu.edu/blog/applying-the-sei-sbom-framework/) and a declarative definition of what the environment is and how it works, it can help replace lengthy, complicated README files, too.
+
+Try it yourself. [Download Flox](https://www.flox.dev/get) and pull one of our prototype environments from [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/). Running a local, container-less instance of our [PostgreSQL example environment](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox) is as simple as typing:
+
+```
+flox activate -r flox/postgres
+```

@@ -1,0 +1,73 @@
+---
+title: 'Get a Journal in Your Terminal with jrnl and Flox'
+altTitle: 'Get a Journal in Your Terminal with jrnl and Flox'
+description: "jrnl is a plain-text command-line journaling application that allows you to store multiple journals, tag entries, and more."
+metaDescription: "jrnl is a plain-text command-line journaling application that allows you to store multiple journals, tag entries, and more."
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: jrnl
+author: Zach Mitchell
+publishedDate: 17 January 2025
+thumbnail: '/images/blog/filing-cabinet.webp'
+orderBy: 20250117
+---
+
+
+Today’s Fun Package is a simple one: [jrnl](https://github.com/jrnl-org/jrnl). This is a plain-text command-line journaling application that allows you to store multiple journals, tag entries, and more. People journal for a variety of reasons, but I only use `jrnl` for work.
+
+First I’ll show you how to get started, and then I’ll show you how I use it.
+
+
+## Getting started
+
+If you want `jrnl` to be available all the time, add it to your `default` Flox environment. If you don’t already have a `default` environment, it’s simply an environment that is stored in `~/.flox`, and once you add a line to your shell’s RC files the packages in that environment will be available everywhere. For all of the details and setup instructions, see [the documentation](https://flox.dev/docs/tutorials/default-environment/). 
+
+With that out of the way, install `jrnl` to the `default` environment:
+
+```
+$ cd ~
+$ flox install jrnl
+```
+
+Once that’s installed, you should be able to run `jrnl` from anywhere on your machine. The first time you run `jrnl` it will ask you some initial setup questions. For now feel free to accept all of the defaults; you can change them in the config file afterwards.
+
+When you call `jrnl` on the command line it will open an editor in your terminal. By default this is `vi`, but I’m a `helix` user so I need to change that. So in my case I’ll open the `~/.config/jrnl/jrnl.yaml` file and add a line to set the editor:
+
+```
+editor: hx
+```
+
+To start editing an entry, you simply call `jrnl`. This opens an editor, and when you exit, a new entry will be saved by default. I don’t always want to create a new entry, so I’ve created an alias in my shell to edit the previous entry using the command `jrnl -n 1 --edit`.
+
+If you’d like to create multiple journals to keep your entries separate, you also do that in the config file. I have two separate journals, configured like this:
+
+```
+journals:
+  default: ~/.local/share/jrnl/work/
+  me: ~/.local/share/jrnl/personal/
+```
+
+Now when I want to create an entry for my personal journal (used for recording my work tinkering on side projects) I call `jrnl me`, and since my work journal is the `default` journal, I create new work entries by simply calling `jrnl`.
+
+When editing an entry you can add tags with the `@` symbol: e.g., `@issue-1234`.
+
+There is a query syntax to locate entries, but that’s out of scope for this post. See the jrnl documentation for more information.
+
+
+## How I use jrnl
+
+**Debugging**
+I often find that when I’m debugging something I want to keep notes to log what I’ve tried, keep track of error messages, etc. A real benefit to this is that when you want to bring someone into the loop to get a second set of eyes on the problem, you don’t need to wrack your brain to remember what all you’ve tried, you already have it written down.
+
+I tag these entries with `@debuglog` so that I can quickly find them.
+
+**Historical context for tickets**
+When I’m working on a ticket I tag it with the issue number and the general topic that it’s associated with. If I’m working on **`flox install`** I might tag an entry with `@issue-1234` and `@cmd-install`. This allows me to find entries when I vaguely remember writing something down while working on **`flox install`**. Note that these are mostly personal notes and anything significant typically goes in a comment on the ticket so that other developers can have as much context as possible.
+
+**Brag document**
+If you’ve never heard of a brag document, Julia Evans has a [great post](https://jvns.ca/blog/brag-documents/) explaining the purpose. In short, doing a self-evaluation for a performance review is not the best time to remember all the great things that you’ve done since your last performance review. It’s much easier to write those down as you go and then collect them at the appropriate time. I simply tag entries with `@brag` when I want to record one of these items.
+
+
+## Summary
+I’m a bit obsessive when it comes to writing things down, but there are some tangible benefits outside of soothing the nerves. Give this kind of journaling a try and see how you like it.

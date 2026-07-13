@@ -1,0 +1,266 @@
+---
+title: "Catalog imports"
+description: "Import packages from external catalogs for Nix expression builds"
+---
+
+## Overview
+
+Catalog imports allow your [Nix expression builds](/concepts/nix-expression-builds) to depend on packages provided by external sources: FloxHub users and organizations that publish reusable packages, or remote repositories containing Nix expression definitions.
+
+[Nix expression builds](/concepts/nix-expression-builds) already support [vendoring](/concepts/nix-expression-builds#example-vendor-an-existing-package) existing packages by copying their expressions into your `.flox/pkgs/` directory. Catalog imports extend this model by allowing expression sharing through a central registry at the granularity of catalogs, which correspond to FloxHub user or organization namespaces, or to external repositories. You declare catalogs in a configuration file and access their packages via the `catalogs` argument in your expressions; this keeps your build inputs explicit, lockable, and reproducible.
+
+Catalog imports are a feature of [Nix expression builds](/concepts/nix-expression-builds) specifically; they do not apply to manifest-based builds. You should be familiar with defining packages in `.flox/pkgs/` before using catalog imports.
+
+## Configuring catalogs
+
+Catalog imports use two files:
+
+- **`.flox/nix-builds.toml`**, the user-authored configuration file where you declare which catalogs to use.
+- **`.flox/nix-builds.lock`**, a generated lockfile that pins each catalog to a specific revision for reproducibility.
+
+Both files must be tracked by Git (`git add`ed) and should be committed to version control. The TOML file is authored by hand; the lockfile is generated and updated by the `flox build update-catalogs` command.
+
+## Catalog types
+
+### FloxHub catalogs
+
+A FloxHub catalog references packages published to FloxHub via [`flox publish`](/concepts/publishing). The catalog name corresponds to the FloxHub user or organization that published them.
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs.my-org]
+type = "floxhub"
+```
+
+Or with dotted key syntax:
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs]
+my-org.type = "floxhub"
+```
+
+Your own catalog is always accessible after authenticating with `flox auth login`. Organization catalogs are accessible to all members of the organization. Cross-user catalog sharing is not yet available on public FloxHub; for now, catalog imports between users require Flox on-prem.
+
+### Nix source-ref catalogs
+
+A source-ref catalog points at any [Nix source reference](https://nix.dev/manual/nix/latest/language/builtins.html#source-types): a Git repository, tarball, or other supported source type. The most common case is a Git repository that contains Flox package definitions (a `.flox/pkgs/` directory).
+
+You can declare a source-ref catalog in structured form, specifying the `type` and additional fields:
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs.my-packages]
+type = "git"
+url = "https://github.com/flox/flox-build-examples"
+```
+
+As a shorthand, you can provide a single `url` field using [Nix source reference syntax](https://nix.dev/manual/nix/latest/language/builtins.html#source-types) (the `git+` prefix encodes the type):
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs.my-packages]
+url = "git+https://github.com/flox/flox-build-examples"
+```
+
+You can also use TOML dotted key syntax under a `[catalogs]` header for simple cases:
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs]
+my-packages.type = "git"
+my-packages.url = "https://github.com/flox/flox-build-examples"
+```
+
+The supported source types and their fields are documented in the [Nix manual](https://nix.dev/manual/nix/latest/language/builtins.html#source-types).
+
+#### Common fields for `git` sources
+
+| Field | Description |
+| ----- | ----------- |
+| `ref` | Git ref to track (branch, tag). Defaults to the repository's default branch. |
+| `dir` | Subdirectory containing the `.flox/pkgs/` tree. Useful for monorepos. |
+| `shallow` | If `true`, perform a shallow clone. Defaults to `false`. |
+
+Other source types (`github`, `gitlab`, `tarball`, etc.) accept their own fields; for example, `github` and `gitlab` support a `host` field for self-hosted instances. See the [Nix source types reference](https://nix.dev/manual/nix/latest/language/builtins.html#source-types) for the full list.
+
+These fields are written as separate TOML keys when using the structured form (`type` + `url`). When using the URL shorthand, encode them as query parameters instead:
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs.flox-demo]
+url = "git+https://github.com/flox/flox-build-examples?dir=quotes-app-rust"
+```
+
+For example, to point at a subdirectory within a monorepo using the structured form:
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs.flox-demo]
+type = "git"
+url = "https://github.com/flox/flox-build-examples"
+dir = "quotes-app-rust"
+```
+
+## Using catalogs in expressions
+
+Once catalogs are declared in `.flox/nix-builds.toml` and the lockfile is generated, you access imported packages through the `catalogs` argument in your Nix expressions.
+
+<Warning>
+  The argument name must be `catalogs` (plural). Using `catalog` (singular) will not work.
+</Warning>
+
+Access packages by catalog name and package name:
+
+```nix
+catalogs.<catalog-name>.<package-name>
+```
+
+For example, an expression that uses a package from a catalog:
+
+```nix title=".flox/pkgs/demo.nix"
+{ catalogs }:
+
+catalogs.flox-demo.quotes-app-rust-nix
+```
+
+The `catalogs` argument can be combined with other arguments from nixpkgs:
+
+```nix title=".flox/pkgs/my-app.nix"
+{ catalogs, rustPlatform, lib }:
+
+rustPlatform.buildRustPackage {
+  pname = "my-app";
+  version = "0.1.0";
+  src = ../../.;
+  cargoLock.lockFile = ../../Cargo.lock;
+  buildInputs = [ catalogs.shared-libs.common-utils ];
+  meta.license = lib.licenses.mit;
+}
+```
+
+## Updating catalog locks
+
+Before you can build with catalog imports, you must generate the lockfile. Run:
+
+```bash
+flox build update-catalogs
+```
+
+This resolves each catalog declaration in `.flox/nix-builds.toml` and writes the pinned revisions to `.flox/nix-builds.lock`.
+
+Re-run this command whenever you:
+
+- Add or change a catalog entry in `.flox/nix-builds.toml`
+- Want to pick up newer versions of packages from a catalog
+
+After updating, `git add` and commit both `.flox/nix-builds.toml` and `.flox/nix-builds.lock`.
+
+<Note>
+  If you run `flox build` without a lockfile, you will see:
+
+  ```
+  error: `nix-builds.lock` not found, run `flox build update-catalogs` to generate it
+  and add it to version control.
+  ```
+
+  If the lockfile exists but is stale (you added or changed a catalog in `.flox/nix-builds.toml` without re-running `flox build update-catalogs`), the error will be:
+
+  ```
+  error: attribute 'flox-demo' missing
+  ```
+
+  In either case, run `flox build update-catalogs` to resolve catalog entries and regenerate the lockfile.
+</Note>
+
+## Examples
+
+### Example: FloxHub catalog
+
+This example uses a package published to FloxHub by the organization `my-org`.
+
+**1. Declare the catalog:**
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs]
+my-org.type = "floxhub"
+```
+
+**2. Write an expression that uses it:**
+
+```nix title=".flox/pkgs/demo.nix"
+{ catalogs }:
+
+catalogs.my-org.my-package
+```
+
+**3. Update the lockfile and build:**
+
+```bash
+flox build update-catalogs && flox build demo
+```
+
+### Example: Git catalog
+
+This example imports a Rust application from the [flox-build-examples](https://github.com/flox/flox-build-examples) repository.
+
+**1. Declare the catalog:**
+
+```toml title=".flox/nix-builds.toml"
+version = 1
+
+[catalogs.flox-demo]
+type = "git"
+url = "https://github.com/flox/flox-build-examples"
+dir = "quotes-app-rust"
+```
+
+**2. Write an expression that uses it:**
+
+```nix title=".flox/pkgs/demo.nix"
+{ catalogs }:
+
+catalogs.flox-demo.quotes-app-rust-nix
+```
+
+**3. Update the lockfile and build:**
+
+```bash
+flox build update-catalogs && flox build demo
+```
+
+### Example: Combining catalogs with nixpkgs
+
+A realistic expression might use both catalog imports and standard nixpkgs helpers:
+
+```nix title=".flox/pkgs/my-tool.nix"
+{ catalogs, rustPlatform, lib }:
+
+rustPlatform.buildRustPackage rec {
+  pname = "my-tool";
+  version = "0.1.0";
+
+  src = ../../.;
+  cargoLock.lockFile = "${src}/Cargo.lock";
+
+  buildInputs = [
+    catalogs.shared-libs.crypto-utils
+  ];
+
+  meta = with lib; {
+    description = "A tool that uses shared crypto utilities";
+    license = licenses.mit;
+  };
+}
+```
+
+Here `rustPlatform` and `lib` come from nixpkgs, as with any standard Nix expression build. The `catalogs.shared-libs.crypto-utils` dependency is resolved from the declared catalog.

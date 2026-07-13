@@ -1,0 +1,317 @@
+---
+title: 'Reproducible Development Environments in Any Repo with AI Agents and Flox: Part 1'
+altTitle: 'Reproducible Development Environments in Any Repo with AI Agents and Flox: Part 1'
+description: 'In just a few seconds or minutes, an AI coding assistant can take any arbitrary repo and define it as a Flox environment that builds, tests, and runs reproducibly anywhere.'
+metaDescription: 'In just a few seconds or minutes, an AI coding assistant can take any arbitrary repo and define it as a Flox environment that builds, tests, and runs reproducibly anywhere.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 12 December 2025
+thumbnail: '/images/blog/wizard-or-witches-hat.webp'
+orderBy: 20251212
+---
+
+Flox makes it easy to create portable, reproducible dev environments that run directly on your local laptop.
+
+Paired with your preferred AI coding assistant, this can be as simple as prompting the agent:
+
+```
+transform this repo into a reproducible Flox environment that runs anywhere
+```
+
+The Flox Catalog has millions of package-version combinations, so agents can find and pin the packages they need, including [custom-built software](https://flox.dev/blog/reproducible-builds-made-simple-with-nix-and-flox/). Flox is a cross-language/toolchain environment manager, so dependencies always run in isolated subshells. In just a few seconds or minutes, an AI coding assistant can take an arbitrary repo and define it as a Flox environment that builds and runs reproducibly anywhere.
+
+Even better, once your team has finished building and testing locally, you can [run the same environment](https://flox.dev/docs/man/manifest.toml/#options) in CI or prod—whether on native runners, in containers or VMs, or on serverless platforms. 
+
+To sum up:
+
+-  If you’re still building the old-fashioned way, Flox gives you everything you need to work on your own machine, in _your preferred shell_; share what you’ve built with teammates; and ship to CI and prod. You and your team enjoy direct access to files, secrets, env vars, even specialized hardware like GPUs.
+-  If you’re using Copilot CLI, Claude Code, Codex, Gemini CLI, Crush, or any other AI coding assistant, Flox’s MCP server gives an AI agent all the knowledge and context it needs to [work quickly and productively with Flox](https://flox.dev/blog/next-level-agentic-development-with-flox/), then ship to CI or prod.
+-  AI agents can turn any repo into a reproducible Flox environment in minutes, backed by access to millions of historical package versions. Build with Python, Node, C/C++, and more, installing conflicting dependencies—e.g., the latest version of Redpanda built for a new version of **`glibc`**—alongside older packages.
+
+This article explores how to “floxify” your repos, either on your own or with an assist from agentic AI tools.
+
+
+
+## Floxifying Your Front- and Back-End
+
+Let's pretend that your team is experimenting with a tool called “Flox,” software that’s supposed to make it easier to create and share reproducible environments for developing, testing, and deploying software across the entire SDLC. You’re skeptical about this, mostly because your stack, your teams, and your environments are all so different that a single solution covering everything sounds like a reach. Another source of doubt is that whenever you’ve used environment managers or virtualization technologies, each has had major drawbacks.
+
+But Flox is powered by [open source Nix](https://nixos.org/guides/how-nix-works/), which you’ve heard of, and which seems intriguing. So maybe there’s something to it? Logging into Jira, you see you’ve been assigned two new tasks:
+
+-  You’re supposed to “floxify” the Docker Compose file for your org’s front-end dev container;
+-  You’re supposed to “floxify” the Docker Compose file for your org’s back-end dev container.
+
+Knowing next to nothing about Flox, you expect to spend the next month building, testing, and debugging virtual environments to see if it comes close delivering on its promise. Sipping a macchiato you picked up on the way into work, you start by reading through [Flox in 5 Minutes](https://flox.dev/docs/flox-5-minutes/), familiarizing yourself with what Flox is and how it works.
+
+
+
+### Reproducible Dev Environments without Containers or VMs
+
+You discover that Flox delivers reproducibility and isolation without using containers or VMs.
+
+This makes sense. A friend who knows Nix once showed you how running `nix-shell` puts you right into a project-specific subshell, with isolated access to specific versions of pre-defined dependencies. Flox builds on this concept, abstracting the nuts-and-bolts of Nix with familiar semantics and an intuitive UX so you can easily run software in subshell environments.
+
+With Flox, you can declaratively define _everything_ in your environment: software packages, environment variables, setup and teardown logic, services, even aliases and functions. Flox environments run on your local system, not in hermetically sealed containers or VMs, so you get transparent access to all your files, data, secrets, aliases, environment variables—everything.
+
+Interesting. That _should_ make developing and testing locally less of a hassle.
+
+Once you discover that Flox plugs right into agentic development workflows with its own MCP server, you're officially intrigued. But there’s gotta be a catch, right? You think about this as (gulping down the rest of your macchiato) you trek over to the office Keurig, pop in a Coconut Mocha Peppermint Spice K-cup latte, and jab the “BREW” button with your index finger. 
+
+
+
+### Scoping the Project 
+
+While your cuppa’s compiling, mind turns to Flox. You figure that you can probably just map the runtime dependencies specified in your front-end app’s **`docker-compose.yaml`** file to equivalent packages in the Flox Catalog.
+
+Better yet, you think, _you can tell GitHub Copilot_ to do this for you. What prompt will you use, you wonder? "Create a Flox environment to replace this docker-compose.yaml?" Could it be that simple?
+
+Maybe it could! Your app gets much of what it needs from **`npm`** at runtime, and you know [Flox has built-in automation](https://flox.dev/blog/using-flox-to-create-portable-reproducible-nodejs-environments/) that bootstraps and installs the Node.js runtime specified in **`package.json`**. A little **`flox search`**-ing showed that you can get other core dependencies—like [playwright](https://github.com/microsoft/playwright), [ngnix](https://github.com/nginx), [jq](https://github.com/jqlang/jq), even the AWS and GitHub CLIs—from the Flox Catalog itself. If _you_ can do that, so can your AI coding assistant.
+
+You dash back to your desk, fire up GitHub Copilot CLI, and give it a simple prompt:
+
+```
+Reimplement this docker-compose.yaml file as a portable, reproducible Flox environment.
+```
+
+In a few seconds, you see the following output scroll past on your screen:
+
+```
+[install]
+nodejs.pkg-path = "nodejs"
+nodejs.version = "20.18.1"
+gitFull.pkg-path = "gitFull"
+gh.pkg-path = "gh" # github cli
+awscli2.pkg-path = "awscli2"
+bash.pkg-path = "bash" # standard version of bash
+curl.pkg-path = "curl"
+httpie.pkg-path = "httpie"
+jq.pkg-path = "jq"
+playwright.pkg-path = "playwright" # for browser automation and end-to-end testing
+_1password.pkg-path = "_1password" # 1password cli for secrets management
+```
+
+You recognize this from [Flox in 5 Minutes](https://flox.dev/docs/flox-5-minutes/) as the **`[install]`** section of Flox’s environment configuration [manifest](https://flox.dev/docs/man/manifest.toml/). Thinking _Cool, this could work_, you head back to the Keurig to wait for it to finish decocting your cup.
+
+
+
+### First Insight: No More Multi-Container Runtimes
+
+Still waiting for your coffee, you imagine what’s happening back at your workspace.
+
+Copilot will likely re-implement any imperative commands or procedural logic expressed in your app’s **`docker-compose.yaml`** in the **`[hook]`** or **`[profile]`** sections of the Flox manifest.  It will probably do the same for the global, environment-specific variables currently defined by that app, too: vars like **`NODE_ENV=development`**, **`VITE_API_URL`**, **`DATABASE_URL`**, and **`LOG_LEVEL=debug`**. You recall that the Flox manifest has a section just for these, called **`[vars]`**. 
+
+In fact, it also has a separate **`[services]`** section. If Copilot truly knows Flox, it will use this to define logic that starts (and, when needed, stops) any runtime services. If services take environment variables of their own, Copilot can simply define these as part of [their declarative definitions](https://flox.dev/docs/concepts/services/). Interesting! This gives you a way to offload the work of starting, stopping or restarting services to Flox itself.
+
+Then it hits you: with Flox, you’ll no longer need to worry about defining multi-container runtimes, or configuring service-specific networking, storage, and API endpoints for VMs and containers! Since Flox services run natively on the host, “inside” each subshell, there’s no need to define entry points for initializing containers; rather, your startup and teardown logic _lives in the Flox manifest_, instead of init scripts.
+
+Should you you need to create an orchestrated, multi-service runtime, Copilot can easily [compose](https://flox.dev/blog/layering-and-composing-flox-environments/) separate, modular Flox environments—each with its own packages, vars, and/or services—into a single declarative stack you can share and reuse anywhere. Flox’s composition pattern even gives you a way to define modular, service-specific environments—e.g., runtimes for databases (like [PostgreSQL](https://hub.flox.dev/flox/postgres), [MySQL](https://hub.flox.dev/flox/mysql)/[MariaDB](https://hub.flox.dev/floxrox/mariadb), [Redis](https://hub.flox.dev/flox/redis), and others), web and application servers ([nginx]), workflow and job orchestration systems ([Dagster](https://hub.flox.dev/floxrox/dagster), [Airflow](https://hub.flox.dev/floxrox/airflow-stack), [Jenkins](https://hub.flox.dev/floxrox/jenkins), [Prefect](https://hub.flox.dev/floxrox/prefect), [Temporal](https://hub.flox.dev/floxrox/temporal), [NodeRed](https://hub.flox.dev/floxrox/nodered)), LLM runtimes and model servers ([Ollama](https://hub.flox.dev/floxrox/ollama)), streaming or data-processing stacks ([Kafka](https://hub.flox.dev/floxrox/kafka), [Spark](https://hub.flox.dev/floxrox/spark)), and more.
+
+You (or Copilot) just need to define them as **`[include]`**-ed environments in the Flox manifest:
+
+```
+[include]
+environments = [
+  { remote = "floxrox/nodejs-headless" },
+  { remote = "floxrox/postgres-headless" },
+  { remote = "floxrox/redis-headless" },
+]
+```
+
+The same environment runs locally, in CI, and in prod, so you always ship and run what you’ve built locally.
+
+
+
+### Second Insight: AI Agents Grok Flox
+
+Back at your workspace, you see Copilot has finished. Crazy! You were gone less than five minutes?
+
+Slurping that first savory sip of your Coconut Mocha Peppermint Spice Latte, you run **`flox edit`** to review your AI minion’s work. Everything … seems to be there. The right package dependencies in **`[install]`**, the expected environment variables in **`[vars]`**, a Flox-managed Node.js service, even a helper function!
+
+```
+[profile]
+common = '''
+# convenience helper that runs end-to-end tests with playwright
+app_test_e2e() {
+  cd "$FLOX_ENV_PROJECT" || return 0
+  if command -v playwright >/dev/null 2>&1; then
+    playwright test "$@"
+  else
+    echo "playwright is not available in this environment" >&2
+    return 1
+  fi
+}
+
+# helper to run the app with the same env as the service
+app_dev() {
+  cd "$FLOX_ENV_PROJECT" || return 0
+  APP_HOST="${APP_HOST:-0.0.0.0}" \
+  APP_PORT="${APP_PORT:-3000}" \
+  NODE_ENV="${NODE_ENV:-development}" \
+    npm run dev -- --host "$APP_HOST" --port "$APP_PORT"
+}
+'''
+```
+
+Amazingly, the Floxified environment actually works on the first try:
+
+```
+$ flox activate -s
+✅ You are now using the environment 'frontend'.
+To stop using this environment, type 'exit'
+$ flox services status
+NAME                 STATUS        PID
+frontend Launched  1248234
+$ flox services logs frontend
+
+> frontend@1.0.0 start
+> node index.js --host 0.0.0.0 --port 3000
+
+Server running at http://0.0.0.0:3000/
+```
+
+That was fast! But what about testing? You realize most of your unit tests _should_ just work: they import code, call functions, and assert on results, but they don’t care whether they’re running in a container or a Flox subshell. You decide to prompt Copilot to run your test suite, telling it to refactor any tests that don’t pass, and to keep iterating until everything’s green. Then you saunter on back to the Keurig for a fresh Coconut Mocha Peppermint Spice Latte. If you’re lucky, one of your coworkers might even have brought in a box of cronuts.
+
+
+
+### Third Insight: Your Runtime Environments Travel with Your Code
+
+Standing by the Keurig you have an epiphany: Flox environments live and travel with your projects! You can define both the code for your apps _and their runtime dependencies_ in the same repo. You can even define your test suite’s runtime dependencies in the same Flox environment! This gives you a single, co-located source of truth for versioning, building, testing, and deploying _code plus its runtime dependencies_. 
+
+As for the Flox environment itself, you remember that it consists of just two artifacts:
+
+-  A **`manifest.toml`** file that lives in the **`.flox/env`** path inside every Flox project folder;
+-  A **`manifest.lock`** file that lives in **`.flox/env`** and serves as a snapshot of specific versions of runtime dependencies.
+
+You’re familiar with **`manifest.toml`**, and you can guess what **[manifest.lock](https://flox.dev/docs/concepts/environments/?h=manifest.lock#manifest-lock-floxenvmanifestlock)** is, but you ask Copilot to describe it to you anyway:
+
+```
+The manifest.lock file is a JSON lockfile that pins exact package versions and their Nix store paths for reproducibility across all supported platforms (Linux/macOS, x86_64/aarch64). It contains the resolved manifest configuration along with specific package metadata including derivations, hashes, and system-specific outputs for packages defined in the environment.
+```
+
+Flox uses this lockfile to pin dependencies to specific versions, so Flox environments (like Nix shells) always run reproducibly. Right, but how does this actually work? You decide to see if Copilot knows the answer:
+
+```
+Flox packages are reproducible because they're built using Nix's deterministic build system, where each package is identified by a cryptographic hash of all its inputs (source code, dependencies, build instructions) and stored in immutable paths like /nix/store/qn26z61kdr1vja62x2l5iif6xmp3wag9-nginx-1.28.0. The manifest.lock captures these exact derivations and commit revisions from nixpkgs, ensuring that the same inputs always produce bit-for-bit identical outputs regardless of when or where the environment is activated.
+```
+
+This makes sense. It stands to reason, too, that any change to a package’s build inputs will produce a completely different SHA-256 hash—and result in a different output path in **`/nix/store`**. So if you (or CoPilot) create a Flox environment with pinned versions today, that environment will always use exactly the same software—and, notionally, run exactly the same way—even two, three, or five years from now.
+
+You know from experience that this isn’t easily possible with Dockerfiles, which depend on base images that change frequently and dynamically resolve and/or build package versions. Like Nix, Flox gives you a way to decouple runtime definitions from their system context, something that just isn’t possible with containers.
+
+
+
+### Fourth Insight: Agentically Lift-and-Shift Existing Repos
+
+Back at your workspace with yet another fresh Coconut Mocha Peppermint Spice Latte, you turn to the task of Floxifying the dev container your org uses for its backend services. You reason you’ll once again get most of what you need from **`npm`**, with Flox automatically installing dependencies defined in **`package.json`**.
+
+As for other requirements, you’ll define these in the **`[install]`** section of the Flox environment's **`manifest.toml`**.
+
+You go back to Copilot CLI and give it a similar prompt:
+
+```
+Reimplement this Dockerfile as a Flox environment I can re-use anywhere.
+```
+
+This time you watch as Copilot does its thing, finishing the job inside of three minutes. Typing **`flox edit`**, you skim through the Flox environment’s manifest. This is what your Floxified back-end looks like:
+
+
+```
+[install]
+nodejs.pkg-path = "nodejs"
+nodejs.version = "20.18.1"
+redis.pkg-path = "redis"
+postgresql_16.pkg-path = "postgresql_16" # postgresql instance for backend runtime
+gitFull.pkg-path = "gitFull"
+gh.pkg-path = "gh" # github cli
+bash.pkg-path = "bash" # standard version of bash
+curl.pkg-path = "curl"
+jq.pkg-path = "jq"
+gcc.pkg-path = "gcc" # compiler for gnumake
+gnumake.pkg-path = "gnumake"
+_1password.pkg-path = "_1password" # 1password cli for secrets management
+```
+
+Cool. The Flox Catalog has the very version of Node.js that you need. Scrolling down, you see that Copilot defined separate service definitions for PostgreSQL, Redis, and Node.js. It might make sense to break these out into modular, service-specific Flox environments so you can reuse them across projects and services.
+
+```
+postgres.command = "postgres -D $PGDATA -c unix_socket_directories=$PGHOST -c listen_addresses=$PGHOSTADDR -p $PGPORT"
+redis.command = "env -u LD_AUDIT redis-server $REDISCONFIG --daemonize no --dir $REDISDATA"
+nodejs.command = "npm run dev"
+```
+
+Copilot also defined required environment variables in the **`[vars]`** section...
+
+```
+REDISBIND = "127.0.0.1"
+REDISPORT = "16379"
+PGHOSTADDR = "127.0.0.1"
+PGPORT = "15432"
+PGUSER = "pguser"
+PGPASS = "pgpass"
+PGDATABASE = "pgdb"
+```
+
+...along with bootstrapping logic in **`[hook]`** that automatically initializes, configures, and sets up Redis and PostgreSQL, checking for and creating required data directories and generating config files if missing:
+
+```
+[hook]
+on-activate = '''
+
+export REDISHOME="$FLOX_ENV_CACHE/redis"
+export REDISDATA="$REDISHOME/data"
+export REDISCONFIG="$REDISHOME/redis.conf"
+
+if [ ! -d "$REDISDATA" ]; then
+  mkdir -p "$REDISDATA"
+fi
+
+cat >$REDISCONFIG <<EOF
+bind $REDISBIND
+port $REDISPORT
+EOF
+
+'''
+```
+
+You’re shocked when this again … just works. All you need to do is migrate your backend test suite and … you’re done. Or _are_ you? You’ve re-implemented your local dev containers as Flox environments that will run on your team’s laptops. But how are you supposed to run these environments in CI—or in production?
+
+
+
+### Fifth Insight: Complementing Containers
+
+That’s what the **[flox containerize](https://flox.dev/docs/reference/command-reference/flox-containerize/?h=containerize)** command is for. It automatically exports Flox environments as container images, compressing them into tarballs and/or optionally exporting them to an available container runtime. 
+
+Your platform team sets variables to distinguish an app or service’s runtime context (e.g., **`NODE_ENV`** and **`APP_ENV`**), and to support API endpoints that change based on whether you’re in **`local`**, **`ci`**, or **`prod`**.  Copilot can define these in each environment’s manifest, and in CI you can run tests directly on the runner inside the Flox environment:
+
+```
+flox activate . -- make check    # or your test command
+```
+
+But wait a second! _You_ don’t need to build and ship a container image! You can just...
+
+```
+git commit -s -m “floxified_version_of_frontend”
+git commit -s -m “floxified_version_of_backend”
+```
+
+...and open PRs for both repos, letting CI do the rest. CI clones the repo, activates the Flox environment, runs your tests, and—if you deploy via containers—runs **`flox containerize`** in a later step to build the deployment artifact for the target context.
+
+In fact, your platform team has created a [GitHub Action](https://flox.dev/blog/integrating-flox-with-ci-for-consistent-reproducible-dev-environments/) for building and deploying Flox container images in CI. This action automates the process of cloning a GitHub repo; defining environment variables for the target context (e.g., `ci`); running **`flox containerize`** to build the container; and executing it using a pre-defined runner. 
+
+Flox makes it [just as easy](https://flox.dev/blog/building-and-debugging-aws-workflows-locally-with-flox-localstack-and-colima/) to author Lambda functions, test them locally, and push them to CI!
+
+This workflow is possible because you can define _both code and runtime dependencies in one place_.
+
+
+
+## Flox + AI Coding Assistants: Reproducible Environments on Autopilot
+
+Flox transforms how teams and agents develop, build, and test software locally, eliminating the need for dev containers or VMs. Flox environments run in subshells _on your local system_, so you (and your AI coding assistants) get transparent access to all local files, secrets, environment variables, and other resources.
+
+With Flox, you declaratively define dependencies, variables, services, and other logic in one place: a declarative manifest. When you or an AI coding assistant run **`flox init`** inside a repo, you’re defining _both your code and its runtime environment in the same place_, so both travel alongside one another.
+
+Unlike Dockerfiles, Flox’s _declarative model_ lets you decouple an app or service’s runtime environment from the host context where it runs. For agentic development, Flox’s MCP server gives AI agents all they need to build and work with Flox. Agents can search the catalog, install dependencies, define specific versions. Even better, agents can use Flox to reproducibly build, package, and publish custom software.
+
+Best of all, [FloxHub](https://flox.dev/docs/concepts/floxhub/) provides a one-stop shop for sharing, versioning, auditing, and updating/rolling back Flox environments. Teams or agents can easily pull and run FloxHub environments on-demand, or compose them to create rich application and service stacks. Intrigued? Get started with FloxHub at **[https://hub.flox.dev](https://hub.flox.dev)**!

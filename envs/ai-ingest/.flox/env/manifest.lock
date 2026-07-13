@@ -1,0 +1,1819 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "schema-version": "1.13.0",
+    "install": {
+      "beautifulsoup4": {
+        "pkg-path": "python313Packages.beautifulsoup4",
+        "pkg-group": "ingest-py"
+      },
+      "dos2unix": {
+        "pkg-path": "dos2unix"
+      },
+      "ftfy": {
+        "pkg-path": "python313Packages.ftfy",
+        "pkg-group": "ingest-py"
+      },
+      "html2text": {
+        "pkg-path": "html2text"
+      },
+      "langchain-text-splitters": {
+        "pkg-path": "python313Packages.langchain-text-splitters",
+        "pkg-group": "ingest-py"
+      },
+      "lxml": {
+        "pkg-path": "python313Packages.lxml",
+        "pkg-group": "ingest-py"
+      },
+      "markdown": {
+        "pkg-path": "python313Packages.markdown",
+        "pkg-group": "ingest-py"
+      },
+      "markdown-it-py": {
+        "pkg-path": "python313Packages.markdown-it-py",
+        "pkg-group": "ingest-py"
+      },
+      "mupdf": {
+        "pkg-path": "mupdf"
+      },
+      "pandoc": {
+        "pkg-path": "pandoc"
+      },
+      "pdfplumber": {
+        "pkg-path": "python313Packages.pdfplumber",
+        "pkg-group": "ingest-py",
+        "version": "0.11.9"
+      },
+      "poppler-utils": {
+        "pkg-path": "poppler-utils"
+      },
+      "pymupdf": {
+        "pkg-path": "python313Packages.pymupdf",
+        "pkg-group": "ingest-py"
+      },
+      "readability-lxml": {
+        "pkg-path": "python313Packages.readability-lxml",
+        "pkg-group": "ingest-py"
+      },
+      "semchunk": {
+        "pkg-path": "python313Packages.semchunk",
+        "pkg-group": "ingest-py"
+      },
+      "srt": {
+        "pkg-path": "python313Packages.srt",
+        "pkg-group": "ingest-py"
+      },
+      "tiktoken": {
+        "pkg-path": "python313Packages.tiktoken",
+        "pkg-group": "ingest-py"
+      },
+      "unstructured": {
+        "pkg-path": "python313Packages.unstructured",
+        "pkg-group": "ingest-py"
+      },
+      "yt-dlp": {
+        "pkg-path": "yt-dlp"
+      }
+    },
+    "hook": {},
+    "profile": {},
+    "options": {
+      "systems": [
+        "x86_64-linux",
+        "aarch64-linux",
+        "aarch64-darwin"
+      ]
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "dos2unix",
+      "broken": false,
+      "derivation": "/nix/store/rfr4x26d2wd6p810s26ww2phagwbhd1j-dos2unix-7.5.5.drv",
+      "description": "Convert text files with DOS or Mac line breaks to Unix line breaks and vice versa",
+      "install_id": "dos2unix",
+      "license": "BSD-2-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "dos2unix-7.5.5",
+      "pname": "dos2unix",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:12:55.525657Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "7.5.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/igjcal1xvf4wjdws0mnpvjc1nijy9zzz-dos2unix-7.5.5"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "dos2unix",
+      "broken": false,
+      "derivation": "/nix/store/92kfg6krrzk1gwh553lw5kg6yza0xics-dos2unix-7.5.5.drv",
+      "description": "Convert text files with DOS or Mac line breaks to Unix line breaks and vice versa",
+      "install_id": "dos2unix",
+      "license": "BSD-2-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "dos2unix-7.5.5",
+      "pname": "dos2unix",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:41:22.252748Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "7.5.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/g5gg6vrkgw90ybgz5azm9fymf6s7fb8l-dos2unix-7.5.5"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "dos2unix",
+      "broken": false,
+      "derivation": "/nix/store/jyv9m28vf7xi44f67z72k3y0mwz7276y-dos2unix-7.5.5.drv",
+      "description": "Convert text files with DOS or Mac line breaks to Unix line breaks and vice versa",
+      "install_id": "dos2unix",
+      "license": "BSD-2-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "dos2unix-7.5.5",
+      "pname": "dos2unix",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:40:24.941694Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "7.5.5",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/ja9aiym5mc8iy5yw9771j4wlhc8wd891-dos2unix-7.5.5"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "html2text",
+      "broken": false,
+      "derivation": "/nix/store/4jx4b7pq6cw6kma1340hgif190v4lgdh-html2text-2.4.0.drv",
+      "description": "Convert HTML to plain text",
+      "install_id": "html2text",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "html2text-2.4.0",
+      "pname": "html2text",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:11.195701Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.4.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/65wxy0f5sxan436qqfg1q1i97p034s6j-html2text-2.4.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "html2text",
+      "broken": false,
+      "derivation": "/nix/store/amk4627dz42np1j8fy8c6yd5sxw3plbj-html2text-2.4.0.drv",
+      "description": "Convert HTML to plain text",
+      "install_id": "html2text",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "html2text-2.4.0",
+      "pname": "html2text",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:41:42.178726Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.4.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/g7dh49bxbjk0chazai1qksf9999ydlhz-html2text-2.4.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "html2text",
+      "broken": false,
+      "derivation": "/nix/store/a5iwnpa62i81yik9wnrswcmq8h71gk2v-html2text-2.4.0.drv",
+      "description": "Convert HTML to plain text",
+      "install_id": "html2text",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "html2text-2.4.0",
+      "pname": "html2text",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:40:45.582538Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2.4.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/abzjx22c0npfn0bb0djqqfs54mi77n7n-html2text-2.4.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "mupdf",
+      "broken": false,
+      "derivation": "/nix/store/jwffr1ng7gh1x3g17nqimw5nh0c2824y-mupdf-1.27.2.drv",
+      "description": "Lightweight PDF, XPS, and E-book viewer and toolkit written in portable C",
+      "install_id": "mupdf",
+      "license": "AGPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "mupdf-1.27.2",
+      "pname": "mupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:19.285157Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2",
+      "outputs_to_install": [
+        "bin",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/0kiwavy2276aprhgixc1vwk94m817yis-mupdf-1.27.2-bin",
+        "dev": "/nix/store/jrj9hgm1q0z5dcjbiw9caw0lp5nlwicf-mupdf-1.27.2-dev",
+        "doc": "/nix/store/rlfca3clijlj51l3mh7anaqybm7xz6zm-mupdf-1.27.2-doc",
+        "man": "/nix/store/r5ny0ifp9ddihjgqgmky85rdislgc3q0-mupdf-1.27.2-man",
+        "out": "/nix/store/b5d2wdks1fmfxk5i2g2a9q59v9bgbfw7-mupdf-1.27.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "mupdf",
+      "broken": false,
+      "derivation": "/nix/store/lbmxlf6bnxb6lbqs7b1dglk7alf48jdl-mupdf-1.27.2.drv",
+      "description": "Lightweight PDF, XPS, and E-book viewer and toolkit written in portable C",
+      "install_id": "mupdf",
+      "license": "AGPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "mupdf-1.27.2",
+      "pname": "mupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:41:58.642733Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2",
+      "outputs_to_install": [
+        "bin",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/hyj9a02ymqh4ywanqc1nxq34y6ylg9cy-mupdf-1.27.2-bin",
+        "dev": "/nix/store/0xfk248xffwvf7r0dfwmc25hwflny547-mupdf-1.27.2-dev",
+        "doc": "/nix/store/ns2jh53n6pjq1jvfl6vd01zcmbx5i9xh-mupdf-1.27.2-doc",
+        "man": "/nix/store/kqd0nkhy8qwx4l86n6f6sqg3v9f33k07-mupdf-1.27.2-man",
+        "out": "/nix/store/xd5j5fnpgg23dp3pwkp8r5bn969qp8f2-mupdf-1.27.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "mupdf",
+      "broken": false,
+      "derivation": "/nix/store/g7szcmal7sk2hnqk114qldv6awarlr0p-mupdf-1.27.2.drv",
+      "description": "Lightweight PDF, XPS, and E-book viewer and toolkit written in portable C",
+      "install_id": "mupdf",
+      "license": "AGPL-3.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "mupdf-1.27.2",
+      "pname": "mupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:03.978790Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2",
+      "outputs_to_install": [
+        "bin",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/f8k2jd13pga0zkg8bbnn1i3zr7pfd3wp-mupdf-1.27.2-bin",
+        "dev": "/nix/store/k9k0ydfi9vcch52jwlb6xqzx09903iji-mupdf-1.27.2-dev",
+        "doc": "/nix/store/jd0km7fdaj5v2nk4b9c7w3l7ssjf38xi-mupdf-1.27.2-doc",
+        "man": "/nix/store/5i23yw45x8pa040blsizgpibdwq1f8k3-mupdf-1.27.2-man",
+        "out": "/nix/store/8dv08vj25b557lvql7h5yqb3d6px0lcy-mupdf-1.27.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "pandoc",
+      "broken": false,
+      "derivation": "/nix/store/vqbgkb0gbkkncapsa79gh88vk6vv0h7p-pandoc-cli-3.7.0.2.drv",
+      "description": "Conversion between documentation formats",
+      "install_id": "pandoc",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "pandoc-cli-3.7.0.2",
+      "pname": "pandoc",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:26.325957Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.7.0.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/d4c0icb6xrwmwr2bp9r3m0hysqfiv97z-pandoc-cli-3.7.0.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "pandoc",
+      "broken": false,
+      "derivation": "/nix/store/djihwahq04zby5qw55lnqama33wfj1y6-pandoc-cli-3.7.0.2.drv",
+      "description": "Conversion between documentation formats",
+      "install_id": "pandoc",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "pandoc-cli-3.7.0.2",
+      "pname": "pandoc",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:08.581961Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.7.0.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/dv8zpjy8g1zjs1kns5pjggcvc6iakihz-pandoc-cli-3.7.0.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "pandoc",
+      "broken": false,
+      "derivation": "/nix/store/sn0rhzq0fgbqw9hplzx2ydiq6css18pz-pandoc-cli-3.7.0.2.drv",
+      "description": "Conversion between documentation formats",
+      "install_id": "pandoc",
+      "license": "GPL-2.0-or-later",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "pandoc-cli-3.7.0.2",
+      "pname": "pandoc",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:14.425460Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.7.0.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/ri1rkk9r2hh7lir0cwq2z0f0939dipzk-pandoc-cli-3.7.0.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "poppler-utils",
+      "broken": false,
+      "derivation": "/nix/store/imd3rqqrl1758iffcqi6y3zv3i59cna8-poppler-utils-25.10.0.drv",
+      "description": "PDF rendering library",
+      "install_id": "poppler-utils",
+      "license": "[ GPL-2.0-or-later ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "poppler-utils-25.10.0",
+      "pname": "poppler-utils",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:35.263942Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "25.10.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/cp331r9bw0q29h4a24lma4wd5pg9njdl-poppler-utils-25.10.0-dev",
+        "out": "/nix/store/2k2qs2m0mv7gbryc4cdwfb0pj14r90nn-poppler-utils-25.10.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "poppler-utils",
+      "broken": false,
+      "derivation": "/nix/store/qniwym42ipa6s16fqn3abkhbb7scavkh-poppler-utils-25.10.0.drv",
+      "description": "PDF rendering library",
+      "install_id": "poppler-utils",
+      "license": "[ GPL-2.0-or-later ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "poppler-utils-25.10.0",
+      "pname": "poppler-utils",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:20.293542Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "25.10.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/dczkc70ll8ni21g9qa9avz0w8lawlkr4-poppler-utils-25.10.0-dev",
+        "out": "/nix/store/491gc7s5w13ckdnnwhxsazi4h4lrf2j4-poppler-utils-25.10.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "poppler-utils",
+      "broken": false,
+      "derivation": "/nix/store/4p0g6p46avk4kg58zyn6gnd1mwdbxjff-poppler-utils-25.10.0.drv",
+      "description": "PDF rendering library",
+      "install_id": "poppler-utils",
+      "license": "[ GPL-2.0-or-later ]",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "poppler-utils-25.10.0",
+      "pname": "poppler-utils",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:26.780146Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "25.10.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/q7rhydy8dvxx3i5zkhhqh59savb1lc15-poppler-utils-25.10.0-dev",
+        "out": "/nix/store/rna2sq3vglrzzlqnrxnyfh2qx3vlkb2q-poppler-utils-25.10.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "yt-dlp",
+      "broken": false,
+      "derivation": "/nix/store/f6369j3vjh1pc3wwm1f4s7gpy01cslg4-yt-dlp-2026.06.09.drv",
+      "description": "Feature-rich command-line audio/video downloader",
+      "install_id": "yt-dlp",
+      "license": "Unlicense",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "yt-dlp-2026.06.09",
+      "pname": "yt-dlp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:15:55.264427Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2026.06.09",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4rgqyd2nmp9icnb3avb0ilj52z75cz02-yt-dlp-2026.06.09-dist",
+        "doc": "/nix/store/r5gv6fc22hf08vy4s22yhmp8r5fagidw-yt-dlp-2026.06.09-doc",
+        "man": "/nix/store/3cj5sw1awgxzi0sdsv6k7s06h9n2p04y-yt-dlp-2026.06.09-man",
+        "out": "/nix/store/y10ki7fa6s0hcx0i0h5g7n01il2s87n6-yt-dlp-2026.06.09"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "yt-dlp",
+      "broken": false,
+      "derivation": "/nix/store/hjr14d1qxfzgdkg0vsbmqkfp0bijqzaa-yt-dlp-2026.06.09.drv",
+      "description": "Feature-rich command-line audio/video downloader",
+      "install_id": "yt-dlp",
+      "license": "Unlicense",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "yt-dlp-2026.06.09",
+      "pname": "yt-dlp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:45:10.048244Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2026.06.09",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/fqlib2hy4f8k19hkb312vl98m2ci9iy4-yt-dlp-2026.06.09-dist",
+        "doc": "/nix/store/blcv6ngnhng0lk7vrwzc5ln2qk2b5rgi-yt-dlp-2026.06.09-doc",
+        "man": "/nix/store/8j3jir410bmv2cjl401clkqx7pn32fm5-yt-dlp-2026.06.09-man",
+        "out": "/nix/store/qyg2dii30xlcq4hmak0jajhq05ph9gi0-yt-dlp-2026.06.09"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "yt-dlp",
+      "broken": false,
+      "derivation": "/nix/store/vl9i5dk6bq99g7d24lgszqaasfzf61k7-yt-dlp-2026.06.09.drv",
+      "description": "Feature-rich command-line audio/video downloader",
+      "install_id": "yt-dlp",
+      "license": "Unlicense",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "yt-dlp-2026.06.09",
+      "pname": "yt-dlp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:44:33.251720Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "2026.06.09",
+      "outputs_to_install": [
+        "man",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/x135j6i5dinf14r1d7x57wfj76w91ir1-yt-dlp-2026.06.09-dist",
+        "doc": "/nix/store/s4zailq5yxvd8bdq9lnhf495837plf77-yt-dlp-2026.06.09-doc",
+        "man": "/nix/store/xx6x1ri5jh8r8lsg6ibg5xkfcvxnhrnn-yt-dlp-2026.06.09-man",
+        "out": "/nix/store/fn3r3qcw3cha7rx55v7d9amzazmdb0az-yt-dlp-2026.06.09"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.beautifulsoup4",
+      "broken": false,
+      "derivation": "/nix/store/0xf2yqfmn6f4g4wz6afdik03phw6537z-python3.13-beautifulsoup4-4.14.3.drv",
+      "description": "HTML and XML parser",
+      "install_id": "beautifulsoup4",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-beautifulsoup4-4.14.3",
+      "pname": "beautifulsoup4",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:38.841964Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-beautifulsoup4-4.14.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/lrxd1zad5w1aw773mbssgd93xcbdidhk-python3.13-beautifulsoup4-4.14.3-dist",
+        "doc": "/nix/store/misgc91pv331iwmkvracbmhhaqmvj7x4-python3.13-beautifulsoup4-4.14.3-doc",
+        "out": "/nix/store/ybjbwv5rp5v6s529yz9kc5g681hx4k0c-python3.13-beautifulsoup4-4.14.3"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.beautifulsoup4",
+      "broken": false,
+      "derivation": "/nix/store/n3gvn9x66j9r2hjqz2c8zgsm0jfyasw4-python3.13-beautifulsoup4-4.14.3.drv",
+      "description": "HTML and XML parser",
+      "install_id": "beautifulsoup4",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-beautifulsoup4-4.14.3",
+      "pname": "beautifulsoup4",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:24.961253Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-beautifulsoup4-4.14.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/7ai8hy2b1myf6v5r3y43hpinb794mvwm-python3.13-beautifulsoup4-4.14.3-dist",
+        "doc": "/nix/store/hc6r3ghlrbkkvw815x6dq6yja786h3hr-python3.13-beautifulsoup4-4.14.3-doc",
+        "out": "/nix/store/xf778rg83hpifxwazj6z645piyg8yz9x-python3.13-beautifulsoup4-4.14.3"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.beautifulsoup4",
+      "broken": false,
+      "derivation": "/nix/store/xf8ar0djwiqaafj1f4b0z240q9d8q9xl-python3.13-beautifulsoup4-4.14.3.drv",
+      "description": "HTML and XML parser",
+      "install_id": "beautifulsoup4",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-beautifulsoup4-4.14.3",
+      "pname": "beautifulsoup4",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:31.640091Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "python3.13-beautifulsoup4-4.14.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/0vr468vvbix7lz8jp87vmhr9pff1z4w4-python3.13-beautifulsoup4-4.14.3-dist",
+        "doc": "/nix/store/74fdnfvi7yl0lkbxniqm33cflpz9s1s7-python3.13-beautifulsoup4-4.14.3-doc",
+        "out": "/nix/store/427s2j9nv0s8vq6lfzx8pa293kb3fpdj-python3.13-beautifulsoup4-4.14.3"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.ftfy",
+      "broken": false,
+      "derivation": "/nix/store/kaq6b32d0ksjwvr5h9kvqaxspk0xyivp-python3.13-ftfy-6.3.1.drv",
+      "description": "Given Unicode text, make its representation consistent and possibly less broken",
+      "install_id": "ftfy",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-ftfy-6.3.1",
+      "pname": "ftfy",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:42.642156Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8253q6i4517wrhfxr7q5gc9gbfdm9np6-python3.13-ftfy-6.3.1-dist",
+        "out": "/nix/store/4rvhlswwi8xk2ird43l2yhshkhjwvamf-python3.13-ftfy-6.3.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.ftfy",
+      "broken": false,
+      "derivation": "/nix/store/g3cd8inkwf207ds345bpw0pqhwwhh1nq-python3.13-ftfy-6.3.1.drv",
+      "description": "Given Unicode text, make its representation consistent and possibly less broken",
+      "install_id": "ftfy",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-ftfy-6.3.1",
+      "pname": "ftfy",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:29.823386Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/f5nmxr0ki28224b811j5kzxak65n803v-python3.13-ftfy-6.3.1-dist",
+        "out": "/nix/store/j04pxzyd43w907ch7y323hm1az6x66x9-python3.13-ftfy-6.3.1"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.ftfy",
+      "broken": false,
+      "derivation": "/nix/store/jhggfm35xpjspvlv2849a48rnns2gqq7-python3.13-ftfy-6.3.1.drv",
+      "description": "Given Unicode text, make its representation consistent and possibly less broken",
+      "install_id": "ftfy",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-ftfy-6.3.1",
+      "pname": "ftfy",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:36.478735Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.3.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2ksba7lv773aq7l6jzlb7yjidjyp3sd6-python3.13-ftfy-6.3.1-dist",
+        "out": "/nix/store/637fdpsq0iy3r0s95yxv4qrirsmfbbkl-python3.13-ftfy-6.3.1"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.langchain-text-splitters",
+      "broken": false,
+      "derivation": "/nix/store/xkq9lb4khf3wqncdm2yzl7zxlr66hy0m-python3.13-langchain-text-splitters-1.1.2.drv",
+      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
+      "install_id": "langchain-text-splitters",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-langchain-text-splitters-1.1.2",
+      "pname": "langchain-text-splitters",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.014043Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.1.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/a09sylphqzy7g2qf4wx257dfskn2idvc-python3.13-langchain-text-splitters-1.1.2-dist",
+        "out": "/nix/store/3p1bw135yj89fa5lpqyzkngiq5fnk7ps-python3.13-langchain-text-splitters-1.1.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.langchain-text-splitters",
+      "broken": false,
+      "derivation": "/nix/store/gz9a61b4xj3zblx5m1k01zb6nia01q2w-python3.13-langchain-text-splitters-1.1.2.drv",
+      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
+      "install_id": "langchain-text-splitters",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-langchain-text-splitters-1.1.2",
+      "pname": "langchain-text-splitters",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:32.840266Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.1.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/pvd6pwwmhf291hm3gr75yllgqkx63mqf-python3.13-langchain-text-splitters-1.1.2-dist",
+        "out": "/nix/store/20x8rcsfm4jvd682vp3pdp3ig0whm19m-python3.13-langchain-text-splitters-1.1.2"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.langchain-text-splitters",
+      "broken": false,
+      "derivation": "/nix/store/mhp9bm062h114gas6b3yhxxaxyrfwpr2-python3.13-langchain-text-splitters-1.1.2.drv",
+      "description": "LangChain utilities for splitting into chunks a wide variety of text documents",
+      "install_id": "langchain-text-splitters",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-langchain-text-splitters-1.1.2",
+      "pname": "langchain-text-splitters",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:39.508438Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.1.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2b81ykhvkcqh5bs80y98pjx3lkkdr7z1-python3.13-langchain-text-splitters-1.1.2-dist",
+        "out": "/nix/store/y0gskdqmcd3k24d9m08dab26awiv68pb-python3.13-langchain-text-splitters-1.1.2"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.lxml",
+      "broken": false,
+      "derivation": "/nix/store/ylh689waf9dnq6ycr2g7c84svhc6597h-python3.13-lxml-6.0.2.drv",
+      "description": "Pythonic binding for the libxml2 and libxslt libraries",
+      "install_id": "lxml",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-lxml-6.0.2",
+      "pname": "lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.747932Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.0.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8xlgb10n19dapyasg3fccgfpli6i1y7c-python3.13-lxml-6.0.2-dist",
+        "out": "/nix/store/6pd59dj7am1a64gg85j0ymsg3zpf2paz-python3.13-lxml-6.0.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.lxml",
+      "broken": false,
+      "derivation": "/nix/store/i9ibrhb5yn8js64ykqljknqsny542a4h-python3.13-lxml-6.0.2.drv",
+      "description": "Pythonic binding for the libxml2 and libxslt libraries",
+      "install_id": "lxml",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-lxml-6.0.2",
+      "pname": "lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:33.807319Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.0.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/h0dbyng080irjgczbqsl6ifly7y5xbbi-python3.13-lxml-6.0.2-dist",
+        "out": "/nix/store/bzaar6ik0nrlf9275p8njf25lzsan60y-python3.13-lxml-6.0.2"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.lxml",
+      "broken": false,
+      "derivation": "/nix/store/krk8a9fxga17wzy33ajjxybcblg3km28-python3.13-lxml-6.0.2.drv",
+      "description": "Pythonic binding for the libxml2 and libxslt libraries",
+      "install_id": "lxml",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-lxml-6.0.2",
+      "pname": "lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.490430Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "6.0.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/f91jpyfv9pmpcc044wimy5ynw1c3y0yw-python3.13-lxml-6.0.2-dist",
+        "out": "/nix/store/dy1r203li2icgdw2va6piggzdgjglj8d-python3.13-lxml-6.0.2"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown",
+      "broken": false,
+      "derivation": "/nix/store/f3n0il8nqm431fn7ivq1ksf3y2nr49ij-python3.13-markdown-3.10.2.drv",
+      "description": "Python implementation of John Gruber's Markdown",
+      "install_id": "markdown",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-3.10.2",
+      "pname": "markdown",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.866605Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.10.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/6j6wd8j9cn9najhwyv60j0xplk4k9dcc-python3.13-markdown-3.10.2-dist",
+        "out": "/nix/store/77135fyvnh0dlid6vj6vx9f9chcdhd9r-python3.13-markdown-3.10.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown",
+      "broken": false,
+      "derivation": "/nix/store/wyz83dn84l7dlgf1kwjbci4cd5cxh6za-python3.13-markdown-3.10.2.drv",
+      "description": "Python implementation of John Gruber's Markdown",
+      "install_id": "markdown",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-3.10.2",
+      "pname": "markdown",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:33.956110Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/rlp4i6y0n6r5rl5r778pylkl9s6znd4w-python3.13-markdown-3.10.2-dist",
+        "out": "/nix/store/bw3fb4hkkgqk024d1niq2m5374vwydlq-python3.13-markdown-3.10.2"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown",
+      "broken": false,
+      "derivation": "/nix/store/zz9bqpgzxc551rfxzb2nn15jrzdvbimj-python3.13-markdown-3.10.2.drv",
+      "description": "Python implementation of John Gruber's Markdown",
+      "install_id": "markdown",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-3.10.2",
+      "pname": "markdown",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.639765Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/vv8wdid1ms3620dl8q4xblxhap2x77vc-python3.13-markdown-3.10.2-dist",
+        "out": "/nix/store/kqair32qhics3khf0sqq49pparlcli88-python3.13-markdown-3.10.2"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown-it-py",
+      "broken": false,
+      "derivation": "/nix/store/d319jq5szqvlrzw2g9xrq8dsizd84ghh-python3.13-markdown-it-py-4.0.0.drv",
+      "description": "Markdown parser in Python",
+      "install_id": "markdown-it-py",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-it-py-4.0.0",
+      "pname": "markdown-it-py",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.872818Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.0.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/n68wysnknsizs49w8z3qf74ysanmqvpd-python3.13-markdown-it-py-4.0.0-dist",
+        "out": "/nix/store/v860s63cnn2xmkpy1ynpm8nc2jls2lzg-python3.13-markdown-it-py-4.0.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown-it-py",
+      "broken": false,
+      "derivation": "/nix/store/6xwal9w9afpydpzmpf5nbnsk68rj7z5p-python3.13-markdown-it-py-4.0.0.drv",
+      "description": "Markdown parser in Python",
+      "install_id": "markdown-it-py",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-it-py-4.0.0",
+      "pname": "markdown-it-py",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:33.963912Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.0.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/p52m8hb9yns7nclgrmi3l0m7dcy6z15w-python3.13-markdown-it-py-4.0.0-dist",
+        "out": "/nix/store/zvdvla1qb9vgp82mbnjmahdrcw6hsnzp-python3.13-markdown-it-py-4.0.0"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.markdown-it-py",
+      "broken": false,
+      "derivation": "/nix/store/f1kkny231k80a9iv7z8dsrly0cbni088-python3.13-markdown-it-py-4.0.0.drv",
+      "description": "Markdown parser in Python",
+      "install_id": "markdown-it-py",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-markdown-it-py-4.0.0",
+      "pname": "markdown-it-py",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.647342Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.0.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8sv7qwm46aj9cl68myfbmkmnfin0m1rx-python3.13-markdown-it-py-4.0.0-dist",
+        "out": "/nix/store/9hqfprx1x6gw6zclb42rimddv87gv903-python3.13-markdown-it-py-4.0.0"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pdfplumber",
+      "broken": false,
+      "derivation": "/nix/store/vc405gjw7bq72w0pli6nkn6s8f20nvi5-python3.13-pdfplumber-0.11.9.drv",
+      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
+      "install_id": "pdfplumber",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pdfplumber-0.11.9",
+      "pname": "pdfplumber",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:48.830129Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.11.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/i48vnp0cbmwshdn7hvh2h29lbxncrrmi-python3.13-pdfplumber-0.11.9-dist",
+        "out": "/nix/store/7qd4ppc8dzl820sxr5rcnn5707qqrczi-python3.13-pdfplumber-0.11.9"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pdfplumber",
+      "broken": false,
+      "derivation": "/nix/store/xs02bsq2g87a0n3m53sfgzrzq5r2y4sb-python3.13-pdfplumber-0.11.9.drv",
+      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
+      "install_id": "pdfplumber",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pdfplumber-0.11.9",
+      "pname": "pdfplumber",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:37.696160Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.11.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/qzd42p8l03vhn5fr10a7cq9d6ddijazi-python3.13-pdfplumber-0.11.9-dist",
+        "out": "/nix/store/hj7r2gsi03gnnq9ql0w69pabwkg5kplx-python3.13-pdfplumber-0.11.9"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pdfplumber",
+      "broken": false,
+      "derivation": "/nix/store/af0nhaiyqy49qkilzj6ax8bvn3jgnzwq-python3.13-pdfplumber-0.11.9.drv",
+      "description": "Plumb a PDF for detailed information about each char, rectangle, line, et cetera — and easily extract text and tables",
+      "install_id": "pdfplumber",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pdfplumber-0.11.9",
+      "pname": "pdfplumber",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:44.445201Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.11.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/s92x06ibw61k7b1gvymy5688abd9pgxf-python3.13-pdfplumber-0.11.9-dist",
+        "out": "/nix/store/gm5am2n8y0b0y0b845kxrv2g9hg0bdz3-python3.13-pdfplumber-0.11.9"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pymupdf",
+      "broken": false,
+      "derivation": "/nix/store/z9rzjhmiim6rz63n1cigphdm90nsyh21-python3.13-pymupdf-1.27.2.3.drv",
+      "description": "Python bindings for MuPDF's rendering library",
+      "install_id": "pymupdf",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pymupdf-1.27.2.3",
+      "pname": "pymupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:51.065491Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/ia9qqh39pd1azllk2xr1q2869v3f0ih1-python3.13-pymupdf-1.27.2.3-dist",
+        "out": "/nix/store/4286p23y3y6s1b8pxxz19bgczfm4a9ax-python3.13-pymupdf-1.27.2.3"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pymupdf",
+      "broken": false,
+      "derivation": "/nix/store/wxvdyzcz79hk4n9m7ljfrahdxf8aij10-python3.13-pymupdf-1.27.2.3.drv",
+      "description": "Python bindings for MuPDF's rendering library",
+      "install_id": "pymupdf",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pymupdf-1.27.2.3",
+      "pname": "pymupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:40.322863Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/fm6n7yvyyiqygbczb53n9xqjbr38vpip-python3.13-pymupdf-1.27.2.3-dist",
+        "out": "/nix/store/nblgs9jk3s3bgnqavinimfp2d4lzj5h4-python3.13-pymupdf-1.27.2.3"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.pymupdf",
+      "broken": false,
+      "derivation": "/nix/store/vrwz50c90jkj3ri2sbvwh08935g9n0zy-python3.13-pymupdf-1.27.2.3.drv",
+      "description": "Python bindings for MuPDF's rendering library",
+      "install_id": "pymupdf",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-pymupdf-1.27.2.3",
+      "pname": "pymupdf",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:47.224514Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.2.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/d1w4d62pshgjbsw1pr8my5wf6fsry19a-python3.13-pymupdf-1.27.2.3-dist",
+        "out": "/nix/store/iiin1d2sxr57amzpkp050bx009582sgc-python3.13-pymupdf-1.27.2.3"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.readability-lxml",
+      "broken": false,
+      "derivation": "/nix/store/izdq2p5rgf571rpnhbpx7hwr99g6zyz8-python3.13-readability-lxml-0.8.4.1.drv",
+      "description": "Fast python port of arc90's readability tool",
+      "install_id": "readability-lxml",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-readability-lxml-0.8.4.1",
+      "pname": "readability-lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:53.369949Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4znbghmcd1l4c79hbjcr2293f4n8j5df-python3.13-readability-lxml-0.8.4.1-dist",
+        "out": "/nix/store/z19fr8rwkr9xdfqviflihfrvqmppyyrp-python3.13-readability-lxml-0.8.4.1"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.readability-lxml",
+      "broken": false,
+      "derivation": "/nix/store/07lgkf7ffln8xafz2hvfw4gz5r8jnhhi-python3.13-readability-lxml-0.8.4.1.drv",
+      "description": "Fast python port of arc90's readability tool",
+      "install_id": "readability-lxml",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-readability-lxml-0.8.4.1",
+      "pname": "readability-lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:43.002329Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/0v3rp2asn796bq32isxpw7brjx5kkysp-python3.13-readability-lxml-0.8.4.1-dist",
+        "out": "/nix/store/vpyjx8lqjhbw98mlwlcgzslqnm15krdh-python3.13-readability-lxml-0.8.4.1"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.readability-lxml",
+      "broken": false,
+      "derivation": "/nix/store/aygjpjqawr6kiixi0bjrxhg56gfi07i7-python3.13-readability-lxml-0.8.4.1.drv",
+      "description": "Fast python port of arc90's readability tool",
+      "install_id": "readability-lxml",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-readability-lxml-0.8.4.1",
+      "pname": "readability-lxml",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:50.067411Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.8.4.1",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/rl8r12vky3nxfq7l1dxsbk1b2qfj4pjx-python3.13-readability-lxml-0.8.4.1-dist",
+        "out": "/nix/store/7qajmbm246w1gd7sxbxw4n9p0lxq00f7-python3.13-readability-lxml-0.8.4.1"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.semchunk",
+      "broken": false,
+      "derivation": "/nix/store/7pqbjqmz1r16y8zmf3wi602301kaw6ly-python3.13-semchunk-4.1.0.drv",
+      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
+      "install_id": "semchunk",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-semchunk-4.1.0",
+      "pname": "semchunk",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:54.302251Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4yxa68kjd041kha6r3w6q5kws3gzgbqs-python3.13-semchunk-4.1.0-dist",
+        "out": "/nix/store/w2h052i2pirfr0m051dl3ljrf2x3nzy3-python3.13-semchunk-4.1.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.semchunk",
+      "broken": false,
+      "derivation": "/nix/store/ff2bs90ya9z41m6xgcn3ffdynhxf5cay-python3.13-semchunk-4.1.0.drv",
+      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
+      "install_id": "semchunk",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-semchunk-4.1.0",
+      "pname": "semchunk",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:44.089508Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/igc7ndfyk2s1jgdfziix7j1pkx474g06-python3.13-semchunk-4.1.0-dist",
+        "out": "/nix/store/zzmzz0wibp0p959pjvyazpwdhkashlqj-python3.13-semchunk-4.1.0"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.semchunk",
+      "broken": false,
+      "derivation": "/nix/store/679lsgf5qzash9hczlh3v9isqzwj9h13-python3.13-semchunk-4.1.0.drv",
+      "description": "Fast, lightweight and easy-to-use Python library for splitting text into semantically meaningful chunks",
+      "install_id": "semchunk",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-semchunk-4.1.0",
+      "pname": "semchunk",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:51.241630Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "4.1.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/dpvafdk4mwr3bmgz73hfi3k0inbacnji-python3.13-semchunk-4.1.0-dist",
+        "out": "/nix/store/prpgvzkfysal578gws1xq2ws5ksvhzsq-python3.13-semchunk-4.1.0"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.srt",
+      "broken": false,
+      "derivation": "/nix/store/j7jhl2iznn2f8vixljly2gm3cp80530n-python3.13-srt-3.5.3.drv",
+      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
+      "install_id": "srt",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-srt-3.5.3",
+      "pname": "srt",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:55.365498Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/n7fgsx2nxcy0m2xfvl4q4z9f4z48zshn-python3.13-srt-3.5.3-dist",
+        "out": "/nix/store/ivssljpi9nivgq44hlzj91f2zyfpyb3z-python3.13-srt-3.5.3"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.srt",
+      "broken": false,
+      "derivation": "/nix/store/c4m4xq98gsrigx6kz4hhwrp97rx5aczv-python3.13-srt-3.5.3.drv",
+      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
+      "install_id": "srt",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-srt-3.5.3",
+      "pname": "srt",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:45.304331Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/9y59vdx5664jy0hhardnqq5dl8fk0g55-python3.13-srt-3.5.3-dist",
+        "out": "/nix/store/rbnyx4y9hvhpxvxajxh0xk48n669rnky-python3.13-srt-3.5.3"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.srt",
+      "broken": false,
+      "derivation": "/nix/store/a6lj4did2gyy6qkp9q9933aikq6kvclx-python3.13-srt-3.5.3.drv",
+      "description": "Tiny but featureful Python library for parsing, modifying, and composing SRT files",
+      "install_id": "srt",
+      "license": "BSD-3-Clause",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-srt-3.5.3",
+      "pname": "srt",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:52.570514Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.5.3",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/8pb5wa4a3cjavvscivh7758wdfgidr3k-python3.13-srt-3.5.3-dist",
+        "out": "/nix/store/05safc48z88iwyy3v5cgizylzgpg6phm-python3.13-srt-3.5.3"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.tiktoken",
+      "broken": false,
+      "derivation": "/nix/store/jjr9j54nqpjvj6irjacd0md5sy6iwzlr-python3.13-tiktoken-0.12.0.drv",
+      "description": "Fast BPE tokeniser for use with OpenAI's models",
+      "install_id": "tiktoken",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-tiktoken-0.12.0",
+      "pname": "tiktoken",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:56.227877Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/06xh3vic9dif54yn9yx6p6ha4iijf25n-python3.13-tiktoken-0.12.0-dist",
+        "out": "/nix/store/f4pskhh14b5l06qlcz5ps7yn9jiv9qnw-python3.13-tiktoken-0.12.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.tiktoken",
+      "broken": false,
+      "derivation": "/nix/store/625xircyak5rgf17pwy2z52n8jjmwym8-python3.13-tiktoken-0.12.0.drv",
+      "description": "Fast BPE tokeniser for use with OpenAI's models",
+      "install_id": "tiktoken",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-tiktoken-0.12.0",
+      "pname": "tiktoken",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:46.297099Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/jgkn5ajb88qj6xx73sczw6lcmpw5hh5p-python3.13-tiktoken-0.12.0-dist",
+        "out": "/nix/store/i2nplksjm444frk7rf52738rfxkspasr-python3.13-tiktoken-0.12.0"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.tiktoken",
+      "broken": false,
+      "derivation": "/nix/store/z4i6bnxrvrxk8kdmkrvyvb2mdnc3ax8r-python3.13-tiktoken-0.12.0.drv",
+      "description": "Fast BPE tokeniser for use with OpenAI's models",
+      "install_id": "tiktoken",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-tiktoken-0.12.0",
+      "pname": "tiktoken",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:53.682506Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.12.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/a1604g8m8shvv4c2x4jgxfb05vxw5279-python3.13-tiktoken-0.12.0-dist",
+        "out": "/nix/store/c7phan9lyg6zi094aapk89w0l9f2rixw-python3.13-tiktoken-0.12.0"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.unstructured",
+      "broken": false,
+      "derivation": "/nix/store/a6cbk8cfx1wnqx2q7gci7cicqxncshy8-python3.13-unstructured-0.18.31.drv",
+      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
+      "install_id": "unstructured",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-unstructured-0.18.31",
+      "pname": "unstructured",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:58.682341Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.18.31",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/4zbkmy5j4gkchv4h5djlap9125i57gf9-python3.13-unstructured-0.18.31-dist",
+        "out": "/nix/store/czxzd0v208lfbjh9dcqnlhkc417qx64h-python3.13-unstructured-0.18.31"
+      },
+      "system": "aarch64-darwin",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.unstructured",
+      "broken": false,
+      "derivation": "/nix/store/kzghj06myrd498r15m9bfikh3zwd346p-python3.13-unstructured-0.18.31.drv",
+      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
+      "install_id": "unstructured",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-unstructured-0.18.31",
+      "pname": "unstructured",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:49.066257Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.18.31",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/zrpxqncggcgx5m7yv873day5cy51qfgd-python3.13-unstructured-0.18.31-dist",
+        "out": "/nix/store/qz3zw3anq195v2gaif1cjlii57c12c26-python3.13-unstructured-0.18.31"
+      },
+      "system": "aarch64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.unstructured",
+      "broken": false,
+      "derivation": "/nix/store/64qj8l08gfckazmapg6xhiki56y4pl0f-python3.13-unstructured-0.18.31.drv",
+      "description": "Open source libraries and APIs to build custom preprocessing pipelines for labeling, training, or production machine learning pipelines",
+      "install_id": "unstructured",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-unstructured-0.18.31",
+      "pname": "unstructured",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:56.654886Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.18.31",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/nfk8vr6l15fs9ffqxw179x9svy23q1bp-python3.13-unstructured-0.18.31-dist",
+        "out": "/nix/store/pizj2vykzk3rmhkg5g6m2q47f3fbvnkx-python3.13-unstructured-0.18.31"
+      },
+      "system": "x86_64-linux",
+      "group": "ingest-py",
+      "priority": 5
+    }
+  ]
+}

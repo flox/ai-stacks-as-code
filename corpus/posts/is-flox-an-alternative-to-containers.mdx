@@ -1,0 +1,187 @@
+---
+title: 'Is Flox an Alternative to Containers?'
+altTitle: 'Is Flox an Alternative to Containers?'
+description: 'In the real world, Flox environments and containers neatly complement one another. The real magic lies in using Flox inside containers to fetch and manage runtime dependencies at build time.'
+metaDescription: 'In the real world, Flox environments and containers neatly complement one another. The real magic lies in using Flox inside containers to fetch and manage runtime dependencies at build time.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 29 January 2025
+thumbnail: '/images/blog/empty-container.webp'
+orderBy: 20250129
+---
+
+
+Should you containerize your Flox environments—or run them directly on a host?
+
+This is an unhelpful way of framing the question, says Flox Vice President of Engineering Michael Stahnke.
+
+Flox environments and containers have few areas of overlap, and their respective boundaries are _mostly_ well-defined. In fact, each maps to distinct requirements in the SDLC.
+
+In the real world, Stahnke explains, Flox environments and containers neatly complement one another.
+
+-  Flox environments give teams a superior option for local, collaborative development;
+-  Containers give them a standard artifact for testing and validating in CI, or deploying to production;
+-  Using Flox _inside of containers_ gives teams the best of both worlds.
+
+The following Q&A has been edited for clarity, readability, and flow.
+
+
+
+## The thrill of building and testing on bare metal
+
+**Steve Swoyer (SS)**: Do you get asked often about Flox and containers?
+
+**Michael Stahnke (MS)**: Yes—actually, no. Not “Flox and containers,” but “Flox **or** containers.” There’s often this default assumption of “either/or,” that you have to use one or the other. But really it’s “both/and.” 
+
+The truth is that containers are integral to the way we deliver and run software, and we absolutely need to be able to work with them the best we can wherever they’re used across the SDLC. We approach this as once it gets off your laptop, we’re happy to work with you in a container. We’ll even work with containers when you’re working locally on your laptop, if that’s what you really need. But is that what you really need?
+
+
+**SS**: But if you run your production workloads in containers, _isn’t that_ what you really need?
+
+**MS**: I find that developing with dev containers on the local dev side—I find that a little awkward. Usually I end up penetrating the container, passing in a bunch of environment variables, or mounting my `$HOME` directory [on the local system], or wherever I put my source code. And then I get in there and my shell isn't set up the way I want, my aliases aren't there, I don't have the right colors—_because I'm in a container_. 
+
+I would just rather be on the metal. My experience is that most software engineers feel the same way.
+
+
+
+## Build locally, deploy globally
+
+**SS**: Right, but how do you go from on-the-metal locally to in-a-container for CI and production?
+
+**MS**: Once you get off of laptops and you have some code you have commits going through, you go to CI. 
+
+What does CI usually do? Well it validates that the code is good, and it presses it into an artifact of some kind. And that artifact is usually a container. If you have a Flox environment and you want to press it into an artifact for running in production, we've made that easy: you just run **`flox containerize`** to export that environment into a container.
+
+I would argue the exported container is even better than what you get by other means.
+
+
+**SS**: Why?
+
+**MS**: Because it doesn't have that extra attack surface you get with even a minimal base image, and it doesn’t have extra things you don’t need going on inside of it. When you export that Flox environment, you’re exporting just what you need, `glibc` and other stuff, from the ground up. But nothing you’re not going to use. 
+
+But if you want to use a Dockerfile to build a container and take the source code you wrote on top of a Flox environment and replay it on top of a container, you're welcome to do that. Obviously some of our reproducibility guarantees drop away when that happens, but there’s nothing wrong with this. 
+
+
+
+## Containerizing Flox’s dogfood
+
+**SS**: Do you use containers in your workflow?
+
+**MS**: In _my_ workflow? Mostly I don’t. Like I do most of my work within Flox environments, because _I work at Flox_, and I'm trying to exercise [i.e., use, test] them in every way I can think of, because that's part of my job. So you know, I am not an unbiased third party, if that's what you're asking.
+
+But, you know, I still use containers a lot of times because the way the industry makes tools available, a container a lot of times is the fastest way to try something out, to see “Is this the thing I'm looking for?” 
+
+That said, _we_ use containers in our workflow—I mean, Flox does.
+
+
+**SS**: I shouldn’t be surprised by this. But we do?! Where? How?
+
+**MS**: We actually run FloxHub on containers. And so, like we are exporting environments, putting them in containers, and running them in containers. That is exactly how we run things like FloxHub right now.
+
+
+**SS**: _The marketing person in me feels obliged to point out that FloxHub is what you use to manage and share Flox environments from a central place. Imagine me saying this last in a TV-voiceover voice._
+
+
+
+## Keep the Customer Satisfied
+
+**SS**: So we run FloxHub on containers. That seems like a pretty powerful argument for the kind of “both/and” complementarity you’re talking about?
+
+**MS**: You know, if you’re already invested in [container] infrastructure, if you’re already invested in the skills and talent, it’s probably the way you actually want to run things in production, right?
+
+We don't expect you to throw that away just because you like some of the benefits of a different tool. And if we were asking you to do that, you probably wouldn't use the tool. So what we want to do is meet you where you are, and if you want to run containers because you are very good operationally with it, please do.
+
+
+**SS**: But this _is_ one area of overlap, isn’t it? Take FloxHub for example...we _could_ run FloxHub using Flox environments, but we opted to use containers. Why? How did we approach this decision?
+
+**MS**: At Flox, everyone in engineering has worked with containers across the SDLC. So running FloxHub in containers was just a very convenient way to do things. And, you know, we're not above finding convenient ways to move through the SDLC. In our current workflow, we use containers that contain exported Flox environments, and these contain our FloxHub source code. And that's how we run our services for FloxHub.
+
+
+**SS**: So for us, it was two things: we had expertise with containers, and using containers fit naturally into our workflow?
+
+**MS**: Yes. It’s—I mean, we have to meet people where they are. We have to work with the way they expect to do things. Most places expect to use containers for this. If you made an investment in operating containers, that means you made an operational shift. You've hired different talent, or you've invested in different education for people. You’re doing things differently than a decade ago, or 15 years ago.
+
+But the main thing is that what you see as overlap isn’t actually overlap, because Flox and containers serve different purposes.
+
+
+
+## From each according to... To each according to...
+
+**SS**: You mean Flox is designed for building and testing software locally?
+
+**MS**: Local dev is only one aspect of it. Think of a container as almost like a sliced VM. Most people think about it as a sort of mini-VM: I can spin up a container and it gives me isolated infrastructure for running something in a predictable way. Managing software is just something you have to do inside a container to make that work. It isn’t the main thing.
+
+Flox is just the opposite: it’s based on Nix, which is designed for managing software—what gets installed, how it’s versioned, how it’s reproduced. Flox isolates your dependencies as a side effect of this, but you don’t get the strict sandbox isolation you get with containers. The primary goal is managing the runtime software that’s required.
+
+So Flox is almost like a package manager that has state you can carry with you. Plus with Flox you get determinism, you get guaranteed reproducibility, which you can’t easily get with containers.
+
+
+
+## Reproducibility: when Groundhog Day is the ideal
+
+**SS**: From your perspective, as someone who’s run engineering at CircleCI and Puppet, why does reproducibility matter?
+
+**MS**: One of the things that's a little different about the way Flox works versus containers is that most container patterns—if you want an image to be completely reproducible, meaning that if you run through a Dockerfile and try to output a container image today versus doing the same thing 15 months from now, you will get, you know, _the exact same versions of software_—that's really difficult to do.
+
+Part of that is because of how Dockerfiles work. You start with a base image and you’re using the package manager built into that base image to install dependencies. So you’re using `apt`, or you’re using `dnf`, and they’re pulling whatever version of the dependency is in the [upstream] repo. 
+
+So you don't know which versions you’ll get at different times when you run that Dockerfile. Obviously software can be pinned using traditional package managers, but it's not a pattern widely adopted and it feels against the grain when doing so.
+
+
+**SS**: But you _can_ easily pin dependencies with Flox…
+
+**MS**: Right. Flox locks the exact version of every piece of software, every file, every component inside a Flox environment to a specific version. And you always know exactly what’s in there. If you go to materialize a Flox environment a year or two from now, it will be byte-for-byte the same. And that is really important to us. 
+
+And that's—you might say, “Man, that sounds pedantic. _Why_ is that important?” Well say a bug happens in a v1.01 release of something, but it’s fixed in the v1.02, or maybe the v1.03 release. And so this gives us security benefits, because we can actually say “We know exactly what's in there”—to the point that, like, generating a [software bill of materials](https://www.ntia.gov/page/software-bill-materials) becomes relatively trivial, and everything else kind of unfolds from that.
+
+With containers, there are patterns where you use things like `latest`, which is a mutable tag that just moves around and travels around. And so you run, `docker pull alpine:latest` on one machine one day, and the very next day you run the same command on the same machine. You might not end up with the same image.
+
+This is not a flaw with containers. They were just designed to be really convenient, and I think they _are_ really convenient. But the issue is, you have to accept some trade-offs because of that convenience. 
+
+
+
+## The best of both worlds
+
+**SS**: It almost sounds like you **are** saying “either/or”—that is, it’s Flox **or** containers.
+
+**MS**: No. Earlier I talked about how you can run Flox environments inside containers. Like I said, _we_ run FloxHub on Flox environments running inside  containers.
+
+Think about what happens when you layer Flox on top of a base image, but you’re using it [i.e., Flox] instead of `apt` or `dnf` or whatever to get your runtime dependencies?
+
+You’re going to get the exact same benefits I talked about. So, yeah, even though you can _pin_ dependencies with `apt` or `dnf`, that’s not what most people do, mainly because it takes extra steps, and you can't guarantee they [pinned dependencies] will always be available. With Flox, defining everything up front, including [pinning] specific versions of dependencies, is part of how it works.
+
+
+
+## And hidden worlds within worlds
+
+**SS**: My last question is a kind of [Nix in the Wild](https://flox.dev/nixinthewild/)-style question: What advice would you give someone who's  familiar with containers, but is now just encountering Flox? What things will surprise them? What would you say to prepare them for that experience?
+
+**MS**: I think a real “Wow!” moment is on the developer side. And I think eventually you get to “There's no place like `$HOME`.” With Flox, it feels like I can work on my laptop doing the things I want the way I want. But I'm still guaranteed to be using the exact same software as my colleague who works the exact way _they_ want. 
+
+And I think that's what’s cool. Our goal was to move from “It works on my computer” to “It works on mine, your, and their computers, too." And you know, if I can make sure that everything I'm doing works on your computer, that's a really powerful thing. And I think those are the “Aha!” moments where people start to go: “Oh, I see where the power is here. I get to use _my_ editor. I get to use _my_ tools, my aliases, my shell, my setup.”
+
+So if you’re a developer, I’d say: expect “Wow!” and expect “Aha!” And if this doesn’t happen, that’s okay.
+
+It just means Flox isn’t your thing. I'd _like_ it to be your thing, though, so if somebody doesn't like it, I'd love to hear and understand why.
+
+
+
+## Flox and Containers, Containers and Flox: A primer
+
+One common implementation of a Flox-and-Containers workflow looks like the following:
+
+-  Teams run shared Flox dev environments _directly_ on their own local systems;
+-  This gives them transparent access to local files, data, secrets, services, and other resources;
+-  When they’re ready to deploy to CI, teams run **`flox containerize`**, which repackages their environments as containers. The resultant images get pushed to a container registry, then pulled and validated in CI.
+
+Optionally, teams can manage _both their code and their runtime dependencies together_ by co-locating Flox environments with (or “inside”) their project repos, then cloning and containerizing these projects in CI.
+
+Since a Flox environment consists of just two files (an environment definition expressed in TOML and a versioning lockfile expressed in JSON), it’s easy for teams to co-locate them with their projects.
+
+This way Flox project repos can be cloned and containerized in CI for testing, and validated images can be pushed to a container registry. The magic isn’t just in defining environment configurations with Flox—it’s in using Flox _inside containers_ to fetch and manage _specific versions_ of runtime dependencies at build time.
+
+By starting with a minimal base image and using Flox to handle dependencies, teams can create containers that always behave predictably, regardless of when they’re built or where they run.
+
+One way or another, _containers function as the de facto deployment artifacts_ in CI, staging, and production.

@@ -1,0 +1,135 @@
+---
+title: 'Platform Teams and the Challenge of Works-on-My-Machine'
+altTitle: 'Platform Teams and the Challenge of Works-on-My-Machine'
+description: 'A practical guide to creating and working with Flox standardized local development environments, including playbooks for defining, reproducing, and managing project environments at scale.'
+metaDescription: 'A practical guide to creating and working with Flox standardized local development environments, including playbooks for defining, reproducing, and managing project environments at scale.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 27 May 2026
+thumbnail: '/images/blog/loading-truck.webp'
+orderBy: 20260527
+---
+
+Too often we treat "Works on my machine" as a punchline. But the problem it points to is anything but a laughing matter. What engineers run locally becomes the upstream input to every artifact that ships downstream, which means that different types of local inconsistency surface as failures in CI, in staging, and in production. 
+
+At scale, then, the local development environment becomes a **platform problem**, and the responsibility for handling it falls on platform teams.
+
+These tend to respond in one of two ways:
+
+-  Impose a strict boundary around local dev using technologies like dev containers, VMs, or cloud dev shells/workspaces;
+-  Leave the local development environment to individual teams and developers.
+
+**Option 1** gives them control, but also makes them responsible for building, testing, securing, and supporting the environments in which engineers work. **Option 2** preserves local autonomy, but creates a permission structure for drift to accumulate until it shows up in CI, production, or incident response.
+
+But there is an **Option 3**: standardize what the project needs without dictating how every engineer works.
+
+That is the purpose of this playbook.
+
+
+### Autonomy without Drift
+
+<PostLightbox
+	thumbnailSrc="/images/blog/three-options.svg"
+	alt="Chart depicting three approaches to dealing (or not dealing) with works-on-my-machine failures."
+/>
+
+**Option 3** is when the platform team standardizes how teams define and reproduce their project environments **without** forcing every team to standardize on the same environment.
+
+In this model, platform teams provide the equivalent of a standard **project runtime contract**: i.e., the set of packages, language runtimes, env vars, hooks, aliases, build recipes, etc. project needs to build, run, test, and ship in local development. This contract functions as the **declarative source of truth** for the development environment. When engineers collaborate on a project, they always work in the dev environment declared by the contract. In this pattern, the contract is the environment; the environment is the contract.
+
+Flox’s declarative model makes **Option 3** viable. Dev and platform teams collaborate to identify the tools and workflows that fit their domains and workstreams; once they agree on how to formalize these choices, the project environment becomes shared infrastructure. The platform team authors dev environments for each team, defining package dependencies, environment variables, and service definitions in human-readable TOML.
+
+Under the hood, Flox’s deterministic machinery resolves a compatible dependency graph and materializes all defined dependencies as hashed, immutable paths in a local store. The Flox environment consists of a declarative manifest, a lockfile that pins dependencies, and, optionally, a JSON file that references a remote FloxHub environment. Not only does every engineer on the team get exactly the same environment—anytime and anywhere; on macOS _or_ Linux, x86-64 _or_ ARM—but every CI runner, every review workflow, and every deployment job consumes the same declared contract.
+
+If necessary, other teams can reproduce the same environment (thanks to the shared contract) at any time.
+
+
+### The Runtime Contract
+
+A runtime contract is the set of shared assumptions required for a project to build, ship, test, and deploy.
+
+It includes:
+
+* Language runtimes
+* Compilers and native build tools
+* System libraries
+* Package managers
+* Cloud and platform CLIs
+* Database clients
+* Environment variables
+* Setup hooks
+* Services
+* Aliases and functions
+* Build and test commands
+* Release and deployment tooling
+
+If this contract lives in a README, a Slack thread, a wiki, a series of docs in a Git repo, or someone’s head, nobody owns it in a meaningful way. Meaningful ownership requires that the contract be declared, versioned, reviewable, and **have an enforcement mechanism**. This aligns with the logic and rigor of CI/CD and the ethos of DevOps.
+
+For standardized development environments today, the most common solution to the problem of ownership is to use some variation of container virtualization: dev containers, container-like workflows, or adjacent approaches such as VMs and cloud shells. The problem is that in the container model the digest-pinned OCI image becomes the unit of control and promotion. Enforcement operates on a reference—the digest—but this corresponds to an opaque artifact: an already-materialized filesystem artifact whose contract is always at least partially inferred.
+
+In the Flox model, as with Nix, declarative machinery enforces the build- or runtime contract: the system doesn't merely _describe_ the desired environment; it uses machinery to constrain the environment's realization to its explicitly declared inputs and their resolved dependencies. With a Flox manifest and lockfile, anyone anywhere can materialize exactly the same build or runtime environment at any time.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/runtime-contract.svg"
+	alt="Diagram comparing an undeclared runtime contract scattered across READMEs, Slack threads, wikis, etc. with a declared runtime contract in a Flox manifest and lockfile."
+/>
+
+Before teams can declare and enforce a runtime contract, they first have to recover—excavate—it from the scattered sites in which it's buried. This work starts with inventory: discovering the assumptions dispersed across docs, scripts, Dockerfiles, CI jobs, service definitions, and lockfiles. Identifying and formalizing the undocumented habits that engineers rely on every day.
+
+Read more in [Playbook 1](/blog/playbook-1): Inventory the Runtime Contract.
+
+
+### Container Workflows and the Inferred Build / Runtime Contract
+
+In a container-based workflow, the runtime contract is the combination of Dockerfile, dependency lockfile(s), image digest, and deployment manifest taken together. The Dockerfile is a procedural build script that itemizes what goes into a runtime; the OCI image materializes that itemization; the digest pins the result; and CI/CD materializes the implicit contract by building, testing, publishing, and deploying the artifacts that satisfy it.
+
+With the container model, however, there is no equivalent to the declarative rigor of the Nix/Flox model: the contract is always at least partially **inferred**. Platform teams cannot point to any one authoritative artifact and say: “I can use this to regenerate the environment the project requires.”  True, they _can_ point to the OCI image and say: “This image encapsulates the runtime environment the project requires.” So long as teams pull and run the digest-pinned OCI image, and so long as this image remains viable, the runtime contract guarantees reproducibility.
+
+But maintaining a “contract” of this kind imposes two distinct operational burdens on platform teams. The **first** is that they become responsible for keeping digest-pinned images available, compatible with current infrastructure, and up-to-date, rebuilding them as requirements or conditions change. The **second** has to do with their [carrying cost](https://en.wikipedia.org/wiki/Carrying_cost): every change to the runtime contract gets materialized as a new digest-pinned image, which must first be rebuilt, pushed to a registry, pulled, tested, and validated. Keeping the contract (i.e., the digest-pinned image) current means rebuilding that image, resolving and revalidating its dependencies, scanning and signing the built artifact, pushing it to a registry, pulling it into each target context, testing it there, updating any deployment references, and preserving the old digest as a viable rollback target. 
+
+Let's be upfront: Containers aren’t going anywhere. They’re useful and valuable, especially for packaging and running production services. The new priority is to determine the parts of the runtime contract for which they’re best suited. **Playbook 2** turns this question into a service-boundary decision: what belongs in the Flox project runtime, what belongs in backing-service containers, what belongs in CI, and what remains with the individual engineer.
+
+Read more in [Playbook 2](/blog/playbook-2): Decide Where the Service Boundary Belongs.
+
+### Flox Workflows and the Declared Build / Runtime Contract
+
+Flox reverses the container model. Instead of treating an already-built image as the authoritative expression of the runtime contract, Flox makes the contract itself declarative and authoritative. The environment definition (**`manifest.toml`**) names the packages, tools, services, variables, hooks, and/or build logic the project requires. The lockfile (**`manifest.lock`**) pins the resolved dependency graph. Flox materializes that graph into immutable store paths at the point of use.
+
+This gives platform teams what the image-based container model does not: an authoritative artifact they can use to reproducibly regenerate the project environment at any time, in any place.
+
+A Flox environment consists of three basic parts:
+
+-  **`manifest.toml`**, which declares the environment
+-  **`manifest.lock`**, which pins the resolved package graph
+-  **`env.json`** a reference that defines the environment as local (unversioned) or remote (versioned as a generation on FloxHub).
+
+To share these three files—typically less than 256KB of text—is to share the Flox environment.
+
+The Flox manifest is the contract; the Flox lockfile pins this contract. Running **`flox activate`** realizes the Flox environment, materializing the contract on a specific machine at a specific point in time. It doesn’t matter whether activation happens today, tomorrow, next week, or next year, the materialized environment will be exactly the same on that specific machine and its OS/hardware.
+
+This is the core difference between a digest-pinned OCI image and a declarative, graph-backed Flox environment: Teams can’t reliably regenerate the digest-pinned image from a Dockerfile, or from some combination of Dockerfile, lockfiles, base-image tags, package indexes, install scripts, registry state, and so on. The digest hash gives teams a deterministic way to retrieve the same **already-built** runtime environment; a Flox environment gives teams a deterministic "recipe" for **regenerating** the runtime environment from scratch.
+
+This means:
+
+-  They can review the Flox environment as a human-readable document: i.e., a contract;
+-  They can version it using either a version control system (like Git), FloxHub, or both;
+-  They can update it by making simple, atomic edits;
+-  They can publish it, either to a remote Git repo or to FloxHub;
+-  They can reference it, pointing to either Git commits or FloxHub generations;
+-  They can promote it by referencing it at each distinct delivery stage of the SDLC;
+-  Optionally, they can layer or compose it with other Flox environments, creating rich stacks.
+
+The takeaway: the build or runtime is no longer trapped inside the artifact; the artifact—the Flox environment—**declares** the contract. It’s the difference between a perfectly baked strawberry short cake and a reproducible recipe for baking a strawberry short cake perfectly every time.
+
+Read more in [Playbook 3](/blog/playbook-3): Map Docker and Compose Artifacts to the Declared Flox Environment.
+
+
+### From Container Artifacts to a Standardized Flox Dev Environment
+
+With Flox, engineers need not be cordoned inside a containerized userspace or VM in order to work in a standardized dev environment. Instead, dev teams retain autonomy over the tools and workflows that suit their workstreams, while platform teams own the operating model for the runtime contract, defining how environments get declared, how changes get reviewed, how shared foundations get published, how CI consumes them; how vulnerable hashes get blocked, and how teams promote or roll back environment versions.
+
+The last step is to operationalize the contract. Once teams agree on the runtime inputs and service boundaries, the Flox environment definition lives and travels with the project itself. This means committing the Flox manifest and lockfile alongside project code, so the repo becomes the authoritative answer to the question: What does this project need to build, test, run, and deploy—anywhere?
+
+Read more in [Playbook 4](/blog/playbook-4): Define and Commit the Flox Environment with the Repo.

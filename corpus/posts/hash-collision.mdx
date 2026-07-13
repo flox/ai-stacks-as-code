@@ -1,0 +1,66 @@
+---
+title: 'Hash Collision'
+altTitle: 'Hash Collision'
+description: 'Github changed the format of their archives and this caused some systems and services that depend on the hash of the archives of a source tree to break.'
+metaDescription: 'Github changed the format of their archives and this caused some systems and services that depend on the hash of the archives of a source tree to break.'
+isPublished: true
+category: news
+publishedDate: 31 January 2023
+thumbnail: /images/blog/narwhal.webp
+orderBy: 7
+---
+
+### TL;DR
+
+Github changed the format of their archives and this unexpectedly caused some systems and services that depend on the hash of the archives of a source tree to break.
+Nix uses NAR hashes, a custom format for source archives; NAR hashes are deterministic based on the content of a source tree.
+
+### What happened?
+
+The default Git archive format changed [last year](https://github.com/git/git/commit/4f4be00d302bc52d0d9d5a3d4738bb525066c710).
+Around January 30th, Github followed suit and [changed](https://github.blog/changelog/2023-01-30-git-archive-checksums-may-change/) the format of their archives and this unexpectedly caused some systems and services that depend on the hash of the archives of a source tree to break.
+People have come to depend on this hash as an integrity check of the files they are receiving from GitHub due to several reasons,
+mainly because it’s the most straightforward way to do so.
+Github made it really convenient to use and depend on this hash, for example by taking the hash and adding tar.gz to it,
+you could generate a URL for people to download the archive from.
+
+### Does this affect [Nixpkgs](https://flox.dev/blog/nixpkgs-the-big-recipe-book-of-open-source)?
+
+No, because Nix leverages a custom format called Nix Archive (NAR) for archiving source trees,
+specifically by relying on the NAR hash and the git revision hash.
+
+### Why did Nix do this? Why does Nix have its own format?
+
+The NAR format was written into Nix at the start, about 20 years ago.
+TAR has a few problems, mostly because it's old
+(the original TAR format was released by Bell Labs in 1979–fairly jurassic in internet-years).
+The tar format includes a variety of information that makes it non-deterministic regarding the source tree it is archiving,
+such as file creation time, owners and groups, timestamps;
+it also dumps files sequentially into the archive.
+As such, tar is good for validating integrity _in transmission_
+–making sure the file wasn’t tampered with from origin to destination when transferred–
+but not well suited for validating the integrity of the contents of the source tree itself.
+
+Nix required something that could reliably and deterministically pack the source tree.
+Hence NAR format: the Nix Archive format.
+It’s very simple, and unlike tar has no options to fiddle with.
+See for yourself (via Eelco’s original PhD thesis)
+
+
+### What's a NAR hash?
+
+A NAR hash deterministically identifies the contents of a source tree.
+Nixpkgs is not affected by GitHub’s change, even though it pulls in source trees from GitHub,
+because Nixpkgs uses the NAR hash and a git revision hash to validate the contents received,
+and therefore even if the tar hash changes,
+we can still validate the integrity of the files we’re sourcing.
+
+NAR hashes are not Nix-specific, they can be used generically for any source tree.
+
+### Should GitHub provide NARs for source trees?
+
+Not a bad idea at all! A NARinfo file contains both an archive hash, a NAR hash,
+and a signature from whoever is providing this archive.
+GitHub has accommodated different hashing and archiving schemes before.
+In this case, if people relied on the NAR hash in addition to the TAR hash,
+this episode could perhaps have been avoided, or at least mitigated.

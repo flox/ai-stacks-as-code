@@ -1,0 +1,196 @@
+---
+title: 'Flox and Teams: Using Shared Flox Environments'
+altTitle: 'Flox and Teams: Using Shared Flox Environments'
+description: 'Teams are held back by the unpredictability of things they should be able to control. With shared Flox environments, working on a team becomes a completely different experience.'
+metaDescription: 'Teams are held back by the unpredictability of things they should be able to control. With shared Flox environments, working on a team becomes a completely different experience.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 15 November 2024
+thumbnail: '/images/blog/running-up-that-hill.webp'
+orderBy: 20241115
+---
+
+Developing software on a team can feel like an exercise in [“Running up That Hill.”](https://en.wikipedia.org/wiki/Running_Up_That_Hill)
+
+First you set up your local environment. Then your environment drifts, so you set it up again. And again. And again and again. Meanwhile, your teammates are stuck in the same loop. Someone’s environment is always out of phase, and it feels like your team isn’t so much running but _crawling_ up that hill, with none of the pathos in Kate Bush’s song, because you’re each dragging several short tons of entropy behind you.
+
+VMs or dev containers bring a different set of problems. Working with them can feel like being trapped in a horror-puzzle game such as _Escape the Backrooms_—you’re unable to access tools, data, secrets, and environment variables on your local system, you struggle with storage and networking, and so on.
+
+Flox gives you a new, better way to do this. In a previous article, we explored how Flox [transforms](https://flox.dev/blog/flox-and-teams-onboarding-made-easy-with-github-and-flox/) the experience of onboarding into a new role, joining a new team, or pitching in on a new project.
+
+In this article, we’ll look at how Flox makes it easy to create shared environments for teams, and explore why you’d want to do this. Spoiler alert: it’s all about [slipping the surly bonds](https://en.wikipedia.org/wiki/High_Flight#Depictions_in_mass_media) of entropy and sprinting up that hill!
+
+## Shared secrets
+
+Like most teams, yours relies on a CLI password manager to simplify access to cloud infrastructure, SaaS and PaaS services, and other stuff. The problem is someone’s local environment is _always_ misbehaving, so the password manager’s CLI doesn’t work for them. You get around this by copying-and-pasting secrets from the password manager’s Web interface, usually exporting them as environment variables. _Or_ SSHing into shared systems to use the CLI there. _Or_ asking in Slack for help. _Or_ getting nothing done.
+
+There’s gotta be a better way, right? There is!
+
+You can use Flox to create a portable, reproducible environment for securely managing secrets. In fact, we’ve [published an article](https://flox.dev/blog/adding-1password-secrets-to-flox-environments/) showing you how to do this with _any_ password manager or secrets service. Let’s briefly explore how this works in Flox.
+
+Everyone on your team has different tokens for handling their GitHub roles and responsibilities, and each of you stores these tokens in 1Password vaults. Performing certain types of actions on GitHub requires retrieving the correct role-specific credentials from 1Password and injecting them into your workflow.
+
+Thankfully, your platform engineering team uses Flox to simplify this for you. From your perspective, authenticating with GitHub, AWS, Databricks, and the other services you use is as simple as running:
+
+```
+flox activate -r foo-enterprises/1password --mode run
+```
+
+This activates an _ephemeral_ local copy of a Flox environment that’s managed by your platform engineering team. Notice the **`--mode run`** option used above. With Flox you can activate an environment using either **`dev`** (default) or **`run`** mode. In **`run`** mode Flox will set variables and run hooks defined in your manifest, but stops short of setting environment variables like `LIBRARY_PATH` and `PYTHONPATH` that are essential when _developing_ software, but can break software outside of that development context.
+
+Once this environment is activated, you can use `git` or `gh` as part of your workflow without ever being prompted for your GitHub tokens—and without exporting them as system-wide environment variables.
+
+As far as you’re concerned, this _always_ just works, because Flox gives you the benefits of a container—like isolating dependencies—without the inconveniences, such as hermetic isolation from your local system.
+
+So when you're doing stuff in your workflow, running commands like...
+
+```
+gh repo edit foo-enterprises/graphql-listener --visibility private
+gh repo delete foo-enterprises/cobol-app-that-outlived-my-foxpro-apps
+```
+
+...just works, transparently, as does running a command like:
+
+```
+gh issue edit 2112 --label "showstopping-awful-no-good-bug" --milestone "v6.02.10.23"
+```
+
+The upshot is that you never even need to think about your GitHub tokens—until it's time to generate new ones.
+
+
+## Shared cloud toolkits
+
+Speaking of GitHub, you can use Flox to create shared, reproducible environments containing all the tools you need to work with any cloud infrastructure service (AWS, Azure, GCP), or with cloud SaaS services like GitHub, GitLab, Databricks, and so on. Or you can create shared environments for specific use cases, like building and deploying AWS Lambda functions, managing workloads in Google Kubernetes Engine, and so on.
+
+For example, say your platform engineering team creates a shared Flox environment for GitHub that includes not just `git` and `gh`, but an assortment of other useful/commonly used tools, too.
+
+From your perspective, using this environment is as simple as typing:
+
+```
+flox activate -r foo-enterprises/github-shell --mode run
+```
+
+Or this environment could just activate automatically, without you even noticing it, when you open a terminal, or [change into a GitHub repo](https://flox.dev/blog/auto-environment-activation-with-direnv-flox/).
+
+All you know is that typing `which gh`, which `git`, or `which gh-dash` returns the following:
+
+```
+/home/daedalus/dev/vault/.flox/run/x86_64-linux.vault/bin/gh
+/home/daedalus/dev/vault/.flox/run/x86_64-linux.vault/bin/git
+/home/daedalus/dev/vault/.flox/run/x86_64-linux.vault/bin/gh-dash
+```
+
+And that **`flox list`**-ing the contents of your `github-shell` environment tells you these packages are installed:
+
+```
+gh: gh (2.61.0)
+gh-dash: gh-dash (4.7.0)
+ghq: ghq (1.6.3)
+gitFull: gitFull (git-with-svn-2.47.0)
+gitui: gitui (0.26.3)
+lazygit: lazygit (0.44.1)
+tig: tig (2.5.10)
+```
+
+Your platform engineering team might create a similar shared environment for AWS, too. The beauty of using the **`flox activate -r`** command is that _everyone on your team always uses exactly the same version_ of the environment. Platform engineers create `github-shell` and `aws-tools` environments and use **`flox push`** to push these to [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/). This gives the platform engineering team an easy way to update and version these environments, as well as make them available to your team—and to others across your org.
+
+So running...
+
+```
+flox activate -r foo-enterprises/aws-tools --mode run
+```
+
+...transparently activates this environment, while running `which aws`, `which aws-vault`, and `aws-logs` gives you...
+
+```
+/home/daedalus/dev/aws/.flox/run/x86_64-linux.aws/bin/aws
+/home/daedalus/dev/aws/.flox/run/x86_64-linux.aws/bin/aws-vault
+/home/daedalus/dev/aws/.flox/run/x86_64-linux.aws/bin/awslogs
+```
+
+...and using the **`flox list`** command tells you the following packages are installed:
+
+```
+aws-iam-authenticator: aws-iam-authenticator (0.6.27)
+aws-sam-cli: aws-sam-cli (1.127.0)
+aws-vault: aws-vault (7.2.0)
+awscli2: awscli2 (2.19.0)
+awslogs: awslogs (0.15.0)
+boto3: python311Packages.boto3 (python3.11-boto3-1.35.30)
+chamber: chamber (3.1.0)
+ec2-ami-tools: ec2-ami-tools (1.5.19)
+ec2-api-tools: ec2-api-tools (1.7.5.1)
+ec2-utils: ec2-utils (amazon-ec2-utils-2.2.0)
+fzf: fzf (0.56.0)
+jless: jless (0.9.0)
+jq: jq (1.7.1)
+python311Full: python311Full (python3-3.11.10)
+serverless: serverless (3.38.0)
+yq: yq (python3.12-yq-3.4.3)
+```
+
+Best of all, you can [“layer”](https://flox.dev/blog/a-very-short-introduction-to-layering-in-flox/) your platform engineering team’s shared `1Password-aws` environment on top of its shared `aws-tools` environment. This makes your AWS workflows ... seamless. Yep, I know that word is _hugely_ overused, but it’s absolutely appropriate in this case.
+
+So how does this work in practice? Transparently of course! For example, running commands like...
+
+```
+sam deploy --parameter-overrides ExecutionRoleArn=arn:aws:iam::314159265358:role/sauron
+sam deploy --guided
+sam deploy --stack-name the-darkest-depths-of --s3-bucket mordor --capabilities CAPABILITY_IAM
+aws lambda get-function --function-name PreciousLambda
+```
+
+...just works, with seamless authentication, as does running a command like:
+
+```
+aws eks update-kubeconfig --region us-west-2 --name In-the-Wake-of-Poseidon
+```
+
+## Shared observability
+
+One last example, just to highlight yet another great use case for teams and Flox shared environments.
+
+Your team develops and maintains a production service destined to run in [EKS](https://aws.amazon.com/eks/). You’re building locally, rolling up what you build into a container, and pushing that container to CI. You use Linux on your laptop, while most of your teammates use MacBooks or Windows laptops. This is great for team morale—and lends itself to more than a little tribal teasing—but poses a few obvious problems, starting with providing a standard, reproducible local dev experience.
+
+Flox gives your team a [powerful, flexible solution](https://flox.dev/blog/onboarding-made-easy-with-github-and-flox/) to this problem. But you _still_ encounter other kinds of platform-specific challenges—like how to provide a standard observability (o11y) experience across platforms. Locally, you and your teammates use different combinations of tools on Linux, Windows, and macOS to monitor performance and resource consumption. In production, however, your org uses a purpose-built service to _observe_ this service.
+
+How do you build and test locally while (**a**) simulating prod workloads, (**b**) monitoring local performance, and (**c**) translating performance data into the o11y metrics you use in prod?
+
+One solution is to run the same container you use in prod locally, but … yuck! Your teammates on macOS and Windows really don’t like the performance impact, the hassle of configuring container runtimes, or the extra steps involved in rolling up their builds into containers just so they can test them. You can empathize! So can your platform engineering team. Working with SREs, they came up with the perfect solution: a Flox environment that runs your org’s production o11y stack. You activate this locally by typing:
+
+```
+flox activate -r foo-enterprises/o11y-stack --mode run
+```
+
+Once you do this, you’re running _the same o11y stack you run in production_—except it’s running locally on yours and your teammates’ Linux, macOS, and Windows (with WSL2) systems, using platform-optimized binaries and libraires. Curious, you type **`flox list`** to explore what’s in this Floxified o11y runtime.
+
+You’re amazed at what you see:
+
+```
+cadvisor: cadvisor (0.49.1)
+grafana: grafana (11.3.0)
+opentelemetry-collector: opentelemetry-collector (0.109.0)
+prometheus: prometheus (2.55.0)
+prometheus-json-exporter: prometheus-json-exporter (0.6.0)
+prometheus-node-exporter: prometheus-node-exporter (node_exporter-1.8.2)
+prometheus-postgres-exporter: prometheus-postgres-exporter (postgres_exporter-0.15.0)
+```
+
+All of this runs in a virtual environment on your local system, without containers or VMs. It transforms the way you build and test software before pushing it to CI. And the way it works is completely transparent to you.
+
+
+## Share and share alike with Flox
+
+Teams are held back by a combination of factors, starting with technical, architectural, and process decisions they just can't control. On top of this, teams are also routinely frustrated by the unpredictability of things that _should_ be in their control, like the state of each team member's local development environment.
+
+With Flox, working on a team becomes a completely different experience. Using shared Flox environments encourages collaboration and makes your team more productive. Even better, the same Flox environments you use to develop locally Just Work when pushed to CI, or deployed in prod.
+
+Flox works with any software architecture, can be used with any combination of languages or toolchains, and supports virtually every open framework (and some closed ones) used today. Flox fits into your existing workflows, drops into your existing processes, and is agnostic about high-level technical and architectural decisions that are above your paygrade (and beyond your control).
+
+Try it yourself. [Download](https://flox.dev/docs/install-flox/) Flox and pull one of our [prototype environments](https://flox.dev/environments/) from FloxHub. Running a local, container-less instance of our 1Password example environment is as simple as typing:
+
+```
+flox activate -r flox/1password --mode run
+```

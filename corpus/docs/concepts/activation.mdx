@@ -1,0 +1,395 @@
+---
+title: "Activating environments"
+description: "How an environment is activated, and how to make the most of it"
+---
+
+[Environments](/concepts/environments) are a central concept in Flox,
+representing the tools you want to use, all of their dependencies,
+various environment variables necessary to make them function properly,
+_and_ all of your customizations.
+Given that environments are such an important part of Flox,
+it stands to reason that _how you use them_ is also an important part of Flox.
+
+There are four different ways to use an environment,
+and two different modes that an environment can be activated in.
+Regardless of the method, activation works by configuring a shell.
+The `hook` and `profile` scripts specified in your manifest are run as part of
+configuring that shell.
+Understanding when and why they're run will help you take full advantage
+of Flox,
+so let's walk through what it means to "activate" an environment and how it
+works.
+
+## Configuring the shell
+
+When you "activate" an environment,
+Flox configures a shell,
+making all of the packages and environment variables specified in your
+manifest available, as mentioned above.
+
+Activation doesn't always mean creating a new shell.
+Depending on how you invoke `flox activate`,
+Flox may start a subshell, configure your current shell in-place,
+or directly exec a command without an intermediate shell at all.
+The [four methods](#four-different-ways-to-activate) are described below.
+
+The most common way to activate an environment is simply by calling
+`flox activate`,
+which starts a new subshell with everything configured:
+
+```console
+$ flox activate
+flox [myenv] $ # Now you can use your packages
+```
+
+One of the core features that makes Flox so attractive for development is that
+the packages in your manifest are available when the environment is active,
+and they're gone when it's inactive.
+We do this by carefully setting a collection of environment variables,
+some of which you may be familiar with, such as `PATH`, and others which you
+may not have heard of like `ACLOCAL_PATH`, `RUST_SRC_PATH`, and others.
+
+As an example, if you create an environment `myenv` and install `hello`,
+Flox will place `<path to myenv>/.flox/run/<your system>.myenv.dev/bin` at the
+beginning of your `PATH` variable so that `hello` will be selected from your
+environment rather than from elsewhere on your system.
+
+## Four different ways to activate
+
+We mentioned above that there are four different ways to use an environment.
+Each method differs in whether `hook.on-activate` and `profile` scripts are
+run:
+
+| Mode | Command | `hook.on-activate` | `profile.*` |
+| --- | --- | :---: | :---: |
+| Subshell | `flox activate` | ✅ | ✅ |
+| In-place | `eval "$(flox activate)"` | ✅ | ✅ |
+| Shell command | `flox activate -c` | ✅ | ✅ |
+| Exec | `flox activate --` | ✅ | ❌ |
+
+### Subshell
+
+We've already mentioned the first method,
+which is to put you into a subshell.
+When you activate this way your existing shell is paused and you're put into a
+new one configured by Flox.
+Once this shell exits (via `exit` or `Ctrl-D`, for example), your original shell
+is resumed and you are put back into it.
+Running [`flox deactivate`](/man/flox-deactivate) inside the subshell has the
+same effect.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#e8eef6','primaryBorderColor':'#7d96b8','primaryTextColor':'#1f2937','lineColor':'#7d96b8','noteBkgColor':'#e8eef6','noteTextColor':'#1f2937','noteBorderColor':'#7d96b8','actorBkg':'#e8eef6','actorBorder':'#7d96b8','actorTextColor':'#1f2937','actorLineColor':'#7d96b8','signalColor':'#1f2937','signalTextColor':'#1f2937','labelBoxBkgColor':'#e8eef6','labelBoxBorderColor':'#7d96b8','labelTextColor':'#1f2937','loopTextColor':'#1f2937','sequenceNumberColor':'#1f2937'},'sequence':{'mirrorActors':false}}}%%
+sequenceDiagram
+    participant U as User shell
+    participant S as Subshell
+    U->>S: flox activate
+    S->>S: do work in the subshell
+    S->>U: exit
+```
+
+### In-place
+
+This method is similar to the first in that you're still in an interactive
+shell,
+but in this case it's the original shell.
+
+To make this happen you could do one of these options in Bash:
+
+Option 1
+
+```bash
+source <(flox activate)
+```
+
+Option 2
+
+```bash
+eval "$(flox activate)"
+```
+
+In both cases Flox emits a script that configures the shell,
+and the shell executes that code to configure itself.
+
+<Tip>
+  **direnv integration**
+
+
+  If you use [direnv](https://direnv.net/) with `use flox` in your
+  `.envrc`, the activation is in-place and both `hook.on-activate` and
+  `[profile]` scripts are run.
+  Note that `profile.common` must use shell-agnostic syntax — see
+  the [guidance below](#hook-vs-profile-in-a-nutshell).
+</Tip>
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#e8eef6','primaryBorderColor':'#7d96b8','primaryTextColor':'#1f2937','lineColor':'#7d96b8','noteBkgColor':'#e8eef6','noteTextColor':'#1f2937','noteBorderColor':'#7d96b8','actorBkg':'#e8eef6','actorBorder':'#7d96b8','actorTextColor':'#1f2937','actorLineColor':'#7d96b8','signalColor':'#1f2937','signalTextColor':'#1f2937','labelBoxBkgColor':'#e8eef6','labelBoxBorderColor':'#7d96b8','labelTextColor':'#1f2937','loopTextColor':'#1f2937','sequenceNumberColor':'#1f2937'},'sequence':{'mirrorActors':false}}}%%
+sequenceDiagram
+    participant U as User shell
+    U->>U: source <(flox activate)
+    Note over U: Back to you
+```
+
+In order to configure a `default` environment that's activated for every new
+shell,
+you would put a line like this in your `.bashrc`, `.zshrc`, `.tcshrc`, or
+`config.fish`.
+You could do this manually, but Flox will also prompt you to do it for you
+the first time you attempt to install a package in a directory without an
+environment and with no environments currently active.
+
+<Tip>
+  An in-place activation like this also installs the prompt hook used by
+  [auto-activation](/concepts/auto-activation), which can activate an
+  environment automatically when you enter its directory.
+</Tip>
+
+### Shell Command
+
+Sometimes you just want to run a command in the context of your environment,
+maybe because you have some tools available in your environment that aren't
+available outside the environment.
+
+You could do this in a subshell:
+
+- Enter the subshell via `flox activate`
+- Run the command
+- Exit the subshell via `exit`
+
+You could do a similar thing with an in-place activation:
+
+- Configure your existing shell with `source <(flox activate)`.
+- Run the command
+- Your shell is still configured by Flox when you're done
+
+That's a lot of ceremony to run that one command though,
+and the in-place activation leaves the environment still activated in your
+shell,
+which you may not want.
+
+The easy way to do this is:
+
+```bash
+flox activate -c "<your command>"
+```
+
+This starts a Flox-configured subshell, runs your command,
+and immediately exits to put you back into your shell.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#e8eef6','primaryBorderColor':'#7d96b8','primaryTextColor':'#1f2937','lineColor':'#7d96b8','noteBkgColor':'#e8eef6','noteTextColor':'#1f2937','noteBorderColor':'#7d96b8','actorBkg':'#e8eef6','actorBorder':'#7d96b8','actorTextColor':'#1f2937','actorLineColor':'#7d96b8','signalColor':'#1f2937','signalTextColor':'#1f2937','labelBoxBkgColor':'#e8eef6','labelBoxBorderColor':'#7d96b8','labelTextColor':'#1f2937','loopTextColor':'#1f2937','sequenceNumberColor':'#1f2937'},'sequence':{'mirrorActors':false}}}%%
+sequenceDiagram
+    participant U as User shell
+    participant S as Subshell
+    U->>S: flox activate -c cmd
+    S->>S: run "cmd"
+    S->>U: automatic exit
+    Note over U: Back to you
+```
+
+### Exec Command
+
+The final way to activate an environment is to exec a command directly without an intermediate shell, which can be done with:
+
+```bash
+flox activate -- <your command>
+```
+
+This is similar to `activate -c` in that it activates the environment, runs a
+command, and then exits.
+
+Unlike `-c`, when `exec`-ing a command directly with `--`:
+
+1. `[profile]` scripts aren't run
+1. Shell syntax isn't supported, so it's not possible to chain commands (e.g. `cmd1 && cmd2`), use shell builtins, or use aliases.
+
+When none of those features are needed, using `--` is faster than `-c` since
+there's no intermediate shell.
+
+## Activation flow
+
+In order to understand where `hook` and `profile` fit into the picture,
+we need to explore the timeline of what an activation looks like.
+Much of this is dictated by what gets inherited when you create subshells.
+Don't feel like you need to understand this entirely in order to use Flox,
+it's just here to help you if you want a deeper understanding.
+
+### What's inherited by a subshell?
+
+When you create a subshell,
+you create a new process that _happens_ to be a shell.
+A new process inherits the environment of its parent process by default,
+meaning that it inherits all of the environment variables set by that process.
+If the parent process is a shell,
+the functions and aliases defined in the parent process (shell) are not passed
+down to the subshell (unless you use [special options like `export -f`](https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html#index-export)).
+This means that if we want you to be able to define functions and aliases to be
+used by _your_ shell in your environment,
+we have to make your shell source their definitions.
+
+### Timeline
+
+In order to meet our constraints and user experience goals,
+we activate an environment in a number of steps.
+The steps for a subshell activation are shown in the diagram below,
+and they're very similar for the other types of activation.
+Let's break it down step by step.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#e8eef6','primaryBorderColor':'#7d96b8','primaryTextColor':'#1f2937','lineColor':'#7d96b8','noteBkgColor':'#e8eef6','noteTextColor':'#1f2937','noteBorderColor':'#7d96b8','actorBkg':'#e8eef6','actorBorder':'#7d96b8','actorTextColor':'#1f2937','actorLineColor':'#7d96b8','signalColor':'#1f2937','signalTextColor':'#1f2937','labelBoxBkgColor':'#e8eef6','labelBoxBorderColor':'#7d96b8','labelTextColor':'#1f2937','loopTextColor':'#1f2937','sequenceNumberColor':'#1f2937'},'sequence':{'mirrorActors':false}}}%%
+sequenceDiagram
+    participant U as User shell
+    participant P as New process
+    U->>P: call "flox activate"
+    rect rgb(235, 240, 250)
+      Note over P: flox activate
+      P->>P: exec bash activation_script.sh
+    end
+    rect rgb(235, 248, 240)
+      Note over P: bash
+      P->>P: run setup scripts
+      P->>P: set user variables
+      P->>P: source hook.on-activate
+      P->>P: exec FLOX_SHELL
+    end
+    rect rgb(240, 240, 245)
+      Note over P: FLOX_SHELL
+      P->>P: source [profile] scripts
+      rect rgb(228, 232, 240)
+        Note over P: Do work
+        P->>P: Do your work inside the shell
+      end
+    end
+    P->>U: exit
+```
+
+For a variety of reasons it's convenient to have the same process ID (PID)
+throughout the lifecycle of the activated environment.
+The way you tell the current process to run a different program is via the
+`exec` command (which calls the `exec` system call).
+
+`flox activate` `exec`s a Bash subshell with a script that's bundled with Flox,
+and sets some environment variables to be present in that Bash subshell.
+We use this Bash subshell to prepare the way for putting you into a configured
+instance of your shell of choice.
+In the diagram above your shell of choice is represented with the `FLOX_SHELL`
+variable,
+which is also the variable you can use to override which shell Flox uses when
+you activate an environment.
+
+As part of this activation script,
+Flox runs some initial setup, then sets the variables you've provided in the
+[[vars] section of your manifest](/man/manifest.toml#vars).
+Next, the script _sources_ the `hook.on-activate` script that you've provided
+in the [[hook] section of your manifest](/man/manifest.toml#hook).
+Since this script is run by the Bash shell we're using,
+you only need to worry about the syntax and oddities of one shell when writing
+this script.
+This is convenient, but it comes with some tradeoffs.
+
+This Bash subshell is _non-interactive_.
+Some programs behave differently when they execute in a shell that's not
+interactive,
+and most shells will not (by default) expand aliases when run non-interactively.
+Also, remember that any functions or aliases you define in this Bash subshell
+via the `hook.on-activate` script will not be inherited by your shell later.
+
+Finally, we `exec` your shell with some overrides that allow us to inject our
+own configuration,
+such as `source`-ing the scripts defined in the
+[[profile] section of your manifest](/man/manifest.toml#profile).
+Once those scripts have been sourced,
+we hand control back to you.
+Since the scripts in the `[profile]` section are sourced by your shell,
+this is where you can define aliases and functions that you'd like to be
+available in your activated environment.
+
+### hook vs. profile in a nutshell
+
+So, that was a lot of technical detail.
+To make life easier for you when it comes to writing scripts for your
+environment,
+here is some simple guidance:
+
+**hook.on-activate**:
+
+- Always Bash, so there's only one shell syntax and set of quirks to keep in mind.
+- Can't use aliases.
+- Can define functions to use within the hook, but they won't be passed down to other shells.
+- _Can_ define environment variables that need to be computed.
+
+**profile**:
+
+- Syntax depends on the shell. `profile.common` is sourced by _all_ shells
+  (Bash, Zsh, Fish, and tcsh), so avoid constructs like `export VAR=value`
+  that are not portable. Use the shell-specific `profile.bash`, `profile.zsh`,
+  etc. sections for non-portable syntax.
+- Can define functions and aliases.
+- Can source scripts needed for other programs to work properly e.g. the `activate` script for a Python virtual environment.
+- _Can_ define environment variables that need to be computed.
+
+In short, it's probably best to put as much as you can in `hook.on-activate`
+until you have shell-specific needs, you need aliases, or you need to source
+a third-party script into your shell.
+
+## Attaching
+
+Everything we've discussed so far is about what happens when you start a new
+activation of an environment.
+However, if you're simply activating a second instance of an environment,
+all of the setup done in your `hook` and script will already have
+been done,
+so you would be doing the same exact thing.
+In addition, you would be setting all of the same exact environment variables
+from your `[vars]` `[hook]` sections as before.
+
+In short, this would be doing a lot of pointless work.
+For that reason, we record those environment variables and apply them to
+subsequent activations rather than computing them again.
+We call this "attaching" to an activation, and we do it automatically for you
+to make activation as fast as possible.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#e8eef6','primaryBorderColor':'#7d96b8','primaryTextColor':'#1f2937','lineColor':'#7d96b8','noteBkgColor':'#e8eef6','noteTextColor':'#1f2937','noteBorderColor':'#7d96b8','actorBkg':'#e8eef6','actorBorder':'#7d96b8','actorTextColor':'#1f2937','actorLineColor':'#7d96b8','signalColor':'#1f2937','signalTextColor':'#1f2937','labelBoxBkgColor':'#e8eef6','labelBoxBorderColor':'#7d96b8','labelTextColor':'#1f2937','loopTextColor':'#1f2937','sequenceNumberColor':'#1f2937'},'sequence':{'mirrorActors':false}}}%%
+sequenceDiagram
+    participant S1 as First shell
+    participant F as Somewhere
+    participant S2 as Second shell
+    S1->>S1: flox activate
+    S1->>F: save environment variables
+    Note over S1: Activated
+    S2->>S2: flox activate
+    F->>S2: restore environment variables
+    Note over S2: Activated
+```
+
+If you edit your manifest and activate in a new shell,
+the whole activation process is run again and subsequent activations will
+attach to this new version of the environment.
+
+## Deactivating environments
+
+Activation is reversible.
+[`flox deactivate`](/man/flox-deactivate) tears down the most recently
+activated environment in your shell,
+restoring the environment variables and shell customizations that activation
+changed.
+See [`flox deactivate`](/man/flox-deactivate) for the full command reference.
+
+## Development vs. runtime mode
+
+See the [`options.activate.mode`](/man/manifest.toml#options) option in the manifest.
+
+## Conclusion
+
+As you can see, there's a lot going on under the hood,
+but at the end of the day it's just Unix fundamentals:
+processes and environment variables.
+
+This is what makes activating a Flox environment so fast.
+There's no container to build and there's no VM to boot up.
+It really is a return to basics, with our own special twist on it.
+
+Hopefully after reading this you have a deeper understanding of how a Flox
+environment is activated,
+and you feel confident that you can write `[hook]` and `[profile]` scripts
+that prepare your environment just how you like them.

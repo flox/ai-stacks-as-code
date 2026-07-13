@@ -1,0 +1,19 @@
+12:54:57.230 DEBUG flox: FLOX_VERSION=1.13.1
+12:54:57.230 DEBUG flox::config: Global config directory overridden path="/home/daedalus/.config/flox"
+12:54:57.230 DEBUG flox_core::sentry: Initializing Sentry with DSN: https://85c9526795f5047c99a5247aab616295:@o4506548203094016.ingest.us.sentry.io/4506548241825792
+12:54:57.237 DEBUG flox_core::sentry: Configuring Sentry user with metrics UUID
+12:54:57.237 DEBUG flox::utils::events: inherited v2 invocation_id from FLOX_INVOCATION_ID invocation_id=582e98e8-cfee-4905-9e0e-c33ecca46885
+12:54:57.237 DEBUG flox::utils::events: v2 events: no override URL set; production dormant
+12:54:57.237 DEBUG flox: set _FLOX_SUBSYSTEM_VERBOSITY=2
+12:54:57.240 DEBUG flox::config: Global config directory overridden path="/home/daedalus/.config/flox"
+12:54:57.240 DEBUG flox::commands: Metrics collection enabled
+12:54:57.240 DEBUG flox::utils::update_notifications: Skipping update check in development mode
+12:54:57.240 DEBUG flox::utils::init::floxhub_client: using catalog client with url: https://api.flox.dev
+12:54:57.240 DEBUG floxhub_client::client: building HTTP client base_url=https://api.flox.dev extra_headers=2
+12:54:57.246 DEBUG flox::commands: feature flags configured=Features { upload: false, qa: false, beta: false, auto_activate: false }
+12:54:57.247 DEBUG check-upgrade: flox::utils::metrics: pushing entry to metrics buffer: MetricEntry { subcommand: Some("check-upgrade"), extras: {}, timestamp: 2026-07-07 16:54:57.247026671 +00:00:00, uuid: f4a1490a-4177-4839-b000-65e583c5b1e9, flox_version: "1.13.1", os_family: Some("Linux"), os_family_release: Some("6.12.95+deb13-amd64"), os: Some("debian"), os_version: Some("13"), empty_flags: [], invocation_sources: ["agentic.claude-code.cli", "agentic.flox-mcp"] }
+12:54:57.247 DEBUG check-upgrade: floxhub_client::client: building HTTP client base_url=https://api.flox.dev extra_headers=3
+12:54:57.253 DEBUG check-upgrade: flox_rust_sdk::models::environment: detected concrete environment type: path
+12:54:57.254 DEBUG check-upgrade: flox_rust_sdk::providers::upgrade_checks: created unlocked upgrade information guard upgrade_information_path="/home/daedalus/dev/ai-stacks-as-code/envs/ai-notebook/.flox/cache/upgrade-checks.json"
+12:54:57.254 DEBUG check-upgrade: flox::commands::check_for_upgrades: Recently checked for upgrades. Skipping.
+12:54:57.255 DEBUG flox::commands: removing process tempdir temp_dir="/home/daedalus/.cache/flox/process/.tmpxcLCBr"

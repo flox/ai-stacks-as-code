@@ -1,0 +1,352 @@
+schema-version = "1.13.0"
+
+
+[install]
+# Jupyter Lab
+bat.pkg-path = "bat"
+bat.outputs = "all"
+curl.pkg-path = "curl"
+curl.outputs = "all"
+jupyterlab.pkg-path = "python313Packages.jupyterlab"
+jupyterlab.outputs = "all"
+jupyterlab-lsp.pkg-path = "python313Packages.jupyterlab-lsp"
+jupyterlab-lsp.outputs = "all"
+jupyterlab-server.pkg-path = "python313Packages.jupyterlab-server"
+jupyterlab-server.outputs = "all"
+jupyterlab-widgets.pkg-path = "python313Packages.jupyterlab-widgets"
+jupyterlab-widgets.outputs = "all"
+jupyterlab-pygments.pkg-path = "python313Packages.jupyterlab-pygments"
+jupyterlab-pygments.outputs = "all"
+jupyterlab-execute-time.pkg-path = "python313Packages.jupyterlab-execute-time"
+jupyterlab-execute-time.outputs = "all"
+
+# Classic notebook UI + execution kernel
+notebook.pkg-path = "python313Packages.notebook"
+notebook.outputs = "all"
+ipykernel.pkg-path = "python313Packages.ipykernel"
+ipykernel.outputs = "all"
+
+# Data science stuffs
+pandas.pkg-path = "python313Packages.pandas"
+pandas.outputs = "all"
+matplotlib.pkg-path = "python313Packages.matplotlib"
+matplotlib.outputs = "all"
+pyarrow.pkg-path = "python313Packages.pyarrow"
+pyarrow.outputs = "all"
+sympy.pkg-path = "python313Packages.sympy"
+sympy.outputs = "all"
+pydot.pkg-path = "python313Packages.pydot"
+pydot.outputs = "all"
+plotly.pkg-path = "python313Packages.plotly"
+plotly.outputs = "all"
+
+# Small local dev helpers (bat + curl already above)
+ripgrep.pkg-path = "ripgrep"
+fd.pkg-path = "fd"
+jq.pkg-path = "jq"
+git.pkg-path = "git"
+tree.pkg-path = "tree"
+
+[hook]
+on-activate = '''
+# Runtime-configurable variables with defaults
+export JUPYTER_HOST="${JUPYTER_HOST:-0.0.0.0}"
+export JUPYTER_PORT="${JUPYTER_PORT:-8888}"
+export JUPYTER_SERVER_TOKEN="${JUPYTER_SERVER_TOKEN:-}"
+export NOTEBOOK_DIR="${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}"
+export INSTALL_REQUIREMENTS="${INSTALL_REQUIREMENTS:-false}"
+
+# Generate random token if not provided
+if [ -z "$JUPYTER_SERVER_TOKEN" ]; then
+    export JUPYTER_SERVER_TOKEN="$(openssl rand -hex 32)"
+    echo "ℹ️  Generated random token: $JUPYTER_SERVER_TOKEN"
+fi
+
+# Setup venv
+export VENV_DIR="$FLOX_ENV_CACHE/venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating Python virtual environment..."
+    python3.13 -m venv "$VENV_DIR"
+fi
+
+# Activate venv with guard
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    source "$VENV_DIR/bin/activate"
+
+    # Install requirements if requested
+    if [ -f "$FLOX_ENV_PROJECT/requirements.txt" ] && [ "$INSTALL_REQUIREMENTS" = "true" ]; then
+        echo "Installing packages from requirements.txt..."
+        pip install -r "$FLOX_ENV_PROJECT/requirements.txt" --quiet
+    fi
+fi
+
+# Display minimal info
+echo ""
+echo "✅ JupyterLab environment ready (headless mode)"
+echo ""
+echo "Access URL: http://localhost:$JUPYTER_PORT"
+echo "Token: ${JUPYTER_SERVER_TOKEN}"
+echo ""
+echo "Start service: flox activate -s"
+echo "Show help: jupyter-help"
+echo "Documentation: helpf"
+echo ""
+
+# Fetch README if missing
+
+  # Fetch README.md if not present
+  README_FILE="$FLOX_ENV_PROJECT/README.md"
+  if [ ! -f "$README_FILE" ]; then
+    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o "$README_FILE" 2>/dev/null; then
+      echo "✓ Downloaded README.md (use 'helpf' to view)"
+    fi
+  fi
+'''
+
+[services.jupyter-lab]
+command = '''
+# Activate venv for user packages
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    source "$VENV_DIR/bin/activate"
+fi
+
+exec jupyter-lab \
+  --no-browser \
+  --ip="$JUPYTER_HOST" \
+  --port="$JUPYTER_PORT" \
+  --IdentityProvider.token="$JUPYTER_SERVER_TOKEN" \
+  --notebook-dir="$NOTEBOOK_DIR"
+'''
+
+[profile]
+bash = '''
+jupyter-help() {
+    echo "JupyterLab (Headless Mode)"
+    echo ""
+    echo "Access URL: http://localhost:$JUPYTER_PORT"
+    echo "Token: $JUPYTER_SERVER_TOKEN"
+    echo "Notebook Dir: $NOTEBOOK_DIR"
+    echo ""
+    echo "Commands:"
+    echo "  flox activate -s     Start JupyterLab service"
+    echo "  flox services status Check service status"
+    echo "  pip install <pkg>    Install Python package"
+    echo ""
+    echo "Runtime Configuration:"
+    echo "  JUPYTER_HOST         Default: $JUPYTER_HOST"
+    echo "  JUPYTER_PORT         Default: $JUPYTER_PORT"
+    echo "  JUPYTER_SERVER_TOKEN Default: (auto-generated)"
+    echo "  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR"
+    echo "  INSTALL_REQUIREMENTS Default: false"
+    echo ""
+    echo "Example:"
+    echo "  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s"
+}
+
+# View environment documentation
+
+  helpf() {
+    local README_FILE="$FLOX_ENV_PROJECT/README.md"
+    local README_URL="https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md"
+
+    if [ "$1" = "--help" ]; then
+      echo "Usage: helpf [OPTIONS]"
+      echo ""
+      echo "View environment documentation"
+      echo ""
+      echo "Options:"
+      echo "  --force    Force download fresh copy from GitHub"
+      echo "  --help     Show this help message"
+      echo ""
+      echo "The README is cached locally and only downloaded if missing."
+      return 0
+    fi
+
+    if [ "$1" = "--force" ]; then
+      echo "Fetching latest README.md from GitHub..."
+      if curl -fsSL "$README_URL" -o "$README_FILE"; then
+        echo "✓ Downloaded README.md"
+      else
+        echo "✗ Failed to download README.md"
+        return 1
+      fi
+    elif [ ! -f "$README_FILE" ]; then
+      echo "README.md not found, downloading..."
+      if curl -fsSL "$README_URL" -o "$README_FILE"; then
+        echo "✓ Downloaded README.md"
+      else
+        echo "✗ Failed to download README.md"
+        return 1
+      fi
+    fi
+
+    if [ -f "$README_FILE" ]; then
+      bat --style=auto --paging=always "$README_FILE"
+    else
+      echo "✗ README.md not found at $README_FILE"
+      return 1
+    fi
+  }
+  export -f helpf
+'''
+
+zsh = '''
+jupyter-help() {
+    echo "JupyterLab (Headless Mode)"
+    echo ""
+    echo "Access URL: http://localhost:$JUPYTER_PORT"
+    echo "Token: $JUPYTER_SERVER_TOKEN"
+    echo "Notebook Dir: $NOTEBOOK_DIR"
+    echo ""
+    echo "Commands:"
+    echo "  flox activate -s     Start JupyterLab service"
+    echo "  flox services status Check service status"
+    echo "  pip install <pkg>    Install Python package"
+    echo ""
+    echo "Runtime Configuration:"
+    echo "  JUPYTER_HOST         Default: $JUPYTER_HOST"
+    echo "  JUPYTER_PORT         Default: $JUPYTER_PORT"
+    echo "  JUPYTER_SERVER_TOKEN Default: (auto-generated)"
+    echo "  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR"
+    echo "  INSTALL_REQUIREMENTS Default: false"
+    echo ""
+    echo "Example:"
+    echo "  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s"
+}
+
+# View environment documentation
+
+  helpf() {
+    local README_FILE="$FLOX_ENV_PROJECT/README.md"
+    local README_URL="https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md"
+
+    if [ "$1" = "--help" ]; then
+      echo "Usage: helpf [OPTIONS]"
+      echo ""
+      echo "View environment documentation"
+      echo ""
+      echo "Options:"
+      echo "  --force    Force download fresh copy from GitHub"
+      echo "  --help     Show this help message"
+      echo ""
+      echo "The README is cached locally and only downloaded if missing."
+      return 0
+    fi
+
+    if [ "$1" = "--force" ]; then
+      echo "Fetching latest README.md from GitHub..."
+      if curl -fsSL "$README_URL" -o "$README_FILE"; then
+        echo "✓ Downloaded README.md"
+      else
+        echo "✗ Failed to download README.md"
+        return 1
+      fi
+    elif [ ! -f "$README_FILE" ]; then
+      echo "README.md not found, downloading..."
+      if curl -fsSL "$README_URL" -o "$README_FILE"; then
+        echo "✓ Downloaded README.md"
+      else
+        echo "✗ Failed to download README.md"
+        return 1
+      fi
+    fi
+
+    if [ -f "$README_FILE" ]; then
+      bat --style=auto --paging=always "$README_FILE"
+    else
+      echo "✗ README.md not found at $README_FILE"
+      return 1
+    fi
+  }
+'''
+
+fish = '''
+function jupyter-help
+    echo "JupyterLab (Headless Mode)"
+    echo ""
+    echo "Access URL: http://localhost:$JUPYTER_PORT"
+    echo "Token: $JUPYTER_SERVER_TOKEN"
+    echo "Notebook Dir: $NOTEBOOK_DIR"
+    echo ""
+    echo "Commands:"
+    echo "  flox activate -s     Start JupyterLab service"
+    echo "  flox services status Check service status"
+    echo "  pip install <pkg>    Install Python package"
+    echo ""
+    echo "Runtime Configuration:"
+    echo "  JUPYTER_HOST         Default: $JUPYTER_HOST"
+    echo "  JUPYTER_PORT         Default: $JUPYTER_PORT"
+    echo "  JUPYTER_SERVER_TOKEN Default: (auto-generated)"
+    echo "  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR"
+    echo "  INSTALL_REQUIREMENTS Default: false"
+    echo ""
+    echo "Example:"
+    echo "  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s"
+end
+
+# View environment documentationend
+
+  # Fetch README if missing or --force specified
+  if test "$force_fetch" = true; or test ! -s "$README_FILE"
+    if curl -fsSL "$README_URL" -o "$README_FILE" 2>/dev/null
+      test "$force_fetch" = true; and echo "README refreshed from $README_URL"
+    else
+      echo "Warning: Failed to fetch README from $README_URL"
+      test ! -s "$README_FILE"; and return 1
+    end
+  end
+
+  # Display with bat (if available) or cat
+  if command -v bat >/dev/null 2>&1
+    bat --paging=always "$README_FILE"
+  else
+    cat "$README_FILE"
+  end
+end
+
+function helpf
+    set README_FILE "$FLOX_ENV_PROJECT/README.md"
+    set README_URL "https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md"
+
+    if test "$argv[1]" = "--help"
+        echo "Usage: helpf [OPTIONS]"
+        echo ""
+        echo "View environment documentation"
+        echo ""
+        echo "Options:"
+        echo "  --force    Force download fresh copy from GitHub"
+        echo "  --help     Show this help message"
+        echo ""
+        echo "The README is cached locally and only downloaded if missing."
+        return 0
+    end
+
+    if test "$argv[1]" = "--force"
+        echo "Fetching latest README.md from GitHub..."
+        if curl -fsSL "$README_URL" -o "$README_FILE"
+            echo "✓ Downloaded README.md"
+        else
+            echo "✗ Failed to download README.md"
+            return 1
+        end
+    else if not test -f "$README_FILE"
+        echo "README.md not found, downloading..."
+        if curl -fsSL "$README_URL" -o "$README_FILE"
+            echo "✓ Downloaded README.md"
+        else
+            echo "✗ Failed to download README.md"
+            return 1
+        end
+    end
+
+    if test -f "$README_FILE"
+        bat --style=auto --paging=always "$README_FILE"
+    else
+        echo "✗ README.md not found at $README_FILE"
+        return 1
+    end
+end
+'''
+
+[options]
+systems = ["x86_64-linux", "aarch64-darwin", "aarch64-linux", "x86_64-darwin"]

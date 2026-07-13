@@ -1,0 +1,47 @@
+---
+title: "flox auth"
+---
+
+## NAME
+
+flox-auth - FloxHub authentication commands
+
+## SYNOPSIS
+
+```text
+flox [<general-options>] auth
+     (login | logout | status | token)
+```
+
+## DESCRIPTION
+
+Authenticate with FloxHub so that you can push and pull environments.
+
+## SUBCOMMANDS
+
+### `login`
+
+Logs in to FloxHub.
+
+Required to interact with environments on FloxHub via `flox push`,
+`flox pull`, and `flox activate -r`. Authenticating also automatically
+trusts your personal environments.
+
+Prompts you to enter a one-time code at a specified URL. If called
+interactively it can open the browser for you if you press `<enter>`.
+
+See also: [`flox-push`](/man/flox-push),
+[`flox-pull`](/man/flox-pull),
+[`flox-activate`](/man/flox-activate)
+
+### `logout`
+
+Logs out from FloxHub.
+
+### `status`
+
+Print your current login status.
+
+### `token`
+
+Print the current authentication token to stdout.

@@ -1,0 +1,227 @@
+---
+title: "Auto-activation"
+description: "Activate environments automatically when you enter their directory"
+---
+
+Flox environments are powerful, but remembering to run `flox activate` every
+time you enter a project directory can be tedious.
+**Auto-activation** activates an environment automatically when you `cd` into a
+directory that contains a `.flox` subdirectory, and deactivates it when you leave.
+Your packages, environment variables, and hooks are ready without any manual
+step.
+
+<Note>
+  Auto-activation is **experimental** and ships behind a feature flag.
+  Its behavior is subject to change.
+  Follow the steps under [Enabling auto-activation](#enabling-auto-activation)
+  to turn it on.
+</Note>
+
+## Enabling auto-activation
+
+Two things are required: the feature flag, and the Flox prompt hook installed in
+your shell.
+
+### 1. Turn on the feature flag
+
+Enable the `auto_activate` feature flag, either with an environment variable:
+
+```bash
+export FLOX_FEATURES_AUTO_ACTIVATE=true
+```
+
+or in your Flox config (`~/.config/flox/flox.toml`):
+
+```bash
+flox config --set features.auto_activate true
+```
+
+### 2. Install the prompt hook
+
+The prompt hook drives auto-activation, and it is installed by any **in-place**
+activation.
+Add an in-place activation of your
+[default environment](/tutorials/default-environment) to your shell's startup
+file:
+
+<Tabs>
+  <Tab title="Bash">
+    Add the following line to the end of your `~/.bashrc`:
+
+    ```bash
+    eval "$(flox activate -D)"
+    ```
+  </Tab>
+  <Tab title="Zsh">
+    Add the following line to the end of your `~/.zshrc`:
+
+    ```bash
+    eval "$(flox activate -D)"
+    ```
+  </Tab>
+  <Tab title="Fish">
+    Add the following line to the end of your `~/.config/fish/config.fish`:
+
+    ```bash
+    flox activate -D | source
+    ```
+  </Tab>
+  <Tab title="Tcsh">
+    Add the following line to the end of your `~/.tcshrc`:
+
+    ```tcsh
+    eval "`flox activate -D`"
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Any in-place `flox activate` installs the hook — not just `-D`.
+  If you already activate an environment in-place at startup (for example
+  `eval "$(flox activate -r owner/default)"`), the hook is already installed and
+  you only need to enable the feature flag.
+  The hook ships with Flox and stays dormant until the feature flag is set, so
+  enabling and disabling the flag is enough to turn auto-activation on and off.
+</Note>
+
+## How it works
+
+Once the hook is installed and the feature flag is on, the hook runs on every
+prompt (or directory change, depending on your shell):
+
+1. **Discovery** — The hook walks from your current directory up to the
+   filesystem root, collecting every directory that contains a `.flox`
+   directory.
+2. **Eligibility** — Each discovered environment is auto-activated only if you
+   have [allowed](#allowing-and-denying-environments) it.
+3. **Activation** — Eligible environments are activated outermost-first.
+   Environment variables are set and hooks run.
+   Services are **not** started unless you set
+   [`services.auto-start = true`](/man/manifest.toml#options) in the manifest.
+4. **Deactivation** — When you leave a directory, its environment is deactivated
+   and its changes to the shell are reverted.
+
+Most prompts hit a fast path: the hook detects that nothing relevant has changed
+and exits immediately with no output.
+
+## Allowing and denying environments
+
+An environment is never auto-activated until you have **allowed** it.
+This prevents unexpected code execution when you `cd` into a directory that
+contains an unfamiliar `.flox` directory.
+
+<Warning>
+  Before allowing auto-activation for an environment, review its manifest to
+  understand what its `hook` and `profile` scripts will run.
+  This matters most for environments from untrusted sources, such as cloned
+  repositories.
+</Warning>
+
+### Interactive prompt
+
+The first time you enter a directory whose environment you have neither allowed
+nor denied, Flox prompts you in interactive shells:
+
+```text
+Auto-activate the environment in '/path/to/project'? [y/N]
+```
+
+Answering **y** allows the environment, activates it, and records the choice so
+you are not asked again.
+Answering **N** (or pressing Enter) skips it for the current shell session only;
+you are asked again in a new shell or when you re-enter the directory.
+
+This prompt appears only when the `auto_activate` config option is `prompt`
+(the default).
+Set it to `allowed` to skip the prompt and auto-activate only environments you
+have already allowed:
+
+```bash
+flox config --set auto_activate allowed
+```
+
+### Allowing and denying ahead of time
+
+Use [`flox activate allow`](/man/flox-activate-allow) and
+[`flox activate deny`](/man/flox-activate-deny) to record a decision without
+waiting for the prompt:
+
+```bash
+flox activate allow
+```
+
+```bash
+flox activate deny
+```
+
+Both target the environment in the current directory by default; pass `-d`
+to target another environment.
+To stop being prompted for a specific directory:
+
+```bash
+flox activate deny -d /path/to/project
+```
+
+Decisions are stored in your Flox config (`~/.config/flox/flox.toml`) under
+`auto_activate_environments`, keyed by the absolute path of the directory that
+contains the `.flox` directory.
+The latest decision for an environment replaces any previous one.
+
+<Note>
+  Allowing an environment is tied to its directory, not its manifest contents.
+  Once allowed, an environment stays allowed even if its manifest changes.
+  Creating an environment with `flox init` does not allow it automatically — you
+  allow it explicitly, or by answering **y** at the prompt.
+</Note>
+
+## Nested environments
+
+When several `.flox` directories sit in your current directory's ancestor chain,
+all eligible environments are activated at once, outermost-first.
+An environment in `/home/you/projects` activates before one in
+`/home/you/projects/app`.
+The shell prompt reflects every active environment:
+
+```text
+flox [projects app] $
+```
+
+Use [`flox deactivate`](/man/flox-deactivate) to peel off layers one at a time,
+starting with the innermost (closest to your current directory).
+
+<Note>
+  Environments in directories owned by other users still require an explicit
+  allow, like any other environment.
+  Directory ownership alone neither grants nor denies auto-activation.
+</Note>
+
+## Deactivation
+
+[`flox deactivate`](/man/flox-deactivate) is the unified way to leave any
+environment, whether it was activated manually or automatically.
+It reverses the **innermost** environment: it reverts the environment variables
+that environment set, restores the shell prompt, and **suppresses** that
+environment so the hook does not re-activate it while you stay in the directory.
+
+Only the innermost environment can be deactivated.
+Running `flox deactivate` against a non-innermost environment fails with a
+helpful error — deactivate the inner layers first.
+If you leave the directory and return later, the suppression is lifted and the
+environment auto-activates again.
+
+## Comparison with manual activation
+
+Auto-activation and `flox activate` share the same core behavior — packages,
+environment variables, and hooks — but differ in a few ways:
+
+| Behavior | `flox activate` (manual) | Auto-activation |
+| --- | --- | --- |
+| **Trigger** | Explicit `flox activate` command | Automatic on `cd` into a `.flox` directory |
+| **Scope** | Activates one environment per command | Activates a whole hierarchy of nested environments at once |
+| **Gate** | None — you chose to activate | Requires the feature flag and an allowed environment |
+| **Deactivation** | `flox deactivate` or `exit` (subshell) | `flox deactivate` (all auto-activated environments are in-place activations) |
+| **Failure** | Activation aborts on failure | A failed activation aborts; other layers still activate |
+
+See [Activating environments](/concepts/activation) for how activation works in
+general, and [`flox-activate`](/man/flox-activate) for the full command
+reference.

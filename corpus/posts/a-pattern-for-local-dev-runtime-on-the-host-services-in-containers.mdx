@@ -1,0 +1,820 @@
+---
+title: 'A Pattern for Local Dev: Runtime on the Host, Services in Containers'
+altTitle: 'A Pattern for Local Dev: Runtime on the Host, Services in Containers'
+description: 'Run project runtimes on your local machine with Nix, Guix, or Flox, let containers handle PostgreSQL, Redis, and other services. Get fast, reproducible local dev that travels from laptop to CI to production ... and back again.'
+metaDescription: 'Run project runtimes on your local machine with Nix, Guix, or Flox, let containers handle PostgreSQL, Redis, and other services. Get fast, reproducible local dev that travels from laptop to CI to production ... and back again.'
+isPublished: true
+category: engineering
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 4 June 2026
+thumbnail: '/images/blog/gum-machine.webp'
+orderBy: 20260604
+---
+
+Declared, graph-backed technologies like [Nix](https://nixos.org/guides/how-nix-works/), [Flox](https://flox.dev/docs/), or [GNU Guix](https://guix.gnu.org/) give teams a way to create and share  [standardized development environments](https://flox.dev/blog/standardized-development-environments-explained/) that run directly on each engineer’s local machine, not in containers or VMs. All three technologies declare the build or runtime environment as a set of specified inputs; each resolves these inputs deterministically via a package graph that also encompasses their transitive dependencies. In this way, a declared environment makes the project runtime a **versioned artifact** that teams can share, review, reproduce, and promote.
+
+Even though Nix, Flox, and Guix are distinct alternatives to **dev containers**, many orgs prefer to pair them with the containers they use to run backing services.
+
+This pattern makes a lot of sense:
+
+-  Teams build and test locally against the same backing services a project will run against in production;
+-  The split itself enforces a clear boundary between the project runtime and backing services.
+
+This article is a deep dive on how this works.
+
+### A Proven Pattern for Local Development
+
+The pattern itself is inspired by one that Ryan Schlesinger, engineering lead with [detaso](https://detaso.com/), uses with his team. It’s a complementary scheme in which a standardized dev environment (Flox) provides the project runtime (e.g., the language toolchains, libraries, build tools, etc. that teams use to build locally) while containers run PostgreSQL, Redis, and other backing services.
+
+The article is _not_ specific to Flox, however; we also walk through equivalent patterns for Nix and Guix. All feature a Rails application backed by PostgreSQL. Flox, Nix, and Guix provide the Ruby development runtime on the host, while containers run the database and any other required services. 
+We work with Ruby, but the same pattern can be applied to any language, toolchain, or stack.
+
+
+
+### Standardized Dev Environments and Containers: The Best of Both Worlds
+
+Ryan likes this pattern because he says that pairing a declared, graph-backed environment like Flox with services running in containers gives his team the best of both models:
+
+-  The team gets a declared, reproducible project runtime that feels native;
+-  Teams run the same kinds of supporting services locally that they use in CI and production;
+-  Team leads like Ryan can version and manage both the declared runtimes and OCI images.
+
+The point is an **equitable division of labor**: teams build locally, inside host-local standardized dev environments; backing services (like databases) run in containers. Teams no longer need mount their projects into containers, configure networking, or inject env vars and secrets. They can define and run Flox-, Nix-, or Guix-defined services. They connect to containerized services via client tools and host/port settings defined in the Flox, Nix, or Guix environment.
+
+
+
+#### Prerequisites and setup
+
+This tutorial assumes that one of Flox, Nix, or Guix is already installed and configured.
+
+First, run **`git clone https://github.com/flox/traveling-ruby`**. Next, change into **`./traveling-ruby`**. You’ll find a Flox environment (defined in **`flox/env/manifest.toml`**), a Nix flake, and the two artifacts that comprise a Guix environment, **`manifest.scm`** and **`setup-env.sh`**, inside the repo.
+
+
+#### With Flox 
+
+Change into **`./traveling-ruby`** and run **`flox edit`**. This opens the manifest in your default editor.
+
+Let's first look at the **`[install]`** section:
+
+```toml
+[install]
+# Language runtime
+ruby.pkg-path = "ruby"                   # Ruby 3.4.x — the app runtime
+
+# Database client (for pg gem compilation and CLI tools like psql)
+postgresql.pkg-path = "postgresql"       # PostgreSQL client libs + psql CLI
+
+# Native library dependencies (required for gem compilation)
+libyaml.pkg-path = "libyaml"             # Required by psych gem (YAML parsing)
+
+# Build toolchain (for compiling native gem extensions)
+# On macOS, gcc from nixpkgs is a broken clang wrapper that can't find the SDK.
+# Use clang on darwin, gcc on linux.
+clang.pkg-path = "clang"                 # C compiler for macOS native extensions
+clang.systems = ["aarch64-darwin", "x86_64-darwin"]
+gcc.pkg-path = "gcc"                     # C compiler for Linux native extensions
+gcc.systems = ["aarch64-linux", "x86_64-linux"]
+gnumake.pkg-path = "gnumake"             # Make for native extension builds
+pkg-config.pkg-path = "pkg-config"       # Finds library paths for compilation
+
+# production runtime dependencies
+cacert.pkg-path = "cacert"               # CA certificates for HTTPS requests
+tzdata.pkg-path = "tzdata"               # Time zone data for local/dev parity
+
+# Developer utilities
+gum.pkg-path = "gum"                     # Styled terminal output; you'd skip this for minimal envs
+
+# Cross-platform compatibility
+coreutils.pkg-path = "coreutils"         # GNU coreutils (consistent across OS)
+gnused.pkg-path = "gnused"               # GNU sed (macOS ships BSD sed)
+```
+
+Two dozen lines of TOML define the environment's entire dependency surface. When you share this environment, either by co-locating it with your project code in a Git repository or by **`flox push`**-ing it to [FloxHub](https://flox.dev/docs/concepts/floxhub/), every developer who activates this environment gets the same Ruby, the same PostgreSQL client libraries, and the same **`libyaml`**, regardless of whether they are working on an M3 MacBook or an x86-64 Linux laptop. There's no Homebrew-managed toolchain to drift; no global installation to break things; no **`README`** that's chronically, hopelessly out of date. There's only a declarative manifest (**`manifest.toml`**) and the lockfile (**`manifest.lock`**) that pins the package versions defined in it. 
+
+The **`[hook]`** section sets the runtime config via environment variables. It defines sensible defaults:
+
+```bash
+export PSQL_HOST="${PSQL_HOST:-localhost}"
+export PSQL_PORT="${PSQL_PORT:-5432}"
+export PSQL_USER="${PSQL_USER:-postgres}"
+```
+
+To point at a different database, simply override these defaults at runtime: **`PSQL_HOST=10.0.1.5 flox activate`**. The rest of the hook (gem path setup, dependency installation, a status banner message) uses modular, idempotent functions to hydrate and bootstrap the environment.
+
+
+#### With Nix
+
+Change into **`./traveling-ruby`** and open **`flake.nix`**. This is the Nix flake that declares the development environment. The flake pins its **`nixpkgs`** input to the exact same commit that the Flox lockfile uses, so both environments resolve to the same package versions.
+
+The **`devShells`** output defines a shell for each supported platform:
+
+```nix
+nativeBuildInputs = with pkgs; [
+              pkg-config
+              gnumake
+            ] ++ (if isDarwin then [ clang ] else [ gcc ]);
+
+            # Libraries — mkShell propagates dev outputs (headers, .pc files)
+            buildInputs = with pkgs; [
+              libyaml
+              postgresql
+            ];
+
+            # Runtime support and developer/operator tools
+            packages = with pkgs; [
+              ruby
+              cacert
+              tzdata
+              gum
+              coreutils
+              gnused
+            ] ++ pkgs.lib.optionals isDarwin [ pkgs.orbstack ];
+```
+
+Nix breaks up packages into three discrete categories that the Flox manifest handles implicitly. **`nativeBuildInputs`** defines build tools: **`pkg-config`**, **`gnumake`**, and the platform-appropriate C compiler. **`buildInputs`** defines libraries the outputs of which (headers, **`.pc`** files) Nix automatically wires into **`PKG_CONFIG_PATH`** and **`CPATH`**. **`packages`** defines runtime tools that go onto **`PATH`**.
+
+The **`shellHook`** replicates the Flox **`[hook]`** and **`[profile]`** sections: it sets database connection defaults, configures the Ruby/Bundler gem paths, defines the same aliases (**`be`**, **`rs`**, **`rc`**, **`dbup`**, **`dbdown`**, **`dbreset`**), and prints the same **`gum`**-styled welcome banner:
+
+```nix
+shellHook = ''
+  export PSQL_HOST="''${PSQL_HOST:-localhost}"
+  export PSQL_PORT="''${PSQL_PORT:-5432}"
+  export PSQL_USER="''${PSQL_USER:-postgres}"
+  export PSQL_PASSWORD="''${PSQL_PASSWORD:-postgres}"
+  export PSQL_DATABASE="''${PSQL_DATABASE:-rails_poc_development}"
+  export DATABASE_URL="''${DATABASE_URL:-postgres://$PSQL_USER:$PSQL_PASSWORD@$PSQL_HOST:$PSQL_PORT/$PSQL_DATABASE}"
+
+  export BUNDLE_PATH="$PWD/vendor/bundle"
+  export BUNDLE_BIN="$PWD/bin"
+  export PATH="$PWD/bin:$PATH"
+
+  alias be="bundle exec"
+  alias rs="bundle exec rails server"
+  alias rc="bundle exec rails console"
+  alias dbup="./scripts/db-up"
+  alias dbdown="./scripts/db-down"
+  alias dbreset="./scripts/db-reset"
+'';
+```
+
+To enter the environment:
+
+```bash
+cd traveling-ruby
+nix develop
+```
+
+Nix evaluates the flake, fetches any missing packages from the [Nix binary cache](https://cache.nixos.org/), and drops you right into a dev shell with everything on **`PATH`**. To override database defaults at runtime, set them before entering the shell: **`DATABASE_HOST=10.0.1.5 nix develop`**. 
+
+The flake lockfile (**`flake.lock`**, generated automatically on first run) pins the **`nixpkgs`** revision: a Git commit. This pins the enviornment’s complete set of dependencies to a snapshot of the **`nixpkgs`** package set, so future evaluations always use the same package definitions. By committing both **`flake.nix`** and **`flake.lock`** to the repository, every engineer who runs **`nix develop`** works in the same environment with the same toolchain: today, tomorrow, next year, even five years from now.
+
+
+#### With GNU Guix
+
+Change into **`./traveling-ruby`**. The Guix environment uses two files: **`manifest.scm`**, which declares the packages, and **`setup-env.sh`**, which initializes the shell.
+
+Open **`manifest.scm`**:
+
+```scheme
+(use-modules (gnu packages)
+             (guix profiles))
+
+(packages->manifest
+ (list
+  ;; Language runtime
+  (specification->package "ruby@3.4")          ; Ruby 3.4.x - the app runtime
+
+  ;; Database client / pg build support
+  (specification->package "postgresql@16")     ; PostgreSQL client libs + psql CLI
+
+  ;; Native library dependencies
+  (specification->package "libyaml")           ; Required by psych/YAML-related native extensions
+
+  ;; Build toolchain for native gem extensions
+  ;; Guix is Linux-focused, so use gcc-toolchain here rather than a Darwin clang/gcc split.
+  (specification->package "gcc-toolchain")     ; C compiler/toolchain for native extensions
+  (specification->package "make")              ; GNU Make
+  (specification->package "pkg-config")        ; Finds library paths for compilation
+
+  ;; Runtime support / local-dev parity
+  (specification->package "nss-certs")         ; CA certificates, Guix equivalent of cacert
+  (specification->package "tzdata")            ; Time zone data
+
+  ;; Cross-platform compatibility / developer utilities
+  (specification->package "coreutils")         ; GNU coreutils
+  (specification->package "sed")))             ; GNU sed
+```
+
+Eight lines of Guile Scheme declare the same dependency surface that the Flox manifest and Nix flake cover. Guix resolves packages from its own package collection (a curated set of free software), so the versions differ slightly: this environment pulls in Ruby 3.4.7 instead of 3.4.8, and (a more significant variance) PostgreSQL 16.4 instead of 17.9. One package from the Flox manifest and Nix flake has no Guix equivalent: **`gum`** (the Charmbracelet terminal styling tool) is not packaged in Guix.
+
+The gap between PostgreSQL v16.4 and PostgreSQL v17.9 probably doesn’t matter: The Guix-provided v16.4 client (**`psql`**, **`libpq`**, headers) will talk to v17.x without issues; the PostgreSQL wire protocol is backward-compatible. So **`pg`** gem should compile and link against **`libpq`** from v16.4 just fine.
+
+The companion **`setup-env.sh`** script replicates the Flox **`[hook]`** and **`[profile]`** sections: database connection defaults, Ruby/Bundler gem paths, all six aliases, and the **`bundle()`** wrapper that auto-generates binstubs. It detects whether **`gum`** is available and falls back to plain **`echo`** for the welcome banner if it is not.
+
+```bash
+export PSQL_HOST="${PSQL_HOST:-localhost}"
+export PSQL_PORT="${PSQL_PORT:-5432}"
+export PSQL_USER="${PSQL_USER:-postgres}"
+export PSQL_PASSWORD="${PSQL_PASSWORD:-postgres}"
+export PSQL_DATABASE="${PSQL_DATABASE:-rails_poc_development}"
+export DATABASE_URL="${DATABASE_URL:-postgres://${PSQL_USER}:${PSQL_PASSWORD}@${PSQL_HOST}:${PSQL_PORT}/${PSQL_DATABASE}}"
+
+export BUNDLE_PATH="$PWD/vendor/bundle"
+export BUNDLE_BIN="$PWD/bin"
+export PATH="$PWD/bin:$PATH"
+
+alias be="bundle exec"
+alias rs="bundle exec rails server"
+alias rc="bundle exec rails console"
+alias dbup="./scripts/db-up"
+alias dbdown="./scripts/db-down"
+alias dbreset="./scripts/db-reset"
+```
+
+To enter the environment:
+
+```bash
+cd traveling-ruby
+guix shell -m manifest.scm
+source setup-env.sh
+```
+
+**Note**: On first entry, Guix may warn that your **`.bashrc`** clobbers **`PATH`**. If it does, move your **`PATH`** modifications from **`.bashrc`** to **`.bash_profile`**. (This is the best long-term fix.) You can ignore this warning if the Guix-declared packages take precedence inside the environment. Verify this with, e.g., **`which ruby`**.
+
+The **`guix shell -m manifest.scm`** command builds (or fetches from the Bordeaux substitute server) every package in the manifest and drops you into a shell with them on **`PATH`**. The **`source setup-env.sh`** command sets up any project-specific environment variables, aliases, and banner. Unlike Flox and Nix, Guix does not have a built-in shell hook mechanism in its manifest format, so the setup script is a separate step. Like the logic in Flox’s **`[hook]`** section, and the inline shell script in the Nix flake, **`setup-env.sh`** is implemented in bash.
+
+By committing both **`channels.scm`** and **`setup-env.sh`** to the repository, every engineer who clones the repo and runs **`setup-env.sh`** works in the same Guix environment with the same toolchain. One thing to note is that Guix doesn’t generate a separate lockfile; instead, its reproducibility guarantee is contingent on pinning to a specific Guix channel revision in **`channels.scm`**. Without this pin, two engineers can run the same Guix manifest and pull differing package versions, depending on when each last ran **`guix pull`**.
+
+
+
+### Why Services Get an Explicit Boundary
+
+This pattern runs backing services, like PostgreSQL, in containers. This makes sense: engineers don't need to work “inside” Postgres' runtime boundary. They aren’t debugging migrations, optimizing query plans, tuning indexes, or running tests; rather, they just need to connect to Postgres’ external interface. They access this the same way their projects do: using **`psql`**, ORMs, Ruby's **`pg`** driver, migration tools, or SQL clients like JDBC. The standardized dev environment itself declares the environment variables they need to connect to services: host, port, socket, credentials, database name, schema, etc.
+
+In this pattern, the project repo versions and manages the code along with its runtime dependencies: the language toolchain, build tools, database clients, etc. The standardized dev environment also defines the environment variables and helper aliases the project runtime uses to connect to its backing services.
+
+To power these services, teams need merely BYOCD: bring your own Compose Definition:
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    ports:
+      - "${PSQL_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${PSQL_USER:-postgres}"
+      POSTGRES_PASSWORD: "${PSQL_PASSWORD:-postgres}"
+      POSTGRES_DB: "ruby_development"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+```
+
+The same **`PSQL_*`** variables appear in the project environment’s declarative definition and in the Compose file. In Flox, these variables get declared in **`[vars]`** or **`[hook]`**; in Nix, they get declared in a **`devShell`** or **`shellHook`**; in Guix, they get declared in the command or wrapper that’s used to enter the project shell. The mechanism varies, but both the behavior and the DevX are similar.
+
+
+
+### Working inside the Declared Dev Environment
+
+Regardless of whether you use Flox, Nix, or Guix, activating the environment does the same things:
+
+* **Places the declared toolchain on `PATH`.** Ruby, the PostgreSQL client (**`psql`**), the GNU or Clang C compiler, **`make`**, **`pkg-config`**, and all other dependencies all resolve to the environment's declared package set, not to their equivalents on the host machine. Every engineer gets the same tools.
+
+* **Configures the Ruby/Bundler gem paths.** **`GEM_HOME`**, **`BUNDLE_PATH`**, and **`BUNDLE_BIN`** point to a project-local cache directory so gems install in isolation. This avoids **`sudo gem install`**, prevents collisions with system Ruby (if installed), and doesn’t pollute **`~/.gems`**.
+
+* **Sets database connection defaults.** **`DATABASE_HOST`**, **`DATABASE_PORT`**, **`DATABASE_USER`**, and **`DATABASE_PASSWORD`** get sensible defaults that match the Compose file: **`localhost`**, **`5432`**, etc. Engineers can also override any of these at activation.
+
+* **Prints a status banner.** This consists of an at-a-glance summary of the Ruby version, database coordinates, and available scripts confirms that the environment is active and correctly configured.
+
+All three environments also **register aliases and helper functions** for common tasks:
+
+```markdown
+   | Alias | Expands to |
+   |---|---|
+   | `be` | `bundle exec` |
+   | `rs` | `bundle exec rails server -b 0.0.0.0` |
+   | `rc` | `bundle exec rails console` |
+   | `dbup` | `scripts/db-up` — starts the PostgreSQL Docker container and waits for it to accept connections |
+   | `dbdown` | `scripts/db-down` — stops the container, preserving data in the `pgdata` volume |
+   | `dbreset` | `scripts/db-reset` — destroys the volume, recreates the container, runs migrations, and seeds |
+```
+
+A **`bundle`** wrapper function auto-generates binstubs after successful **`bundle install`** runs.
+
+In this deep dive, each environment defines helper aliases that engineers run manually to start local services, but it’s just as practicable to automate these actions as part of a built-in activation hook. With a bit of shell logic, the environment as a whole could be made completely turnkey: no assembly required.
+
+The following section walks through how to work inside the Flox, Nix, and Guix environments. Because all three environments surface the same behavior and convenience wrappers, the instructions are the same.
+
+
+#### Working inside Flox / Nix / Guix Standardized Dev Environments
+
+Once inside the shell, start the application:
+
+```bash
+dbup                        # start PostgreSQL in Docker
+bundle install              # install gems (first time only)
+bundle exec rails db:setup  # create and seed the database (first time)
+dev                         # start the Rails server
+```
+
+To override database defaults at runtime, set them before activating or entering the environment.
+
+The same shortcut aliases are available: **`rs`**, **`rc`**, **`dev`**, **`tests`**, **`build-image`**, **`dbup`**, **`dbdown`**, **`dbreset`**, and the **`bundle`** wrapper that auto-generates binstubs.
+
+With the server running, verify the health endpoint and exercise the API:
+
+```bash
+curl http://localhost:3000/health
+# => {"status":"ok","database":"connected"}
+
+curl http://localhost:3000/items
+# => [{"id":1,"name":"Example Item","description":"Created by db:seed ..."}]
+
+curl -X POST http://localhost:3000/items \
+  -H "Content-Type: application/json" \
+  -d '{"item": {"name": "demo", "description": "created from the shell"}}'
+# => {"id":2,"name":"demo","description":"created from the shell", ...}
+```
+
+Run the test suite (the script prepares the test database automatically):
+
+```bash
+tests                                 # full suite
+tests test/controllers/items_controller_test.rb:15  # single test by line
+```
+
+Use **`psql`** to connect to the containerized database directly — the PostgreSQL client is part of the declared environment, not something installed separately:
+
+```bash
+psql -h localhost -U postgres -d traveling_rails_poc_development -c '\dt'
+```
+
+Open a Rails console to inspect data interactively:
+
+```bash
+rc
+# >> Item.count
+# => 1
+# >> Item.create(name: "second", description: "from the console")
+```
+
+Audit gems for known vulnerabilities:
+
+```bash
+bundle exec bundler-audit check
+```
+
+Generate a new model and run the resulting migration:
+
+**Note:** The generate and migrate steps create files on disk and a table in the shared database. If you already ran them in one walkthrough and want to try them again from another environment, clean up first:
+
+```bash
+rm app/models/review.rb db/migrate/*_create_reviews.rb test/models/review_test.rb test/fixtures/reviews.yml
+bundle exec rails db:rollback
+```
+
+Then do:
+
+```bash
+bundle exec rails generate model Review item:references body:text
+bundle exec rails db:migrate
+```
+
+Check the existing routes:
+
+```bash
+bundle exec rails routes
+```
+
+When you are done, stop the server with **Ctrl-C** and tear down the database container:
+
+```bash
+dbdown
+```
+
+
+
+### Standardized Dev Environments Travel to CI
+
+The irony of the dev container model is that even though the OCI container image is the default intermodal unit for shipping and running software, the dev container image usually _isn’t_ the object that transits the SDLC. True, sometimes teams pass along the Dockerfile/**`devcontainer.json`** config and rebuild this image at different stages. But this isn’t the most common pattern. More often than not, project source code advances, while CI and release pipelines build or run separate test and production images.
+
+With dev containers, then, what travels to CI is usually the source repository plus the CI definition. From there, CI produces either (a) a build artifact, (b) a package with release metadata, or (c) a production OCI image based on the source, build instructions, dependency graph, release config, etc. In most cases, Git is the system of record for source and config; artifact and/or image registries manage the built outputs.
+
+Standardized dev environments drop right into this workflow. Teams version, review, share, and promote code via the source repository and version control (usually Git). But remember, too, that a standardized dev environment travels with its project as part of the repo. Flox environments live in **`./flox`**; Nix shells define **`flake.nix`** and **`flake.lock`**; Guix shells **`manifest.scm`** and **`setup_env.sh`**. So in this pattern, the dependency graph required to build, test, run, or operate project code moves along with it. 
+
+
+#### Flox environments in CI
+
+The Flox manifest is the source of truth for the project’s runtime, so CI consumes it as-is rather than duplicating this runtime in a YAML workflow. The GitHub Actions workflow shows how this works:
+
+```yaml
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      RAILS_ENV: test
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flox
+        uses: flox/install-flox-action@v2
+
+      - name: Install dependencies via Flox
+        uses: flox/activate-action@v1
+        with:
+          command: bundle install
+
+      - name: Setup database
+        uses: flox/activate-action@v1
+        with:
+          command: bundle exec rails db:create db:migrate
+
+      - name: Run tests
+        uses: flox/activate-action@v1
+        with:
+          command: bundle exec rails test
+```
+
+There's no **`ruby-setup`** action, no version matrix, and no **`.tool-versions`** file to keep synced. The Flox manifest pins the Ruby version, and **`flox activate`** pulls in Ruby plus all other dependencies. PostgreSQL runs as a GitHub Actions service container. This mirrors the bicameral structure in local dev.
+
+
+#### Nix flakes in CI
+
+The pattern works exactly the same with Nix. Instead of recreating the Ruby toolchain via a language-specific setup action, CI enters the Nix dev shell and runs the same commands engineers run locally.
+
+```yaml
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      RAILS_ENV: test
+      PSQL_HOST: localhost
+      PSQL_PORT: 5432
+      PSQL_USER: postgres
+      PSQL_PASSWORD: postgres
+      PSQL_DATABASE: rails_poc_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v17
+
+      - name: Restore and populate Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v9
+
+      - name: Install dependencies
+        run: nix develop --command bundle install
+
+      - name: Setup database
+        run: nix develop --command bundle exec rails db:prepare
+
+      - name: Run tests
+        run: nix develop --command bundle exec rails test
+```
+
+#### Guix shells in CI
+
+Guix supports the same workflow: the project-specific shell setup lives in **`setup-env.sh`**, so CI activates this to enter the Guix shell, source the setup script, and run the project commands.
+
+```yaml
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      RAILS_ENV: test
+      PSQL_HOST: localhost
+      PSQL_PORT: 5432
+      PSQL_USER: postgres
+      PSQL_PASSWORD: postgres
+      PSQL_DATABASE: rails_poc_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Guix
+        uses: PromyLOPh/guix-install-action@v1
+
+      - name: Install dependencies
+        run: |
+          guix shell -m manifest.scm -- bash -lc '
+            source ./setup-env.sh
+            bundle install
+          '
+
+      - name: Setup database
+        run: |
+          guix shell -m manifest.scm -- bash -lc '
+            source ./setup-env.sh
+            bundle exec rails db:prepare
+          '
+
+      - name: Run tests
+        run: |
+          guix shell -m manifest.scm -- bash -lc '
+            source ./setup-env.sh
+            bundle exec rails test
+          '
+```
+
+
+### From Dev Environment to Production Artifacts
+
+Flox, Nix, and Guix make it possible for teams to deploy to production with the same environment they use to build and test locally and in CI. This section walks through how this works with each technology.
+
+
+#### Deploying with Flox
+
+Flox provides explicit development (**`--mode dev`**) and runtime (**`--mode run`**) [activation modes]((https://flox.dev/docs/concepts/activation#development-vs-runtime-mode)); supports reproducible builds that either reuse a team’s existing recipes or run as Nix expressions; and emits distroless OCI images via the **`flox containerize`** command. Flox officially supports an “[imageless](https://flox.dev/blog/kubernetes-uncontained-explained-unlocking-faster-more-reproducible-deployments-on-k8s/)” deployment pattern to Kubernetes. Teams deploy their pods by referencing versioned, declarative Flox environments instead of building and pulling OCI container images. Kubernetes still runs the same Pod specs, RuntimeClass, CRI, and containerd workflow.
+
+Flox environments activate in **`run`** mode by default in the imageless Kubernetes pattern, so a Flox standardized dev environment running on K8s ipso facto becomes a Flox **runtime** environment.  
+
+For conventional deployments, teams can package the Flox CLI into OCI images for Kubernetes, or bake the CLI into AMIs / other VM images for deploying on VM infrastructure. The container entrypoint or VM init service activates the Flox environment in **`run`** mode at startup (e.g., **`flox activate --mode run`**), so dependencies from the Flox environment are used to serve the production workload. Runners pull Flox environments dynamically at runtime either by cloning them from Git repos or pulling them from FloxHub. In this last pattern, the workload spec need only reference an environment and a generation, like so:
+
+```bash
+flox activate -r foo-industries/o11y-listener -g <generation_number>
+```
+
+Teams can also use their declarative Flox environments as a base for generating distroless containers
+
+```bash
+flox containerize --runtime docker
+```
+
+This produces a distroless OCI-compliant container image: it doesn’t ship with a base image, just the packages declared in the Flox environment. The same pattern works with FloxHub environments too:
+
+```bash
+flox containerize -r foo-industries/o11y-listener --runtime docker
+```
+
+In production, orgs usually avoid rebuilding custom packages at runtime. So while building and running from the same Flox standardized dev environment is an option, most teams use CI or a build farm to package and publish custom software to their organization’s private Flox Catalog, or to a private Nix binary cache. (Flox is built on Nix, so orgs can and do maintain their own private Nix binary caches, defining them as [Nix substituters](https://nix.dev/guides/recipes/add-binary-cache.html).) Runners can pull from these sources and materialize the hashed paths into a node-local **`/nix/store`** at deployment.
+
+The custom package that powers the hypothetical **`o11y-listener`** environment can be defined along with others:
+
+```toml
+[install]
+o11y-listener.pkg-path = "foo-industries/o11y-listener"
+o11y-listener.pkg-group = "o11y-listener"
+cacert.pkg-path = "cacert"
+tzdata.pkg-path = "tzdata"
+curl.pkg-path = "curl"
+jq.pkg-path = "jq"
+```
+
+This gives orgs a reproducible path to deployment. The runner or node pulls the required Nix archive (**`.nar`**) files from the the organization’s private Flox Catalog or binary cache, realizes them in its local Nix store, and starts from an immutable store path that links to the declared Nix packages. Rollbacks are atomic switches back to a previous environment store path, Git commit, or FloxHub generation.
+
+
+#### Deploying with Nix
+
+With Nix, too, the same standardized development environment can travel from local dev → to CI → to production. The Nix flake already defines the dependencies the compiled project needs to run and behave reproducibly in the production context. The beauty of Nix is that the same flake that defines a **`devShell`** for local and CI work can also be used to build production-ready **packages**, as well as emit production-ready OCI images. In this pattern, teams reuse the same pinned inputs and package definitions across development, CI, and production, but expose a small runtime closure for deployment.
+
+In production, teams usually avoid rebuilding custom packages at runtime. Instead, CI builds the Nix runtime closure, signs it, and publishes the resultant store paths to the org’s private [binary cache](https://nixos.wiki/wiki/Binary_Cache). Production nodes, CI runners, or deployment agents pull packages from that cache, treating it as a [Nix trusted substituter](https://search.nixos.org/options?channel=unstable&query=nix.settings.substituters#show=option%253Anix.settings.trusted-substituters) and materializing the required paths into a local **`/nix/store`** at deployment.
+
+```
+nix build \
+  --substituters https://cache.example.com \
+  --trusted-public-keys cache.example.com:<public-key> \
+  .#o11y-listener
+```
+
+This gives teams a reproducible deployment path. The runner or node pulls the already-built closure from the local Nix store or fetches **`.nar`** files from the org’s private binary cache. The runtime itself starts from an immutable store path that links to the declared packages. The pattern is completely declarative, so upgrades and rollbacks are atomic switches to or from a new/previous store path or Git commit.
+
+Nix can also produce production artifacts for both container and VM-based deployments. For Kubernetes, teams commonly use **`dockerTools.buildImage`** or **`dockerTools.buildLayeredImage`** from **`nixpkgs`** to build OCI/Docker images from Nix flakes or expressions. The resultant image is distroless, consisting of the service binaries and/or libraries, along with their complete runtime closure, rather than a base image with non-workload-specific dependencies. **`nixpkgs`**’s Docker image builders can notionally produce reproducible image outputs by defaulting to a static creation date, so the image artifact is always a function of its declared inputs. A minimal image definition might look like this:
+
+```nix
+{
+  description = "Nix-built production container image";
+
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+
+  outputs = { self, nixpkgs, ... }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
+
+      o11y-listener = pkgs.callPackage ./package.nix { };
+
+      passwd = pkgs.dockerTools.fakeNss.override {
+        extraPasswdLines = [
+          "o11y-listener:x:10001:10001:o11y-listener:/var/empty:/bin/sh"
+        ];
+        extraGroupLines = [
+          "o11y-listener:x:10001:"
+        ];
+      };
+    in
+    {
+      packages.${system}.container = pkgs.dockerTools.buildLayeredImage {
+        name = "o11y-listener";
+        tag = "latest";
+
+        contents = [
+          o11y-listener
+          pkgs.dockerTools.caCertificates
+          passwd
+
+          # Optional: add only if you need interactive shell access.
+          # pkgs.dockerTools.binSh
+        ];
+
+        config = {
+          User = "10001:10001";
+
+          Cmd = [ "${o11y-listener}/bin/o11y-listener" ];
+
+          Env = [
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          ];
+
+          ExposedPorts = {
+            "8080/tcp" = { };
+          };
+        };
+      };
+
+      packages.${system}.default = self.packages.${system}.container;
+    };
+}
+```
+
+
+#### Deploying with Guix
+
+Guix provides comparable primitives via manifests, channels, profiles, isolated builds, and **[guix pack](https://guix.gnu.org/manual/1.5.0/en/html_node/Invoking-guix-pack.html)**, which can emit “shrink-wrapped packs” consisting of relocatable tar archives, Docker images, **[SquashFS](https://docs.kernel.org/filesystems/squashfs.html)** images, or other packaged archives.
+
+Guix does not provide a direct equivalent to FloxHub, Flox generations, or Flox’s imageless Kubernetes runtime pattern. Its production model is closer to upstream Nix: teams pin channels, define package manifests or system configurations, build packages and system artifacts reproducibly, and publish the resulting store items to a substitute server or artifact registry.
+
+For production, teams often define a smaller runtime manifest alongside the dev manifest. Both manifests resolve against the same pinned Guix channel state, so local dev, CI, and production define the same packages and source graph, while production materializes the closure needed to run the workload:
+
+```scheme
+;; runtime-manifest.scm
+(specifications->manifest
+  (list "o11y-listener"
+        "openssl"))
+```
+
+CI then builds the runtime closure from the pinned Guix channel state:
+
+```bash
+guix build -m runtime-manifest.scm
+```
+
+For repeatable use, teams commit a Guix channel file and use **`guix time-machine`** to run builds against a fixed Guix revision:
+
+```bash
+guix time-machine -C channels.scm -- build -m runtime-manifest.scm
+```
+
+As with Nix, orgs do not typically rebuild custom packages at runtime; instead, CI or a build farm builds the runtime closure and publishes to a private binary cache with **`guix publish`**. Nodes, runners, or deployment agents configure Guix to trust the private cache as a Guix substituter server and materialize the required store items into the local **`/gnu/store`** at deploy time:
+
+```bash
+guix build \
+  --substitute-urls='https://ci.guix.gnu.org https://cache.example.com' \
+  -m runtime-manifest.scm
+```
+
+For Kubernetes and other container platforms, Guix can package a manifest as an OCI image. You use **`guix pack`** to produce a Docker-compatible image archive based on the Guix runtime manifest. For reproducible CI builds, run **`guix pack`** with **`guix time-machine`** with a tracked **`channels.scm`**:
+
+```bash
+rm -f result
+
+guix time-machine -C channels.scm -- \
+  pack \
+    -f docker \
+    -m runtime-manifest.scm \
+    --entry-point=bin/o11y-listener \
+    --image-tag=o11y-listener:latest \
+    --save-provenance \
+    -r result
+```
+
+This creates a **`result`** symlink pointing to the image archive in the Guix store. The **`--save-provenance`** switch makes it easier to inspect which Guix channels were used to produce the image.
+
+Next, load the image into the local container runtime:
+
+```bash
+docker load < result
+## optional smoke test
+docker run --rm \ 
+  --user 10001:10001 \
+  -e SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
+  -p 8080:8080 \
+  --memory 256m \
+  --cpus 1 \
+  o11y-listener:latest
+```
+
+For production, you configure runtime settings in the deployment layer, be it Kubernetes, Nomad, Docker Compose, systemd, etc. This yields a clean separation of concerns: The Guix **`manifest.scm`** declares the software contents of the image; the deployment config declares how the container runs.
+
+Tag and push the image via your registry workflow:
+
+```bash
+: "${GIT_SHA:?GIT_SHA must be set}"
+
+docker tag \
+  o11y-listener:latest \
+  "registry.example.com/o11y-listener:${GIT_SHA}"
+
+docker push \
+  "registry.example.com/o11y-listener:${GIT_SHA}"
+```
+
+Guix can also produce relocatable tarballs for hosts where teams want to distribute a runtime without installing the full profile into a conventional system location:
+
+```bash
+guix pack \
+  --relocatable \
+  -m runtime-manifest.scm
+```
+
+In these patterns, Guix acts as the reproducible build and packaging substrate: pinning package sources through channels; building packages and runtime closures in isolated environments; publishing substitutes for production hosts; and emitting container images, relocatable packs, or whole-system VM images.
+
+
+
+
+### Concluding Unscientific Postscript
+
+This article doesn’t present an unbiased overview of standardized development environments in action.
+
+Its opinionated point of departure is that working in a **declared, graph-backed** standardized dev environment like Nix, Guix, or Flox is the best, fastest, most reliable way to develop locally. Unlike dev containers or dev cloud shells, this gives teams a reproducible project runtime without walling off engineers from their local machines. 
+
+But this article isn’t at all anti-container! It asserts the strong opinion that a pattern pairing Nix, Guix, or Flox with backing services running in containers gives orgs the best of both worlds in local dev and beyond
+
+Dev and platform teams get a clear separation of concerns. The declared, graph-backed environment pins the language runtime, native libraries, build tools, and shell behavior as part of the project repo, so engineers can build, test, debug, and operate locally using the same inputs across machines and over time. Containers, meanwhile, run the backing services the project depends on: PostgreSQL, Redis, and any other services used in CI and production. Unlike with dev containers, engineers don’t work _inside_ the container boundary; they connect using the host, port, credential, and database settings their project uses. 
+
+This pattern _travels_, too: from local laptop → CI → production packaging, the runtime’s dependency graph advancing alongside project code. The upshot is that the same declared, graph-backed inputs which make local development fast and repeatable also give teams a secure, reproducible path to testing, packaging, and deployment, with simple, atomic upgrades / rollbacks for good measure.

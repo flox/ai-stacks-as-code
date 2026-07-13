@@ -1,0 +1,121 @@
+---
+title: 'Turbocharge Your Productivity with Crispy Doom and Flox'
+altTitle: 'Turbocharge Your Productivity with Crispy Doom and Flox'
+description: 'Just in time for Halloween: Get a prebuilt Flox environment that runs anywhere for playing the shareware version of Doom. Or any of the Doom add-ons available in the Flox Catalog. Or any old-school DOS-based game!'
+metaDescription: 'Just in time for Halloween: Get a prebuilt Flox environment that runs anywhere for playing the shareware version of Doom. Or any of the Doom add-ons available in the Flox Catalog. Or any old-school DOS-based game!'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: crispy-doom
+author: Ross Turk and Steve Swoyer
+publishedDate: 31 October 2024
+thumbnail: '/images/blog/minotaur-means-business.webp'
+orderBy: 20241031
+---
+
+The stygian stench of sulfur scorches your sinuses, its mephitic fumes setting fire to your lungs, inflaming their sensitive alveolar fibers. Your stillsuit’s filtration system is FUBAR, you’re low on ammo, and you ate the last Snickers bar you had in your healthpack. Guess what? It didn’t satisfy you. But how could it?
+
+It feels like you’re in hell, even though you’re supposed to be on one of the moons of Mars.
+
+Spoiler alert: you’re in _[Doom](https://en.wikipedia.org/wiki/Doom_(1993*video_game))*, the classic first-person shooter (FPS) video game. To be pedantic, you’re inside a _Flox environment_, and you're playing the shareware version of [id Software's](https://www.idsoftware.com/en) _Doom_ on your M3 MacBook, courtesy of [Crispy Doom](https://github.com/fabiangreffrath/crispy-doom), an improved fork of [Chocolate Doom](https://github.com/chocolate-doom/chocolate-doom) that's completely compatible with classic _Doom_'s files and demos.
+
+How did you end up here? Because this package guide is a sweet deal.
+
+You get a prebuilt Flox environment that runs anywhere for playing the shareware version of _Doom_. Or any of the _Doom_ add-ons available in the Flox Catalog. Or any old-school DOS-based game, for that matter. (Anybody remember _[Duke Nukem 3D](https://en.wikipedia.org/wiki/Duke_Nukem_3D)_?) After all, there are more than 120,000 packages in Flox Catalog, not all of them strictly (for) business. Because sometimes you gotta load up the [BFG 9000](<https://en.wikipedia.org/wiki/BFG_(weapon)>) [and let loose on monsters or zombies](https://youtu.be/SLqoJwJ-KX0)—and we aren’t talking about [zombie processes](https://en.wikipedia.org/wiki/Zombie_process).
+
+Intrigued? Read on to find out about how to pla—er, _learn from_ this package guide for _Doom!_
+
+![](/images/blog/welcome-to-youre-doom.webp)
+
+## Getting _Doom_
+
+This article assumes you've already installed Flox. If you haven’t, you can easily [download](https://flox.dev/docs/install-flox/) it and play along at home. We’ll pause for a moment to give you a chance to do so. (Drums fingers on keyboard.)
+
+Ready?
+
+OK. Once Flox is installed, you can transparently pull and activate a pre-built environment from FloxHub that includes not just _Doom_, but all the packages you need to run it. Just type the following command:
+
+```
+flox activate -r flox/crispy-doom
+```
+
+This activates the FloxHub environment `crispy-doom`, which is cached locally, and puts you in a subshell. When you type exit to quit (or press CTRL + D), the session ends (but the cache remains for next time).
+
+If you prefer to work in a persistent local environment, Flox makes this a snap, too:
+
+```
+cd ~/dev && mkdir doom && cd doom && flox pull –copy flox/crispydoom
+✨ Created path environment from flox/crispy-doom.
+
+You can activate this environment with 'flox activate'
+```
+
+## Using _Doom_
+
+To use the _Doom_ productivity utility built into the `crispy-doom` Flox environment, just type `flox activate`.
+
+This puts you into a typical Flox subshell and surfaces some helpful hints you can use to get started:
+
+```
+✅ You are now using the environment 'crispy-doom'.
+To stop using this environment, type 'exit'
+
+
+     ╔════════════════════════════════════════════╗
+     ║                                            ║
+     ║    Edit the environment to switch game     ║
+     ║    libraries inside the [vars] section:    ║
+     ║    👉 flox edit                            ║
+     ║                                            ║
+     ║    Start a nice game of Doom:              ║
+     ║    👉 runcrispy                            ║
+     ║                                            ║
+     ╚════════════════════════════════════════════╝
+
+flox [crispy-doom] daedalus@askesis:~/dev/crispy-doom/crispy-doom$ runcrispy
+```
+
+Typing `runcrispy` and pressing `ENTER` treats (some of us) to a quite familiar splash screen:
+
+![](/images/blog/doom-0.webp)
+
+Amazingly, not only is the Flox `crispy-doom` environment fully functional—with graphics, sound, keyboard, and mouse controls—on macOS and Linux, but on Windows systems with WSL2, too! Credit Flox, to be sure, but also credit the Crispy Doom project. Incredible work!
+
+Except for the screenshot below, all the rest of the screencaps in this article were created (usually during important Flox meetings, whilst one of us was totally paying attention and not at all phoning-in their presence) using an Ubuntu WSL2 instance on Windows 11. With sound effects turned up to 11.
+
+Believe it or not, playing _Doom_ for work is ... hard work! At first, we spent a stupendous amount of time looking for this guy ...
+
+![](/images/blog/cyber-demon.webp)
+
+... while dusting-off old cheat codes like `idspispopd`, `iddqd`, and `idkfa` in the process.
+
+Try as we might, we couldn’t find the [Cyberdemon](https://doomwiki.org/wiki/Cyberdemon) on our own, so finally we gave up and just typed `idclev<number>`, which is the cheat code you use to skip levels. That’s when we figured out ... the Cyberdemon _isn’t in_ the shareware version. So we recalibrated our strategy, opting to focus on speed-running _Doom_ levels. Totally and completely without cheating, of course!
+
+![](/images/blog/doom-2.webp)
+
+## Advanced Usage
+
+Ross Turk, who designed this environment, built some optional IWAD (i.e., “Internal WAD) files into it. You can enable these by typing `flox edit`, which puts you into Flox’s built-in editor.
+
+You use this editor to make changes to a Flox environment. (Alternately, you can navigate to `.flox/env/manifest.toml` and open that file in your preferred editor. The [manifest.toml](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/) file is always found in this path. It’s the declarative configuration artifact for every Flox environment.)
+
+To enable the optional IWAD files, just uncomment them under the `# Freedoom` section as shown below. **Important Safety Tip**: Also make sure you **comment** the entries under `# Original Doom shareware`.
+
+```
+[vars]
+# Freedoom
+doom_url = "https://github.com/freedoom/freedoom/releases/download/v0.13.0/freedoom-0.13.0.zip"
+doom_iwad = "freedoom-0.13.0/freedoom1.wad"
+
+# Original Doom shareware
+#doom_url = "http://www.doomworld.com/3ddownloads/ports/shareware_doom_iwad.zip"
+#doom_iwad = "DOOM1.WAD"
+```
+
+If there’s a custom _Doom_ version you want to use in a software project and/or strictly for productivity purposes, you can add it here. With a little Web searching you might could turn-up a complete version of _Doom_, including the expanded _The Ultimate Doom_, which packs three extra levels and spookier music.
+
+You _won’t_ find these commercial packages in the Flox Catalog. You will, however, find other open source versions of _Doom_, along with multiple versions of _[Quake](https://en.wikipedia.org/wiki/Quake_(video*game))*, _Duke Nukem 3D_, _[Wolfenstein 3D](https://en.wikipedia.org/wiki/Wolfenstein_3D)_, _[Rise of the Triad](https://en.wikipedia.org/wiki/Rise_of_the_Triad)_, and other games that have been released as shareware, or whose engines have been made open source. There’s even a reverse-engineered version of the cult-game _[Carmageddon](https://en.wikipedia.org/wiki/Carmageddon)_, aptly named `dethrace`, punning on Paul Bartel’s 1975 cult-classic film _Death Race 2000_.
+
+So this has been this week’s featured package guide.
+
+Happy FPS-ing!

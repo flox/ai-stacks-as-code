@@ -1,0 +1,173 @@
+---
+title: 'Supercharge Your Shell with OpenAI + Flox'
+altTitle: 'Supercharge Your Shell with OpenAI + Flox'
+description: "Adding the power of ChatGPT to your shell can make you more efficient, and it's easy with a FloxHub environment."
+metaDescription: "Adding the power of ChatGPT to your shell can make you more efficient, and it's easy with a FloxHub  environment."
+isPublished: true
+isPopularPackage: true
+packageCategory: ai-ml
+packageName: openai-cli
+author: Ross Turk
+publishedDate: 07 May 2024
+thumbnail: '/images/blog/magic-box.webp'
+orderBy: 20240509
+---
+
+Your shell is already a powerful place.
+
+Using a combination of small utilities and basic syntax, you can accomplish almost anything. Your shell profile is infinitely customizable, and can be molded to fit your exact workflow. The tools you use can be configured in tons of ways; you have configured yours meticulously.
+
+You love your shell. So do we. But sometimes - _just sometimes_ - we need answers that can't be found with `grep`. We need [more input](https://www.youtube.com/watch?v=WnTKllDbu5o).
+
+Fortunately, Flox makes it easy to discover new tools and integrate them into the way you work. Using the [Flox OpenAI environment](https://hub.flox.dev/flox/openai), you can easily supercharge your shell with the ability to call upon [OpenAI](https://openai.com) services. It puts the power of ChatGPT at your fingertips, giving you a few fantastic ways to use it.
+
+## Activating the environment
+
+First, you will need an OpenAI API key. You can create one on the [API Keys page](https://platform.openai.com/api-keys).
+
+Once you have one, you can activate the OpenAI environment on FloxHub using `flox activate` and passing it the `--remote` flag along with the location of the environment on FloxHub. In this case, that location is `flox/openai`:
+
+```
+~ % flox activate --remote flox/openai
+✅ You are now using the environment 'flox/openai' (remote).
+To stop using this environment, type 'exit'
+
+OpenAI key not detected.
+
+Would you like to provide one now?
+
+           *Yes*        No
+```
+
+The first time you activate the environment, this might take a bit of time. After the environment is ready, it will check to see if `OPENAI_API_KEY` is set. If a key can not be found, it will ask you to provide one. If you do, it will store it inside `~/.config/openai.key` for future use. You won't have to provide a key again, and subsequent activations should be instant.
+
+If everything is set up correctly, you will see:
+
+```
+🤖 OpenAI configured with provided key
+flox [flox/openai (remote)] ~ %
+```
+
+You will now be inside a Flox environment containing the following:
+
+- [`openai`](https://github.com/openai/openai-python): the official Python library for OpenAI
+- [`chatgpt-cli`](https://github.com/marcolardera/chatgpt-cli): a chat-style terminal interface for ChatGPT
+- [`mods`](https://github.com/charmbracelet/mods): a delightful ChatGPT interface made for pipes and redirects
+- [`llm`](https://github.com/simonw/llm): a CLI and Python library for interacting with LLMs
+
+This is the quickest way to get your hands on this collection of tools, and far easier than following the [installation instructions](https://platform.openai.com/docs/quickstart/step-1-setting-up-python) for just one piece, the Python library.
+
+## Using GPT to find answers
+
+Sometimes you need a bit of help coming up with the right strategy for accomplishing a task in your shell. Search engines are okay for this, but chat is **even better**.
+
+For example, I often find myself needing to work with a CSV file on the command line. Perhaps I want to see how many times each of the values in a single column occurs throughout a file. This is a simple operation, and it can be done in a few dozen ways...but I don't necessarily have the exact command sequence memorized.
+
+For moments like these, it would be nice if we could phone a friend. The `chatgpt` tool included in this environment does exactly that by allowing you to enter an interactive chat session:
+
+![](/images/blog/chatgpt-session.webp)
+
+This is ideal for situations where you are likely to have a follow-up question and need to maintain context. In this case, we were able to ask ChatGPT to amend its previous answer with a new requirement - to add an additional sorting of the results.
+
+This can be really helpful. But there are times when a breadcrumb is not enough; you want ChatGPT to **work directly with your data**.
+
+The `mods` tool included with this environment can allow you to do exactly that: pipe data into ChatGPT alongside your text prompt. This can be used to make it do _actual work_, like reviewing the CSV and analyzing its contents on a deeper level.
+
+```
+flox [flox/openai (remote)] ~ % cat friends.csv | mods \
+  "how many friends do I have in the technology profession?"
+
+  The friends you have in the technology-related profession are:
+
+  1. Shelby Terrell - Games developer
+  2. Isaiah Downs - Engineer, Site
+  3. Janice Rhodes - Drilling engineer
+  4. Alfred Mcneil - Systems analyst
+  5. Mikaela Nelson - IT sales professional
+
+  So, you have 5 friends in the technology profession.
+
+Conversation saved:  fb56046  how many friends do I have in the technology profession?
+flox [flox/openai (remote)] ~ %
+```
+
+Depending on what you're trying to learn (and how accurate it needs to be) this might help you skip all this cutting and sorting malarkey and arrive directly at your conclusion. Take a look at the [examples page](https://github.com/charmbracelet/mods/blob/main/examples.md) for `mods` to learn about the other amazing things it can do.
+
+Both of these tools are included in this FloxHub environment, and are available to use immediately after you activate it.
+
+## How does this environment work?
+
+The manifest for `flox/openai` is straightforward enough that most users can read and understand it. To prove it, I decided to write this section with ChatGPT using `mods`:
+
+```
+flox [flox/openai (remote)] ~ % flox list -c -r flox/openai | mods \
+   "write a blog post describing this Flox environment manifest"
+```
+
+By inspecting the manifest at hand, we first notice the `install` section. This section lists the packages required for this project, specifying their paths. For this manifest, the packages required include `openai`, `llm`, `gum`, `chatgpt-cli`, and `mods`.
+
+```
+[install]
+openai.pkg-path  = "openai"
+llm.pkg-path     = "llm"
+gum.pkg-path     = "gum"
+chatgpt-cli.pkg-path = "chatgpt-cli"
+mods.pkg-path = "mods"
+```
+
+Next up, we have the `profile` section. Here, we can see a comprehensive setup for the OpenAI API key. The OpenAI API key enables interaction with OpenAI model interfaces. The script first tries to read the API key from the environment variable $OPENAI_API_KEY. If that's not set, it tries accessing the key stored in a file located at `~/.config/openai.key`. If it can't locate it there either, the script provides an opportunity for the user to input their OpenAI API key.
+
+```
+[profile]
+common = """
+  # First, check if $OPENAI_API_KEY is set
+  if [[ "${OPENAI_API_KEY}" ]]; then
+    echo "🤖 OpenAI configured with key from existing environment"
+    return 0
+  fi
+
+  # Then, check to see if the dotfile exists
+  if [[ -f ~/.config/openai.key ]]; then
+    export OPENAI_API_KEY=$(cat ~/.config/openai.key)
+    echo "🤖 OpenAI configured with key from ~/.config/openai.key"
+    return 0
+  fi
+
+  # We got nothing! Let's ask.
+  echo "OpenAI key not detected."
+
+  if gum confirm "Would you like to provide one now?" --default=true --affirmative "Yes" --negative "No"; then
+    OPENAI_API_KEY=$(gum input --placeholder "OpenAI API key")
+    export OPENAI_API_KEY
+    if gum confirm "Write this into ~/.config/openai.key for next time?" --default=true --affirmative "Yes" --negative "No"; then
+      mkdir -p ~/.config/
+      echo "$OPENAI_API_KEY" > ~/.config/openai.key
+      chmod 600 ~/.config/openai.key
+    fi
+    echo "🤖 OpenAI configured with provided key"
+    return 0
+  fi
+
+  echo "An OpenAI key is required. You can provide one by setting OPENAI_API_KEY."
+  echo; echo "🚨 OpenAI client is available (no key)"
+"""
+```
+
+Should the user not provide the key, they shall be prompted that the OpenAI API is still accessible but without a key. It's important to note that the API key is essential to make use of OpenAI capabilities.
+
+Lastly, we have the `options` section. This specifies the compatible systems for the manifest and, by extension, this Flox environment – in this instance, systems running either 'aarch64-darwin' or 'x86_64-linux'.
+
+```
+[options]
+systems = ["aarch64-darwin", "x86_64-linux"]
+```
+
+This manifest provides invaluable insights into Flox's utility as an efficient project dependency installer and manager, its flexibility, and its ability to ensure a seamless development process across different systems.
+
+And there we have it, a comprehensive guide on how to interpret this Flox environment manifest. We hope that this post was able to demystify any obstacles you may have encountered when trying to comprehend a Flox manifest file.
+
+## Give it a try!
+
+Flox is super easy to [download](https://flox.dev/docs/install-flox/) and use. You can use it to create environments that select from over 80,000 packages and do just about anything.
+
+What will you use it for?

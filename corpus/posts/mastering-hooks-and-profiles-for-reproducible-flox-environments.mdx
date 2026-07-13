@@ -1,0 +1,199 @@
+---
+title: 'Mastering Hooks and Profiles for Reproducible Flox Environments'
+altTitle: 'Mastering Hooks and Profiles for Reproducible Flox Environments'
+description: "Learn how you can use Flox's [hook] and [profile] sections to build, customize, and share rich, reproducible development environments."
+metaDescription: "Learn how you can use Flox's [hook] and [profile] sections to build, customize, and share rich, reproducible development environments."
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 08 August 2024
+thumbnail: '/images/blog/desk-with-magnifying-glass.webp'
+orderBy: 20240807
+---
+
+If you just use Flox to install and manage packages, you might not know that it’s also an environment manager with superpowers. However, as soon as you begin _building_ stuff with Flox, you start asking questions. You start caring about what happens, where, _and in what order_ when you `flox activate`.
+
+This leads you to crack open and start tinkering with Flox’s default `manifest.toml` artifact, with the result that sooner or later you find yourself experimenting with its powerful, versatile **`[hook]`** and **`[profile]`** sections.
+
+In this post you will learn what these sections do and how you can use them to build rich, reproducible Flox environments. Just as important, you’ll learn what they _don’t_ do, what they _shouldn’t_ be used for, and how misusing them can lead to headaches in production.
+
+Ready? Let’s get down to the nitty gritty!
+
+## The anatomy of a Flox environment
+
+First, some context: both `[hook]` and `[profile]` are separate sections in a file called `manifest.toml`, which lives in the path `.flox/env` inside every Flox environment. This is the environment’s combined software manifest and configuration artifact. You can modify `manifest.toml` by opening it in your preferred editor, or by typing `flox edit` in your terminal. It has the following general structure:
+
+```
+[install]
+
+[vars]
+
+[hook]
+
+[profile]
+
+[options]
+```
+
+If you’re interested, you can read more about each of these sections [here](https://flox.dev/docs/tutorials/customizing-environments/).
+
+But now, let’s plunge right into `[hook]`. What does it do and what do you need to know about it?
+
+## Hooks are where magic happens
+
+Flox’s `[hook]` section gives you a portable, reproducible way to script setup operations for your environments. Anything you put into `[hook]` runs whenever your Flox environment is activated.
+
+Best of all, the logic in `[hook]` executes using Flox’s built-in bash interpreter, so it runs and behaves the same way across all the targets Flox supports: macOS or Linux running on ARM or x86-64.
+
+For example, if you need to create a Python virtual environment (venv) for your app or build environment, you can author bash logic that creates a temp directory and activates your venv in that directory:
+
+```toml
+[hook]
+on-activate = '''
+  venv_dir="$(mktemp -d)"
+  python3 -m venv "$venv_dir"
+  source "$venv_dir/bin/activate"
+'''
+```
+
+Naturally, doing it this way would result in a **new** temp directory being created every time you activate your environment. There are some cases where this might be what you want; as an alternative, you could place your venv inside `$FLOX_ENV_CACHE` to persist it across activations, adding a conditional to skip creating it if it already exists.
+
+Or say you need to bootstrap a reproducible Ruby development environment, with a specific Ruby version and isolated gem dependencies via `rbenv` and Bundler. You’d first define the required versions for all three packages in your software manifest’s `[install]` section, along with your gem dependencies.
+
+Then, enclosed inside the triple quotes (`'''`) in `[hook]`’s `on-activate` field, you’d create bash logic to initialize rbenv and create a directory for your gems. Your logic might look like this:
+
+```toml
+[hook]
+[hook]
+on-activate = '''
+  PROJECT_DIR="$(pwd)"
+
+  # initialize rbenv
+  eval "$(rbenv init -)"
+
+  # create a directory for gemsets
+  mkdir -p "$PROJECT_DIR/vendor/bundle"
+'''
+```
+
+Every time your environment activates, Flox automatically runs your bash script, bootstrapping your Python or Ruby venvs and performing any other scripted operations. You can also use `[hook]` to start services, if you like, but Flox gives you an even easier way to do this with its [built-in service management capabilities](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox).
+
+For instance, say you need to install Redis as a cache to support your build environment. You’d first define the specific version of Redis you want to use in your software manifest’s [install] section, then you’d create logic in [hook] to bootstrap your build environment. To start your local Redis instance, you could author bash logic like this: 
+
+it might look like this:
+
+```toml
+[hook]
+on-activate = '''
+  PROJECT_DIR="$(pwd)"
+
+  # start Redis
+  redis-server --daemonize yes --dir "$PROJECT_DIR/redis_data"
+
+  # verify redis is running
+  if redis-cli ping | grep -q "PONG"; then
+      echo "Redis is running."
+  else
+      echo "Failed to start Redis."
+      exit 1
+  fi
+'''
+```
+
+But an even better option is to **define Redis as a service** in your `manifest.toml`, so Flox handles starting, monitoring, and stopping your Redis instance for you.
+
+```
+[services.redis]
+command = ‘redis-server --daemonize yes --dir "$PROJECT_DIR/redis_data"’
+```
+
+## The limitations of hooks
+
+You can perform setup operations with bash in `[hook]`, but you can’t script teardown tasks.
+
+Everything in [hook] runs when your Flox environment first activates, so you can’t use it to create automations that listen for events, because [hook] executes once and is done. In other words, if you need to start and stop services, outsource this to Flox’s built-in service management capabilities. And if you need to script clean-up or teardown operations, do it in [profile].
+
+Interactive features in `[hook]` can be useful when you need user input to configure an environment—like inputting an access token, making a decision about persisting that token, or populating required values or fields in a settings file. But these prompts can cause issues in automated workflows, like CI/CD pipelines.
+
+So if you need interactive features in `[hook]`, build in conditional checks to verify the existence of a tty.
+
+## Use Profiles to scaffold, automate, and decorate your Flox environments
+
+The `[profile]` section of your Flox `manifest.toml` can contain aliases, functions, automations, or even complex scripts—but you also need to be intentional about what you do here and why you’re doing it. Unlike `[hook]`, it’s your responsibility to make sure the logic you put into `[profile]` behaves consistently.
+
+That’s because when you run `flox activate`, whatever you put in `[profile]` is executed when Flox creates a subshell within the new environment. That subshell is created using `$SHELL`, so anything you put in `[profile]` runs within the **user-provided shell**. This can be extremely convenient; however, you need to be careful to tailor your logic to support all of the shells where you expect your environment to be used.
+
+Profiles give you a useful way to terraform and decorate your Flox environments. For instance, you can create different kinds of event-driven automations—such as logic to tear down environments—or define aliases and functions you want to make available to others. Just be mindful of the catch: unlike in `[hook]`, logic in `[profile]` executes using _the local system’s version_ of each specified shell, not Flox’s bash interpreter.
+
+### Authoring shell-specific Profiles
+
+`[profile]` has sections for each of the shell environments Flox supports. It also features a `common` section, where you put logic you want to run across all shells. An example might look like this:
+
+```toml
+[profile]
+common = '''
+  echo "Any logic you put here will run using the system’s default shell"
+'''
+
+bash = '''
+  bash_specific_function() {
+    echo "This logic runs using the version of bash on the local system"
+  }
+
+  alias doit='bash_specific_function'
+'''
+
+zsh = '''
+  zsh_specific_function() {
+    echo "This logic runs using the version of zsh on the local system"
+  }
+
+  alias doit='zsh_specific_function'
+'''
+
+fish = '''
+  function fish_specific_function
+    echo "This logic runs using the version of fish on the local system"
+  end
+
+  alias doit=fish_specific_function
+'''
+
+tcsh = '''
+  alias tcsh_specific_function 'echo "This logic runs using the version of tcsh on the local system"'
+  alias doit 'tcsh_specific_function'
+'''
+```
+
+The code block above consists of shell-specific aliases that run functions for bash, zsh, fish, and tcsh.
+
+The logic for bash and zsh is identical, but that for fish and tcsh is different—not just from bash/zsh, but from one another, too. Supporting all four shells entails creating shell-specific logic for each of them.
+
+### Considering Shell Versions
+
+That’s one complication. But you also have to control for variation _within the same type of shell_ across separate platform environments. To take a well-known example, macOS ships with a version of bash (3.2.57) that’s almost 20 years old. If you want the bash logic you put in `[profile]` to behave the same way across all target platforms, anything you put in `profiles.bash` needs to be able to run on bash v3.2.57.
+
+As a general rule, default versions of shells vary across platforms. For instance: Ubuntu 22.04’s default repo has v3.3.1 of fish, while Debian Bookworm’s default repo has v3.6.1, and Fedora 40’s has 3.7.0.
+
+In other words, even if you’re just using a single shell—say, fish—you always have to write to the lowest common denominator version of that shell. In the example above, that’s fish v3.3.1.
+
+### Considering underlying environments
+
+A final complication is that the shell in which your logic executes inherits the local consumer’s default environment and settings, unless you explicitly override these. So not only do you have to control for variety from OS to OS and from shell version to shell version, but from _user to user_, too.
+
+What if a function you define in `[profile]` has the same name as one defined in a consumer’s dotfiles? Or an alias in the consumer’s own environment conflicts with an alias in `[profile]`? What if, for example, you use `python -c` to pass logic to the Python interpreter in your environment, but there’s a preexisting alias for `python` in the consumer’s dotfiles? In this case, your code may run _using the local system’s Python interpreter_, not your own—unless you override this by defining a `python` alias for your environment.
+
+If you need to ensure that you’re using, for example, the version of Python you specified in the `[install]` block, you can refer to it in functions and aliases as `$FLOX_ENV/bin/python3`.
+
+## Wrapping up
+
+Ultimately, you need to tailor `[hook]` and `[profile]` to suit _your_ situation and requirements.
+
+If you’re working in a tightly controlled environment, with a common target platform, standard shell, and a specific use case—e.g., using ARM-based Macs and zsh to enable local development—you can implement rich shell-specific logic in `[profile]` without having the same concerns about reproducibility.
+
+However, if you need to support a diversity of target platforms, shells, and use cases, it makes sense to keep your environments simple, implementing custom logic—when necessary—using bash in `[hook]`.
+
+Even with these constraints, it’s easy to create and customize rich, powerful Flox environments! Check out the prototype environments we built for [1Password](https://flox.dev/blog/adding-1password-secrets-to-flox-environments), [Anthropic’s Claude](https://flox.dev/blog/pair-with-claude-in-your-shell-using-anthropic-flox), [Stable Diffusion](https://flox.dev/blog/ml-modeling-with-flaim-and-hugging-face-diffusers), [Ollama](https://flox.dev/blog/llms-in-your-project-with-ollama-flox), [OpenAI](https://flox.dev/blog/supercharge-your-shell-with-openai-flox), [Jupyter Notebook](https://flox.dev/blog/using-jupyter-notebooks-with-flox), and [Podman](https://flox.dev/blog/run-containers-easily-with-podman-flox) for examples. Each of these runs in multiple shells across MacOS, Linux, and even the Windows Subsystem for Linux, or WSL.
+
+Even better, [download Flox](https://flox.dev/docs/install-flox/) and start building yourself. Flox has just a few commands, so it’s easy to learn and get started—[typically in five minutes or fewer](https://flox.dev/docs/)! Discover how Flox makes reproducible development simple and reliable!

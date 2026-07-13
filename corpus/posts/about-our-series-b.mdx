@@ -1,0 +1,94 @@
+---
+title: 'About our Series B'
+metaTitle: 'About our Series B'
+description: 'We just announced a $25 million Series B funding round led by Addition, with participation from NEA, the D. E. Shaw group, Hetz, and Illuminate Financial. Read about it here.'
+metaDescription: 'We just announced a $25 million Series B funding round led by Addition, with participation from NEA, the D. E. Shaw group, Hetz, and Illuminate Financial. Read about it here.'
+isPublished: true
+publishedDate: 25 September 2025
+author: Ron Efroni
+authorKey: ron-efroni
+thumbnail: /images/blog/series-b-beyond.webp
+orderBy: 20250925
+---
+
+Today, I’m proud to announce that Flox has raised our Series B funding round, led by Addition, with participation from NEA, the D. E. Shaw group, Hetz Ventures, and Illuminate Financial.
+
+This big step is one of many, and continues to validate the mission we set out upon: to make software development and management more **predictable**, **reproducible**, and **manageable** at scale. Our work on Flox will drive a foundational shift in how teams everywhere build and ship software.
+
+This new chapter gives us the fuel to accelerate the vision we’ve set in motion, but it’s also a moment to reflect on how far we’ve come. If you’ll indulge me, I’d like to share how we got here.
+
+## Vision Quest
+
+Almost five years ago, following an accidental dive into [Nix](https://nixos.org/) and an opportune conversation with my co-founder, Michael Brantley, I realized what we could—and should—be doing.
+
+In Nix, I saw software environments that travel as-is from local development through CI to production. Ones that behave the same across dissimilar operating systems (like Linux and macOS), dissimilar CPU architectures (x86 and ARM), and even dissimilar infrastructure (on-premises, cloud, and hybrid deployments).
+
+![Ron and Michael](/images/blog/ron-and-michael.webp)
+
+In short, **I saw software development made reproducible at scale**. Something that tore away at the layers of fixes, and focused on reimagining the core of software to better fit the complexity we see today, and operate in the paradigms that exist after a few generations.
+
+This was the future I envisioned for what became Flox.
+
+The recognition of what Nix was and what it _could be_ affected me about as profoundly as any event in my life. So much that I became possessed: I parted ways with my team at Meta and partnered with Michael. You see, Michael was a few giant steps ahead on this path. He had already built Flox v0.1, a Nix-based toolchain that was easy to use and well-adapted to the enterprise needs of the D. E. Shaw group. We worked together to spin Flox out of the D. E. Shaw group, so we could bring this power to teams everywhere.
+
+At this point, I also made another decision: a healthy, sustainable Nix community is key. So I began contributing towards one in any ways I could.
+
+## What Flox Is Today
+
+After a few years of deep research we released our first piece of the vision: a CLI tool backed by a massive catalog of packages and a cloud service—FloxHub—for sharing of Flox environments, making them portable, inspectable, and easy to reuse.
+
+Today our Flox Catalog includes more than 180,000 packages and millions of historical versions. It lets me, you, and hundreds of teams author declarative, reproducible environments that define dependencies, setup and teardown logic, and even [services](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox)—spinning up complete stacks with PostgreSQL, Redis, Spark, Kafka, and even Kubernetes (via KIND).
+
+While there’s much more to build, these last few weeks marked another turning point: becoming one of the open source vendors [licensed to redistribute NVIDIA’s CUDA](https://flox.dev/blog/get-nvidia-cuda-stacks-that-travel-across-your-sdlc-with-flox/) binaries and libraries. The Flox Catalog now also includes the CUDA Toolkit, all CUDA libraries, and CUDA-accelerated builds of PyTorch, TensorFlow, TensorRT, OpenCV, and more than 1,000 other CUDA packages.
+
+Our goal has never been just to distribute software, but to transform the way it’s built. That’s why we recently unlocked the ability to [build, package, and publish software](https://flox.dev/blog/introducing-flox-build-and-publish/) with Flox—supporting sandbox isolation, declarative recipes, deterministic artifacts, and reproducible builds and runtimes.
+
+And this is just the tip of the iceberg. If our experience so far has taught us anything, it’s how much faster, easier, and more secure we know building, shipping, and using software can be.
+
+## Why Now Is the Time
+
+Early this year, we hit an inflection point, over 300 organizations using Flox. We launched our first product—[Flox for Teams](https://flox.dev/pricing/), which gives organizations a single, consistent way to build, package, publish, and manage all the software they use.
+
+This marked a shift from Flox as a developer tool to Flox as a collaborative platform: a way to scale environment management from individual workflows to entire organizations.
+
+Today, Flox is a productivity unlock for fast-moving teams—like the dev team at [PostHog](https://posthog.com), which leveraged Flox to transform its developer onboarding process into a single command. “Before, our local dev guide comprised 16 steps with 14 caveats. Now, it's just a universal **`flox activate,`**” Michael Matloka, senior product engineer of PostHog, told me. “Flox keeps the whole team on the same page, no matter how complex our stack gets.”
+
+Flox is the reproducibility backbone for mission-critical software workflows across dozens of organizations—including the [D.E. Shaw group](https://www.deshaw.com/), which relies on Flox to power its global trading and research infrastructure. “What started as an internal solution has become a foundation others are building on, turning consistency and portability into defaults rather than aspirations,” says David Shainok, managing director at the D. E. Shaw group.
+
+These and similar responses confirmed what we always believed: this is real, this is working, and it’s going to change everything. Since then, the momentum has been undeniable.
+
+Every time Flox lands inside a team, the reaction is the same: relief. Developers are dealing with complexity on an unprecedented scale: multi-language stacks, conflicting dependencies, AI workloads, GPU optimization, security requirements. Our users tell us that Flox is a breath of fresh air.
+
+We’ve seen this reflected in our champions: zealously passionate advocates who recognize the potential of Flox. And we’ve seen it echoed by industry leaders—including companies like NVIDIA—who are now embracing the very principles we set out to prove years ago.
+
+“There are tools similar to what Flox provides, but nothing gets close to [the] true reproducibility, cross-platform [reach], and configurability [of] Flox,” Justin Frye, senior database engineer with RxBenefits, shared with us. “Using simple CLI commands to install packages (and libraries), activate, and publish environments: Flox is a game changer.”
+
+This user feedback is what keeps us going.
+
+## The Future Is Flox
+
+This is only the beginning. With this new funding, we’ll be accelerating work across three critical areas:
+
+- **Continue to advance the core Flox platform.** Expand what’s possible for developers and operators alike, and explore the frontier of build optimization and environment reproducibility, especially for [AI and GPU-intensive](https://flox.dev/blog/get-nvidia-cuda-stacks-that-travel-across-your-sdlc-with-flox/) workloads.
+
+- **Make compliance effortless** Use the deterministic nature of Nix to deliver what we are being asked for: a new, more proactive, more deliberate approach to managing fragmented, fast-moving software supply chains.
+
+- **Chart a path towards truly secure application infrastructure.** Provide real-time vulnerability detection with comprehensive SBOMs and SLSA compliance. Push “security by construction” as an industry practice, so security isn’t something that is bolted on after the fact. Deliver a new kind of visibility into both human and AI-generated code.
+
+It’s not easy to change how the world builds and consumes software. But our mission has never been to make incremental improvements. We set out to build a platform that becomes a foundation—something generational, something that outlives us.
+
+## Flox Is Better and Stronger with Nix
+
+One final thought.
+
+At Flox, we believe the future of software should be open, reproducible, and sustainable. Supporting the Nix community is part of our mission. As we look ahead, we’ll keep investing in the ecosystem that made all of this possible, so that Nix continues to thrive—not just for us, but for everyone.
+
+What we build draws heavily upon the power (and magic) of Nix. That’s why supporting Nix isn’t a side project for us—it’s inseparable from our mission. Flox succeeds only if Nix succeeds, and we’re committed to making sure both do.
+
+The privilege of operating in such a way is not something I take for granted. We stand on the shoulders of many giants who make this possible. Each individual across the Flox family agreed to jump in and spend time with us along the journey.
+
+The most obvious one for me is the person who said “yes, go for it” five years ago, and who has lived through more than just sleepless nights: my lifetime partner, Eden.
+
+![Ron and Michael](/images/blog/ron-and-eden.webp)
+
+Thanks for supporting us so far. Hope you love Flox as much as we do.

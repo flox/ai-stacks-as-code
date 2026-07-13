@@ -1,0 +1,262 @@
+---
+title: "The default environment"
+description: "Using Flox as your system package manager"
+---
+
+In the typical development case you would create a directory for your project.
+`flox init` to create an environment for it,
+then `flox activate` in that directory when you want to work on that project.
+The packages in that environment are available when the environment is active,
+and they're unavailable otherwise.
+But what about packages that you _always_ want available?
+
+Without Flox, you may turn to your system's package manager
+(`apt`, `yum`, `brew`, etc)
+in order to install packages system-wide.
+This has a number of drawbacks:
+
+- You often only have a single package version to choose from.
+- You often can't install multiple versions of a package side-by-side.
+- You can't ensure that multiple machines get the exact same version.
+- You may not be able to back up the list of installed packages.
+
+The Flox `default` environment doesn't have these problems,
+so let's take a look at how to set it up.
+
+## Initial setup
+
+At the most basic level, the `default` environment is simply an environment
+called `default`.
+`default` environments are typically [shared via FloxHub](/tutorials/sharing-environments), but
+you can also manage environments with git.
+We refer to the environment associated with your user account as _your_
+`default` environment.
+
+In some cases Flox will prompt to set up your `default` environment for you.
+To create the `default` environment yourself,
+make sure you are logged in to FloxHub,
+and initialize a FloxHub environment under your account:
+
+```console
+$ flox auth status || flox auth login
+✔ Authentication complete
+✔ Logged in as <youruser>
+```
+
+```bash
+flox init -D
+```
+
+<Note>
+  **Shorthand for default environment**
+
+  You can use `-D` or `--default` as a shorthand for `-r <youruser>/default`.
+  For example: `flox init -D` is equivalent to `flox init -r <youruser>/default`.
+</Note>
+
+Once the environment has been created, configure your shell to activate the
+environment with every new shell. This can be done as part of the automatic
+setup, or you can add a single line to your shell's RC file:
+
+<Tabs>
+  <Tab title="Bash">
+
+  Depending on the context, Bash will load different startup files.
+  For that reason, we need to add a line to two different files:
+  `.bashrc` and `.profile`.
+  Add the following line to the very end of each of those files:
+
+  ```
+   eval "$(flox activate -D -m run)"
+  ```
+  </Tab>
+  <Tab title="Zsh">
+
+  Add the following line to the very end of your `.zprofile` and `.zshrc`
+  files:
+
+  ```
+   eval "$(flox activate -D -m run)"
+  ```
+  </Tab>
+  <Tab title="Fish">
+
+  Add the following line to the very end of your `config.fish` file:
+
+  ```
+  flox activate -D -m run | source
+  ```
+  </Tab>
+  <Tab title="Tcsh">
+
+  Add the following line to the very end of your `.tcshrc` file:
+
+
+  **For FloxHub environments:**
+
+  ```
+  eval "`flox activate -D -m run`"
+  ```
+  </Tab>
+</Tabs>
+---
+
+Once you've added that line to your shell,
+you'll need to restart your shell (or open a new one) for the changes to
+take effect.
+If you don't want to activate it automatically from your shell
+initialization scripts, you can activate the default environment
+explicitly when needed:
+
+```bash
+flox activate -D
+```
+
+## Taking it for a spin
+
+Now let's test out your new `default` environment.
+If you're in an arbitrary directory and `apt install hello` you would expect
+it to be available no matter what directory you're in.
+Let's do the same with Flox.
+
+Let's create a new temporary directory that we know doesn't have an environment in it.
+
+```bash
+cd $(mktemp -d)
+```
+
+Now we'll install a package and see that it gets installed to the `default`
+environment,
+like you would expect from your system's package manager:
+
+```console
+$ flox install hello
+✔ 'hello' installed to environment 'default'
+```
+
+## Installing packages to the default environment from another Flox environment
+
+If you're in a project directory with an existing Flox environment,
+unsurprisingly, running `flox install <pkg>` will install the package
+to the environment in that directory, rather than your default environment.
+
+Nevertheless, it's still easy to install whatever you wish to your `default`
+environment.
+You can use the `-D` (or `--default`) flag as a shorthand:
+
+```bash
+flox install -D hello
+```
+
+When you do this, you should see the following output, indicating success:
+
+```console
+✔ 'hello' installed to environment 'default'
+```
+
+## Customization
+
+Depending on when you created your default environment
+(the default was changed recently),
+you may also see `flox [default]` as part of your prompt for every new shell.
+You can configure that with a single command:
+
+<Tabs>
+  <Tab title="Do show the Flox prompt">
+
+  ```
+  flox config --set hide_default_prompt false
+  ```
+  </Tab>
+  <Tab title="Don't show the Flox prompt">
+
+  ```
+  flox config --set hide_default_prompt true
+  ```
+  </Tab>
+</Tabs>
+---
+
+## Sharing
+
+Since the `default` environment is "just" another [FloxHub environment](/tutorials/sharing-environments),
+it's possible to push this environment and share it between machines.
+
+In fact, activating or initializing default environments on other machines
+will link to the environment that is already on FloxHub.
+To use the environment on other machines simply log in
+and add the activation to your dotfiles as described above.
+
+Changes made to the environment locally (e.g. newly installed packages) can be synchronized
+with [`flox push`](/man/flox-push) and [`pull`](/man/flox-pull).
+
+---
+
+## Generations
+
+Pushing an environment creates the first version of the environment tracked on
+FloxHub, which is called a generation.
+
+To see how generations can be used to undo changes, edit the environment,
+perhaps adding a variable `FOO = "bar"` to the `[vars]` section.
+Then push the environment to FloxHub:
+
+```bash
+flox edit && flox push
+```
+
+This should print a link to your environment on FloxHub.
+Follow the link and click the `Generations` tab.
+This should show the most recent generation created by the `flox edit` command.
+
+To revert to the version of the environment prior to the edit, run rollback:
+
+```bash
+flox generations rollback && flox push
+```
+
+Now if you run `flox pull` on another host, you'll get the rolled-back
+environment, without the edit.
+
+---
+
+## Conclusion
+
+Whether you want a reproducible package manager for your whole system,
+or you want reproducible, cross-platform developer environments,
+Flox has you covered.
+Even better, if you want both a package manager _and_ developer environments,
+with Flox you only need to learn one tool.
+
+---
+
+## Detached and directory based `default` environments
+
+Since `default` environments are normal Flox environments,
+you can use any other environment the same way.
+
+For example, you can:
+
+Initialize a local environment, e.g. in your home directory:
+
+```bash
+flox init --dir ~
+```
+
+Start with a template on FloxHub:
+
+```bash
+flox pull --copy --dir ~ owner/name
+```
+
+Use a directory-based FloxHub environment:
+
+```bash
+flox pull --dir ~ owner/name
+```
+
+---
+
+If you choose to automatically activate the environment in your rc files,
+change the `flox activate -r <youruser>` accordingly
+to e.g. `flox activate --dir ~`.

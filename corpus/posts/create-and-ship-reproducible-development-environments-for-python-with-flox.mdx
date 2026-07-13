@@ -1,0 +1,439 @@
+---
+title: 'Create and Ship Reproducible Python Virtual Environments with Flox'
+altTitle: 'Create and Ship Reproducible Python Virtual Environments with Flox'
+description: "How to migrate Python projects from venv to Flox for reproducible, declarative environments that work the same across every machine, CI, and production."
+metaDescription: "How to migrate Python projects from venv to Flox for reproducible, declarative environments that work the same across every machine, CI, and production."
+isPublished: true
+category: guides
+author: Flox Team
+publishedDate: 10 October 2025
+thumbnail: '/images/blog/jars-with-snakes.webp'
+orderBy: 20251010
+---
+
+Modern Python development depends on reliable, reproducible isolation between projects so that Python versions, their dependencies, and required system libraries don’t conflict or drift over time.
+
+Python’s built-in **`venv`** module covers the basics, but it falls short of full reproducibility. A virtual environment created on one machine can behave differently on another because of variations in system libraries, Python builds, or operating system packages. Over time, these differences create the familiar “works on my machine” problem. In other words, while **`venv`** is useful for local isolation, it is not a reliable way to package, ship, or run environments in CI or production.
+
+Flox permits [a more scalable approach to creating, managing, and shipping Python environments](https://flox.dev/docs/languages/python/). Built on Nix, Flox is a cross-platform, cross-toolchain _package and environment manager_. It defines every dependency in a declarative manifest: not just core Python packages, but system libraries, compilers, GPU-specific dependencies, even tools from other languages. This gives you a single declarative definition for rebuilding identical development and runtime environments across platforms (macOS, Linux, Windows with WSL2), architectures (x86, ARM, and GPU hardware), and phases of the SDLC.
+
+## TL;DR
+
+Migrating to Flox provides several clear advantages:
+
+-  **Reproducibility across systems**. Each and every dependency—from python311Full to graphviz—is versioned, cached, and portable.
+-  **Unified multi-language stacks**. Manage Python, Node.js, CUDA, and other toolchains within one environment.
+-  **Faster onboarding**. New contributors can run **`flox activate`** and start coding immediately, with no manual setup. They can easily and reliably ship what they build using Git, [FloxHub](https://flox.dev/docs/concepts/floxhub/, or [containers](https://flox.dev/docs/reference/command-reference/flox-containerize/).
+-  **Direct path to production**. The same manifest that defines development can be built, published, or containerized for deployment.
+
+Flox does for development and runtime environments what **`requirements.txt`** does for Python packages—but with system-wide scope and predictable rebuilds. The rest of this guide walks through migrating an existing Python project from **`venv`** to Flox and adopting Flox’s declarative model for reproducible development, testing, and deployment across your team.
+
+
+## Why you might want to migrate your Python project
+
+Python’s **`venv`** module isolates dependencies within a project, but it was never designed to guarantee reproducibility across different systems and contexts. If your work involves multiple developers, mixed-language stacks, or continuous integration pipelines, you will start to run up against **`venv`**’s limits.
+
+Flox can replace or complement **`venv`** when you encounter these cases:
+
+- **Environment drift across machines** – A **`venv`** created on one developer’s system can behave differently on another due to differences in operating systems, library paths, or compiler versions. Flox environments rebuild deterministically from a [manifest](https://flox.dev/docs/concepts/environments/?h=manifest.toml#manifesttoml). Cloning, pulling, or containerizing this environment reproduces the same run- or build-time experience everywhere—from local workstations to CI runners.
+- **Multi-language projects** – Many Python projects depend on more than Python itself: JavaScript for front-ends, C/C++ or CUDA extensions, or system tools like **`graphviz`** or **`ffmpeg`**. Flox handles all of these in a single declarative definition. You can install a Python interpreter, Node.js toolchain, and GPU drivers together without juggling external setup scripts.
+- **Slow or inconsistent onboarding** – New contributors often spend hours (sometimes even days!) reproducing just the right toolchain. With Flox, cloning a Git repository or pulling an environment from FloxHub and running **`flox activate`** automatically reproduces the same environment declared in the manifest. Flox eliminates convoluted **`README**s, complex bootstrap scripts, and other ad-hoc setup steps.
+- **Unreliable CI builds** – A locked **`requirements.txt`** captures only Python packages. It doesn’t, and can’t, record system libraries or the Python version itself, so CI pipelines can drift over time. Flox defines the complete runtime, including the Python version and all native dependencies, which eliminates sources of hidden variability.
+- **Need for containerized deployment** – If your production workflow depends on Docker or OCI images, Flox can export the same environment definition as a container. This eliminates the mismatch between development and deployment setups, so that what you test is what you ship. Containerizing a Flox environment is as simple as running **flox containerize**`.
+
+## Install Flox
+Start by [installing Flox on your system](https://flox.dev/docs/install-flox/install/). The exact commands depend on your operating system:
+
+After installation, verify that Flox is working correctly:
+
+```
+$ flox
+```
+
+You should see output similar to:
+
+```
+flox version 1.7.2
+
+Usage: flox OPTIONS (init|activate|search|install|...) [--help]
+
+Use 'flox --help' for full list of commands and more information
+```
+
+## Migrate your first Python project
+
+Let's migrate an existing Python project from venv to Flox. First, navigate to your project directory:
+
+```
+$ cd my-python-project
+```
+
+### Initialize Flox with automatic detection
+
+Flox can automatically detect your existing Python project setup:
+
+```
+$ flox init
+```
+
+
+This command analyzes your project for requirements.txt or pyproject.toml files and generates an appropriate Flox environment. The output might look like:
+```
+✨ Created environment 'testes' (x86_64-linux)
+✅ 'python3' installed to environment 'my-python-project'
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+  $ flox push                <- Use the environment from other machines or
+                                share it with someone on FloxHub```
+```
+
+### Examine the generated manifest
+
+Let's look at what Flox created:
+
+```
+$ flox edit
+```
+
+This opens your environment's **`manifest.toml`** file in Flox's built-in editor. For a project with a **`pyproject.toml`**, it might look something like:
+
+```
+# .flox/env/manifest.toml
+version = 1
+
+[install]
+python3.pkg-path = "python3"
+python3.version  = ">=3.8"
+
+[hook]
+on-activate = """
+  # Autogenerated by Flox
+
+  # Setup a Python virtual environment
+
+  export PYTHON_DIR="$FLOX_ENV_CACHE/python"
+  if [ ! -d "$PYTHON_DIR" ]; then
+    echo "Creating python virtual environment in $PYTHON_DIR"
+    python -m venv "$PYTHON_DIR"
+  fi
+
+  # Quietly activate venv and install packages in a subshell so
+  # that the venv can be freshly activated in the profile section.
+  (
+    source "$PYTHON_DIR/bin/activate"
+    pip install -r "$FLOX_ENV_PROJECT/requirements.txt" --quiet
+  )
+
+  # End autogenerated by Flox
+"""
+
+[profile]
+bash = """
+  # Autogenerated by Flox
+
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate"
+
+  # End autogenerated by Flox
+"""
+fish = """
+  # Autogenerated by Flox
+
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate.fish"
+
+  # End autogenerated by Flox
+"""
+tcsh = """
+  # Autogenerated by Flox
+
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate.csh"
+
+  # End autogenerated by Flox
+"""
+zsh = """
+  # Autogenerated by Flox
+
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate"
+
+  # End autogenerated by Flox
+```
+
+This manifest defines a complete Python development environment using Flox’s declarative model. When you activate the environment, Flox performs a few key actions:
+
+-  **Installs Python from the Flox Catalog**. The [install] section specifies the Python interpreter (for example, python311Full), versioned and sourced from the Flox Catalog.
+-  **Defines a persistent virtual environment**. When you activate the Flox environment (see next section), logic in the **`[hook]`** section checks for a **`venv`** under **`$FLOX_ENV_CACHE/python`**. If it doesn’t exist, Flox creates one with **`python -m venv`**. This **`venv`** persists across activations and environment rebuilds.
+-  **Defines project dependencies automatically**. The logic in **`[hook]`** activates the **`venv`** and installs project dependencies—either via **`pyproject.toml`**; or using **`pip install -e`**; or from **`requirements.txt`** if your Python project uses that pattern.
+
+The result is an environment that recreates the familiar Python workflow — **`venv`**, **`pip`**, and all—but with Flox’s built-in determinism and portability. Every dependency, starting with the Python interpreter itself, is declared, versioned, and reproducible across systems.
+
+
+### Activate your environment
+
+Now you can activate your Flox environment:
+
+```
+$ flox activate
+```
+
+You'll see output similar to:
+```
+✅ You are now using the environment 'my-python-project'.
+To stop using this environment, type 'exit'
+
+Creating python virtual environment in /home/daedalus/dev/my-python-project/.flox/cache/python
+Activating python virtual environment
+```
+
+Activating the Flox environment automatically activates the `venv` for your shell session. The setup logic that does this is expressed in the **`[profile]`** section, which defines shell-specific activation commands so that when you run **`flox activate`**, the Python **`venv`** becomes your active interpreter automatically.
+
+
+## Migrate more dependencies / packages
+
+If migrating from Python **`venv`** to Flox, handling additional packages is straightforward. You'll want to move beyond just the basic Python interpreter to include most (or all) project dependencies in your Flox environment.
+
+First, examine your current requirements.txt or pyproject.toml to identify all dependencies. With Flox, you have two options for adding these packages.
+
+The first approach is to install packages directly from the Flox Catalog:
+
+```
+flox install python311Packages.numpy python311Packages.pandas
+```
+
+First, not all PyPI packages are available in the Flox catalog–at least in the exact versions you need. But getting Python packages from the Flox Catalog gives you iron-clade reproducibility because Flox packages are pre-built artifacts produced deterministically from Nix expressions, so the same inputs always yield the same outputs. In contrast, PyPI packages are built and/or installed on your local system, so  they inherit variability in the form of compiler versions, etc.
+
+With Flox, you can define system-level dependencies alongside Python packages, so native extensions and shared libraries behave the same way on every machine. This matters for projects that rely on compiled Python modules (such as NumPy, pandas, or PyTorch). These packages include C, C++, or CUDA code that needs to link against non-Python libraries. When you install NumPy or pandas via PyPI, these modules depend on whatever compilers and headers happen to be on your system. This can produce subtle differences across machines.
+
+Flox lets you declare and version these libraries and toolchains explicitly, so compiled components build and behave the same way everywhere. Not only can you use **`uv`** inside a Flox-managed **`venv`**, but Flox pins the platform **`uv`** runs on: it provides **`uv`** itself, along with the Python interpreter, the C/C++ toolchain and headers, shared libraries (e.g., **`OpenSSL`**, **`libxml2`**, **`libstdc++`**), and, when needed, CUDA-specific dependencies, like the NVIDIA CUDA Toolkit and CUDA-accelerated dependencies, including cuPy, PyTorch, cuPyNumeric, etc. Think of it this way: **`uv`** locks the Python dependency graph; Flox pins global platform dependencies, along with (optionally) Python dependencies. Together they deliver deterministic installs and identical behavior on laptops and in CI.
+
+## Using Flox to create and manage Python virtual environments
+
+The second approach, which is often more practical, is to create and manage Python virtual environments as part of the Flox environment’s declarative definition. This gives you the best of both worlds: Flox manages the environment while letting **`pip`** or **`uv`** handle Python-specific dependencies. Here's how to set it up in your Flox manifest:
+
+```
+Version = 1
+
+[install]
+# pin interpreter
+python.pkg-path = "python312Full"
+
+# pin platform libs off the python overlay you called out
+openssl.pkg-path   = "python312Packages.openssl"
+libxml2.pkg-path   = "python312Packages.libxml2"
+libpq.pkg-path     = "python312Packages.libpq"
+libstdcxx.pkg-path = "python312Packages.libstdcxx"
+
+# tooling
+uv.pkg-path = "uv"
+
+# optional CUDA stack (Linux only) — priorities help avoid LICENSE/file conflicts
+# constrain systems explicitly when adding CUDA
+cudatoolkit.pkg-path = "flox-cuda/cudaPackages_12_8.cudatoolkit"
+cudatoolkit.systems  = ["x86_64-linux", "aarch64-linux"]
+cudatoolkit.priority = 3
+
+cuda_nvcc.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_nvcc"
+cuda_nvcc.systems  = ["x86_64-linux", "aarch64-linux"]
+cuda_nvcc.priority = 1
+
+cuda_cudart.pkg-path = "flox-cuda/cudaPackages.cuda_cudart"
+cuda_cudart.systems  = ["x86_64-linux", "aarch64-linux"]
+cuda_cudart.priority = 2
+
+[gist]  # optional metadata section name of your choice; purely illustrative
+
+[hook]
+# idempotent, minimal, bash-only; runs every activation
+setup_python() {
+  set -euo pipefail
+
+  venv="${FLOX_ENV_CACHE}/venv"
+  lock_flag="${FLOX_ENV_CACHE}/.deps_installed"
+
+  # create venv once
+  if [ ! -d "$venv" ]; then
+    uv venv "$venv" --python python3
+  fi
+
+  # guard activation (venv creation may not be instant on first run)
+  if [ -f "$venv/bin/activate" ]; then
+    # shellcheck disable=SC1090
+    . "$venv/bin/activate"
+  fi
+
+  # install dependencies only once (or remove the flag to force re-sync)
+  if [ ! -f "$lock_flag" ]; then
+    # Prefer uv lockflow; falls back cleanly if you use requirements.txt
+    if [ -f "uv.lock" ]; then
+      uv pip sync --python "$venv/bin/python" --frozen
+    elif [ -f "requirements.txt" ]; then
+      uv pip sync --python "$venv/bin/python" requirements.txt
+    fi
+
+    # optional: dev extras if present
+    if [ -f "requirements-dev.txt" ]; then
+      uv pip sync --python "$venv/bin/python" requirements-dev.txt
+    fi
+
+    touch "$lock_flag"
+  fi
+
+  # optional: set caches inside FLOX storage (keep CI clean & fast)
+  export UV_CACHE_DIR="${FLOX_ENV_CACHE}/uv-cache"
+  export PIP_CACHE_DIR="${FLOX_ENV_CACHE}/pip-cache"
+  return 0
+}
+
+# example: opt-in GPU wheel install (kept separate, call manually)
+install_gpu_wheels() {
+  set -euo pipefail
+  venv="${FLOX_ENV_CACHE}/venv"
+  # shellcheck disable=SC1090
+  [ -f "$venv/bin/activate" ] && . "$venv/bin/activate" || return 0
+
+  # choose one stack; keep CPU/GPU indexes separate
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    # PyTorch CUDA 12.4 example
+    uv pip install --python "$venv/bin/python" \
+      --index-url https://download.pytorch.org/whl/cu124 \
+      torch torchvision
+    # CuPy (CUDA 12.x example)
+    uv pip install --python "$venv/bin/python" cupy-cuda12x
+    # cuPyNumeric
+    uv pip install --python "$venv/bin/python" nvidia-cupynumeric
+  else
+    uv pip install --python "$venv/bin/python" \
+      --index-url https://download.pytorch.org/whl/cpu \
+      torch torchvision
+    uv pip install --python "$venv/bin/python" cupy  # CPU fallback
+  fi
+  return 0
+}
+```
+
+Remember to **`git commit`** the updated environment or push it to FloxHub (via **`flox push`**) so that everyone on your team gets exactly the same dependencies.
+
+## Update documentation and workflows
+
+After migrating to Flox, you'll need to update your project documentation and CI workflows to reflect the new approach to managing Python environments.
+Start by updating your **`README.md`** to include clear instructions for setting up the project with Flox. Replace instructions like "Create a virtual environment with ** `python -m venv .venv`**" with "Set up the environment with **`flox activate`**". Here's a sample section you might add:
+
+```
+## Development Setup
+
+This project uses Flox for environment management. To get started:
+
+1. Install Flox following the [official instructions](https://flox.dev/docs/install-flox/)
+2. Clone this repository
+3. Run `flox activate` in the project directory
+4. You're ready to start building and shipping!
+```
+
+Next, update any CI configuration files (e.g., GitHub Actions workflows or Jenkins pipelines).
+
+For GitHub Actions, use the official Flox actions and run your build/test inside the activation step so hooks execute and the environment is guaranteed consistent:
+
+```
+# .github/workflows/ci.yaml
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v1
+      # Run everything inside activation so your [hook] functions run first
+      - uses: flox/activate-action@v1
+        with:
+          run: |
+            # (optional) if your hooks don't already sync deps, do it here
+            # make deps
+            python -m pytest -q
+
+```
+
+Jenkins follows the same pattern: wrap commands with flox activate -- so activation and hooks happen in the same shell:
+
+```
+// Jenkinsfile (Declarative)
+pipeline {
+  agent any
+  stages {
+    stage('Test') {
+      steps {
+        sh '''
+          flox activate -- bash -lc "python -m pytest -q"
+        '''
+      }
+    }
+  }
+}
+
+```
+
+If you have Makefiles or other build scripts that assume a virtualenv, update them to operate within the Flox environment. In most cases you no longer need explicit activate/deactivate; let Flox handle activation. If you keep a **`venv`**, create it in **`$FLOX_ENV_CACHE/venv` via a **`[hook]`** and reference it directly (e.g., **`$(FLOX_ENV_CACHE)/venv/bin/python -m pytest)`**.
+Remember to inform your team about the migration. Send an email or create documentation explaining why you've switched to Flox and how to use it. Emphasize that they'll no longer need to manage virtual environments manually, but will need to install Flox.
+
+## Clean up and remove the source tool
+
+After successfully migrating to Flox, you can safely deprecate your old Python **`venv`** setup. A phased approach helps prevent disruptions during the transition.
+
+**First**, rename, don’t delete, existing virtual environments first:
+
+```
+mv .venv .venv.backup
+```
+
+This lets you revert quickly if anything unexpected occurs.
+
+If your team uses multiple virtual environments in different locations, document them all before renaming or removing any.
+
+**Second**, remove or update automation that recreates or activates virtual environments.
+
+Check for commands such as **`python -m venv`**, **`source .venv/bin/activate`**, or **`deactivate`** inside:
+
+-  Makefiles
+-  Shell scripts
+-  CI workflows
+-  IDE or editor settings
+
+**Third**, gracefully handle legacy tooling.
+
+If you’ve been using a **`.python-version`** file (for tools like **`pyenv`** or **`asdf`**), consider keeping it temporarily alongside your Flox manifest.
+
+This helps teammates who haven’t yet migrated maintain compatibility while they transition.
+
+**Fourth**, support coexistence during migration.
+
+Flox and **`venv`** can coexist. Flox can actually create and manage a virtual environment internally in **`$FLOX_ENV_CACHE/venv`** via its **`[hook]`** scripts, as shown above. This means part of your team can continue using traditional **`venv`** workflows while others rely entirely on Flox—without conflict.
+
+
+## FAQs about managing Python projects with Flox
+
+### How does Flox improve upon standard Python virtual environments for project management?
+
+Standard virtual environments primarily isolate Python packages, which often leads to inconsistencies when system libraries or interpreter versions differ between machines. Flox creates a [fully reproducible environment](https://flox.dev/blog/reproducible-python-development-environments-with-flox/) by managing the entire stack within a declarative manifest. This includes the Python interpreter, system-level dependencies, and compilers,. Every developer on the team can run identical code regardless of their local operating system or existing configuration.
+
+### Can Flox manage non-Python dependencies required by my Python projects?
+
+Yes, Flox is designed to handle multi-language stacks and system-level tools alongside your standard Python libraries. Whether your project needs specific C++ compilers, GPU drivers, or utilities, you can define them all in a single configuration file. This capability allows you to install and manage complex toolchains without relying on external bootstrap scripts or manual system installations.
+
+### Is it possible to use existing dependency files like requirements.txt with Flox?
+
+Flox integrates seamlessly with standard Python workflows and can automatically detect and utilize existing configuration files such as `requirements.txt` or `pyproject.toml`. When you initialize a project, the system can configure [hooks](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/) to create a virtual environment and install your specified packages using standard tools like pip or uv. This allows you to maintain your current dependency definitions while gaining the benefits of a portable, system-level runtime.
+
+### How does using a declarative manifest benefit team collaboration on Python projects?
+
+A declarative manifest ensures that the entire development environment is versioned, cached, and reproducible across different machines and CI/CD pipelines. Instead of following complex documentation to set up a workspace manually, new contributors can simply clone the repository and activate the environment to start coding immediately. This approach eliminates environment drift and guarantees that testing and production environments exactly match the development setup.

@@ -1,0 +1,87 @@
+---
+title: "flox services status"
+---
+
+## NAME
+
+flox-services-status - display the status of services
+
+## SYNOPSIS
+
+```text
+flox [<general-options>] services status
+     [-d=<path> | -r=<owner/name>]
+     [--json]
+     [<name>] ...
+```
+
+## DESCRIPTION
+
+Displays the status of one or more services.
+
+If no services are specified, then all services will be displayed. If no
+services have been started for this environment, an error will be
+displayed. An error will also be displayed if one of the specified
+services does not exist.
+
+## OPTIONS
+
+`--json`  
+Print statuses formatted as JSON. Each service is printed as a single
+JSON object on its own line.
+
+### Environment Options
+
+If no environment is specified for an environment command, the
+environment in the current directory or the active environment that was
+last activated is used.
+
+`-d`, `--dir`  
+Path containing a .flox/ directory.
+
+`-r`, `--reference`  
+A FloxHub environment, specified in the form `<owner>/<name>`.
+
+`-D`, `--default`  
+Use your default environment (`<your-user>/default`). When
+unauthenticated in an interactive context, you will be prompted to log
+in. In non-interactive contexts (e.g., scripts or CI), this flag will
+fail with an error when authentication is missing.
+
+### General Options
+
+`-h`, `--help`  
+Prints help information.
+
+The following options can be passed when running any `flox` subcommand
+but must be specified *before* the subcommand.
+
+`-v`, `--verbose`  
+Increase logging verbosity. Invoke multiple times for increasing detail.
+
+`-q`, `--quiet`  
+Silence logs except for errors.
+
+## EXAMPLES
+
+Display statuses for all services:
+
+```console
+$ flox services status
+NAME       STATUS            PID
+sleeping   Running         89718
+myservice  Running         12345
+```
+
+Display the status of a single service:
+
+```console
+$ flox services status myservice
+NAME       STATUS            PID
+myservice  Running         12345
+```
+
+## SEE ALSO
+
+[`flox-activate`](/man/flox-activate)
+[`flox-services-start`](/man/flox-services-start)

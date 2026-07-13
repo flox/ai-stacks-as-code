@@ -1,0 +1,122 @@
+---
+title: "Think Outside the [Container] - Develop Natively with Flox"
+description: "flox provides the reproducibility and portability of
+containers and the convenience of native development."
+isPublished: false
+category: guides
+publishedDate: 20 Jun 2023
+thumbnail: /images/blog/glove-box.jpg
+orderBy: 15
+---
+
+You can put just about anything in a container.
+These days, people are even putting
+[operating systems in containers](https://www.youtube.com/watch?v=X8h304Jp9N8) -
+which, by the way, is really cool.
+Bundling complex software in a container makes it reproducible and portable,
+making it trivial to recreate a setup that might otherwise be difficult or even
+impossible to recreate.
+But contrary to the trend, not everything belongs in a container.
+Containers are great at providing isolation, but by design, they don't integrate
+naturally with native home environments, which is inconvenient for development.
+On the other hand, creating a purely native development environment introduces
+its own set of problems, as it's difficult to preserve consistency with other
+developers' environments.
+
+We think there's a better way to create developer environments - flox provides
+the best of both worlds, letting you develop with not only the reproducibility
+and portability of containers but also the convenience of native development.
+
+
+## Too much isolation
+
+When I'm developing, I want to do it in my home environment; I don't want
+isolation.
+I want my dotfiles.
+I want access to my ssh-agent.
+I want the utilities I've installed locally to be available.
+
+To be fair, it's possible to copy the things I mentioned above into a container,
+and that's the direction container tooling is heading:
+- You can set up [dotfiles for dev containers](https://code.visualstudio.com/docs/devcontainers/containers#_personalizing-with-dotfile-repositories).
+- You can [share your git credentials with a container](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials)
+- You can [share Wayland, X11, and any other sockets you need](https://github.com/containers/toolbox)
+
+You can setup all the bind mounts and map all of the ports.
+But at that point, why use a container?
+
+
+## Too much convenience
+
+It's possible to swing too far in the opposite direction.
+If I want convenient access to my home environment, why not install all the
+tools I need for development natively?
+
+Sharing global state while working across multiple projects quickly becomes
+problematic:
+- Different projects might need different versions of the same tool.
+- It's hard to avoid the "works on my machine" problem when collaborating.
+- Although it's convenient to set up a native environment once, it's hard to
+reproduce when setting up a new workstation.
+
+
+## Native development with flox
+
+flox provides the benefits of both containers and native development while
+avoiding the pitfalls.
+
+Like containers, flox environments:
+- Are portable and reproducible
+- Are easy to share
+- Can be entered with a single command
+- Don't pollute your system
+- Let you manage your environment as code
+- Can be built for both macOS and Linux, Intel and ARM
+
+At the same time, like native development, flox environments:
+- Integrate with your shell and dotfiles
+- Have access to your home directory
+- Integrate with native developer tools
+
+This integration makes my personal development flow using flox (and direnv)
+incredibly convenient.
+I simply have to `cd` into the right directory:
+
+```
+~  > which cargo
+cargo not found
+~  > cd ~/flox
+direnv: loading ~/flox/.envrc
+...
+~/flox > cargo build
+   Compiling flox-rust-sdk v0.0.0 (/Users/matthew/flox/crates/flox-rust-sdk)
+   Compiling flox v0.2.0 (/Users/matthew/flox/crates/flox)
+    Finished dev [unoptimized + debuginfo] target(s) in 10.41s
+```
+
+flox makes it easy to reproduce the components of a developer environment that
+should always be the same, while still allowing easy integration with the
+components of an environment that can be different.
+
+
+## Try it out
+
+To try out flox for your project, follow the steps below, or see the docs on
+[Project environments](/docs/projects) for more details.
+
+- [Install](/docs) flox
+- In your project, run `flox init --template project`
+- Edit `shells/example-project/default.nix` with the dependencies you need.
+
+To activate the environment, choose one of the following:
+- Run `flox develop` if you want a subshell
+- Run `eval "$(flox print-dev-env)"` if you want to add the environment to your
+current shell
+- To integrate with `direnv`, add `eval "$(flox print-dev-env)"` to your `.envrc`.
+See the docs on [direnv](/docs/integrations/direnv) for more.
+
+<hr />
+
+<i>Author:</i>
+
+Matthew Kenigsberg, Software Engineer

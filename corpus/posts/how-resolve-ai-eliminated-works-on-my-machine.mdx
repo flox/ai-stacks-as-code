@@ -1,0 +1,83 @@
+---
+title: 'How Resolve AI Eliminated Works-on-My-Machine'
+altTitle: 'How Resolve AI Eliminated Works-on-My-Machine'
+description: "See how Flox gives Resolve AI reproducible, deterministic development environments that reduce debugging overhead, increase engineering confidence, and help ship products and features faster."
+metaDescription: "See how Flox gives Resolve AI reproducible, deterministic development environments that reduce debugging overhead, increase engineering confidence, and help ship products and features faster."
+isPublished: true
+category: case-study
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 1 June 2026
+thumbnail: '/images/case-studies/resolve-logo.webp'
+orderBy: 20260601
+---
+
+Resolve AI builds purpose-trained models and multi-agent systems that autonomously investigate, diagnose, and remediate incidents in production environments. Coinbase, DoorDash, Salesforce, and others rely on Resolve AI to analyze incidents, identify root causes, and fix production issues in a fraction of the time required by other methods. In just 18 months, the company has raised more than $190 million, announced a $40 million Series A Extension—at a $1.5 billion valuation—and launched Resolve AI Labs. 
+
+Resolve AI adopted Flox to anchor a controlled, reproducible software delivery path from local development to production. Flox provides the standardization and reliability Resolve AI’s engineering team needs to build and iterate rapidly locally. By standardizing the environment in which tools and code run, Flox gives Resolve AI a foundation it can bring forward into CI and production, with pinned Flox environments serving as declarative recipes for OCI images and reproducible behavior at runtime.
+
+“Flox gives us a reproducible foundation we can trust, which matters more and more as our team grows,” says Amin Karbas, a member of the technical staff with Resolve AI. “Flox also gives us a much more controlled path for shipping software fast and reliably.”
+
+
+### The Cascading Cost of “Works on My Machine”
+
+Before Flox, Resolve AI operated like most early-stage startups. Engineers onboarded via a mix of docs, scripts, package managers, and tribal knowledge, each configuring their own local development setup. 
+
+As Resolve AI scaled, however, chronic works-on-my-machine failures started surfacing. An engineer would push code from their local machine; their teammates would go to pull it and discover that it would not compile or run. Engineers also had no way to mix and match current and older package versions on their machines: updating one package would force updates to others. This is problematic because production code frequently requires specific versions of libraries and tools. The team found itself in a classic double bind: Upgrading packages could break existing setups; not upgrading would block new work.
+
+“We could tell people what to install, but we couldn’t make sure they were actually on the same thing. And once that’s true, you don’t know whether a failure is in the code or somebody’s machine,” Amin explains.
+
+The combination of frequency and _blast radius_ is what makes “works on my machine” failures so expensive, he says. “It’s almost never just one person’s machine. Something changes in the environment and pretty quickly you’re pulling other people in to figure out what changed, why a build broke, and how to get everybody back to the same place,” Amin observes. “Work stops while you figure out whether you’re looking at a regression in the code or just a divergence in somebody’s local environment.”
+
+
+### A Very Short List of Solutions
+
+The list of solutions that could give Resolve AI the strong reproducibility guarantees it needed was limited: dev containers, cloud dev shells, open source Nix, or Nix-adjacent commercial software.
+
+That’s how Amin found Flox, the package manager, environment manager, and reproducible build system built on top of open source Nix. Flox would give Resolve AI a foundation for reproducibility, determinism, atomicity, and declarativity across the SDLC: the same Flox environments that engineers use in local development could run exactly the same way, with exactly the same dependencies, in CI and production.
+
+Unlike Nix, Flox has virtually no learning curve: Users define environments declaratively, in human-readable TOML. Commands like **`flox init`**, **`flox install`**, **`flox search`**, and **`flox activate`** are intuitive to anyone familiar with **`git`**, **`npm`**, or **`pip`**. Teams would be able to onboard quickly.
+
+“What I liked about Flox was its simplicity. It allows us to define and work with environments in a way people can read, understand, and use. I didn’t worry about adoption becoming its own project,” he says.
+
+And unlike dev containers or cloud dev shells, Flox doesn’t hermetically isolate engineers from their local machines. Flox environments don’t require them to configure access to local resources via filesystem mounts, forwarded ports, injected secrets, or cloud workspace storage. Best of all, Flox environments always run unvirtualized, with optimized, platform-native packages on macOS and Linux, x86 or ARM.
+
+“Flox doesn’t make us choose between strong reproducibility and a normal local workflow,” Amin points out. “You get strong reproducibility on your local machine. When you share what you’ve built, it just works.”
+
+
+### Set It and Forget It
+
+Adoption was relatively fast and drama-free. Amin introduced Flox in phases, starting with a group of engineers open to trying the new approach. This gave the team a way to validate Flox in practice, building trust before asking everyone else to integrate it. The initial challenge was not so much technical as social: people had used tools like Homebrew for years, so Flox first had to prove it was worth trusting.
+
+That trust came quickly. New hires tended to start with Flox, while established engineers often moved over once they hit environment issues that Flox helped them resolve ... and, in some cases, would have helped them avoid. After a couple of months, Amin says, the rollout began to “produce.” Flox had become the team’s shared baseline: most engineers used it to work from the same environment, with the same package versions, instead of maintaining one-off local setups. Not every part of the new workflow mapped perfectly onto every engineer’s habits. Some still avoided automatic activation with **`direnv`** when rebases triggered extra setup time. But Flox became the starting point for _most_ engineers.
+
+Then something odd happened. For much of the team, Flox started to fade into the background. “We weren't spending the same amount of time thinking about the environment anymore, which is exactly what you want,” Amin says. No, the environment didn’t _completely_ disappear as an operational concern in every workflow (**`direnv`** setup time could still matter after rebases) but instead of engineers squandering time debugging their own local setups, the team as a whole could rely on Flox to provide standard, reproducible development environments for day-to-day work.
+
+
+Once adoption reached an inflection point, works-on-my-machine issues turned into “are you using Flox?”. Failures from undeclared, missing, or conflicting dependencies, failures that used to cascade far beyond local dev, disappeared. The team started using Flox as a shared, reproducible foundation for building and shipping work: creating new environments, supporting new projects, and replacing custom setups with declared, reproducible configurations across the codebase.
+
+“That's what I mean by ‘producing,’” Amin says. “People are comfortable using it and ‘works on my machine’ disappears. Flox stops being a thing people have to think about, except to do useful things.”
+
+
+### Making the Environment Part of the Codebase
+
+Adopting Flox did not require Resolve AI to build a separate control plane for managing environments. Instead of reconstructing build or runtime environments from docs, memory, or tribal knowledge, teams define them alongside their code, in the same GitHub repositories. Code and its dependencies live in one place, change together, and move through version control as a unit.
+
+“That changed the repo from ‘here’s the code, figure out how to run it’ into something self-contained. You could hand it to someone and be confident they're going to get the same behavior you got,” Amin says.
+
+The key to this confidence is standardization. Once engineers share the same environments, the same package versions, and the same behavior at build time and runtime, an entire class of issues disappears. “Flox takes a lot of the guesswork out of day-to-day engineering, because you aren't constantly wondering: ‘Is this a real bug in the code or … is it just that something's different on somebody machine?’” Amin points out.
+
+For Resolve AI, the standardization enforced by Flox also changed how the engineering team operates. As the team adds people, expands its codebase, and ships new capabilities, local development no longer acts as a drag on growth. Standardized environments reduce onboarding time, simplify diagnosis, and cut rework, enabling Resolve AI to absorb the complexity that comes with rapid growth without slowing down. 
+
+Building, testing, and shipping features, expanding infrastructure, and launching new services all become practicable and predictable. “Standardization means people focus on building the things we actually need to ship,” he explains. “The Flox environment is declared up front, so shipping downstream gets easier, too: Teams don't guess about what the code needs to build and run. It's defined in the environment."
+
+
+### A Deterministic Foundation for AI-Native Operations
+
+Reproducibility and determinism are the key: AI runtime environments _must_ be deterministic, their dependencies and other inputs fixed across space and time, so agents can detect and diagnose actual system behavior, not the effects introduced by arbitrary dependencies or undeclared inputs in the runtime.
+
+For Resolve AI, Flox provides the deterministic foundation the company’s agents need to reliably distinguish between signal—genuine anomalies—and arbitrary noise in the runtime environment. 
+
+This same foundation gives Resolve AI a controlled, repeatable path for building, testing, and shipping new features to production. Beyond local development, Flox environments provide a fixed point of reference that Resolve AI can carry forward into CI, staging, and production: CI, platform, and infrastructure teams use Flox environments and the package versions and inputs defined in them to author Dockerfiles or Compose files. And when debugging is required, any team anywhere, at any stage of the SDLC, can clone and run exactly the same Flox environment to reproduce issues.
+
+“Flox gives you this declarative reference, the Flox manifest, so you don’t have to rediscover what [dependencies] software needs for it to run,” Amin explains. “Plus, if something does go wrong, you don’t wonder whether it’s something real ... or an artifact of the machine it was built on. Teams spend less time chasing noise and more time working on actual issues.”

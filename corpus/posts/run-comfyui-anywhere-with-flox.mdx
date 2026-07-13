@@ -1,0 +1,143 @@
+---
+title: 'Run ComfyUI Anywhere With Flox'
+altTitle: 'Run ComfyUI Anywhere With Flox'
+description: 'ComfyUI is a node-based system for creating Stable Diffusion pipelines, and it offers endless possibility. Installing it with Flox is a breeze.'
+metaDescription: 'ComfyUI is a node-based system for creating Stable Diffusion pipelines, and it offers endless possibility. Installing it with Flox is a breeze.'
+isPublished: true
+author: Ross Turk
+publishedDate: 10 June 2025
+thumbnail: '/images/blog/world-in-monitor.webp'
+orderBy: 20250610
+---
+
+Text to image models are super fun to play with.
+
+If you want art, seek an artist. But if you need quick imagery for your fantasy football team, you want a background for your social media profiles, or you just want to see what a computer thinks _a beautiful glass of water_ looks like, they're just what you need.
+
+They're both preditable and unpredictable at the same time, in a way that is hard to explain. There are endless tunables, available models, and methods for tweaking text clippings and latent data. Everything makes sense, but there's a lot of it.
+
+## Why ComfyUI?
+
+This is where ComfyUI really shines. It does a fantastic job of exposing the plumbing behind Stable Diffusion pipelines, allowing you to wire things together in infinite ways and watch them as they run. This makes it a _fantastic_ learning tool.
+
+Tools like Fooocus and RuinedFooocus are also amazing - their far simpler "put a prompt in the box" interfaces help you create images easily - but ComfyUI lets you see what's going on in real time. Even the Automatic1111 WebUI, with its complex and flexible interface, can't let you see all the pieces come together. ComfyUI is an amazing place to start for those who hope to someday build complex diffusion pipelines.
+
+But getting ComfyUI up and running isn't exactly easy. Instructions vary across Linux, Mac, and Windows, and there are a lot of steps to go through.
+
+This article shows you how to use an environment from FloxHub to get ComfyUI up and running quickly, across all the systems where you work.
+
+## The Simple Setup
+
+Starting ComfyUI using the environment from FloxHub is easy. Let's get straight to it.
+
+This environment works from within a checked out clone of ComfyUI. Without the repo, there's nothing to run in this environment. So first we need to clone the repo.
+
+```
+% git clone https://github.com/comfyanonymous/ComfyUI.git
+[...]
+% cd ComfyUI
+```
+
+Once we have the repo cloned and we have `cd`ed into its directory, we can activate the environment from FloxHub using `flox activate`:
+
+```
+% flox activate -r flox/ComfyUI -s
+```
+
+Okay. Let's unpack what's happening here:
+
+- The `flox activate` command tells Flox to activate an environment. Flox environments are subshells, and their manifests contain packages, configuration, and hook scripts.
+- Adding `-r flox/ComfyUI` will pull the environment manifest from FloxHub at `flox/ComfyUI`. The environment will still run locally on Linux, Mac, and WSL2.
+- The `-s` flag will cause services defined in the environment to be started. In this case, these are the ComfyUI interface and a model loader.
+
+The first time you run this, it will take a while. Flox is building your environment behind the scenes - including Python, PyTorch, and a collection of other Python moduiles - and this will only happen the first time you activate.
+
+After the environment activates, you will be in a subshell with all of the ComfyUI Python modules available.
+
+```
+% flox activate -r flox/ComfyUI -s
+✅ You are now using the environment 'flox/ComfyUI (remote)'.
+To stop using this environment, type 'exit'
+
+flox [flox/ComfyUI (remote)] %
+```
+
+But, more importantly, you will have also started the services that are defined in this environment,. To see the list of services that have been started, you can run `flox services status`:
+
+```
+flox [flox/ComfyUI (remote)] % flox services status
+NAME       STATUS            PID
+comfyui    Running         20688
+getmodels  Completed     [20691]
+
+flox [flox/ComfyUI (remote)] %
+```
+
+You will notice two services on the list:
+
+- `comfyui`, which is the ComfyUI interface
+- `getmodels`, which is a simple script that downloads a few models from Hugging Face into the `models/` directory the first time it runs
+
+If you want to see logs for either of these services, you can run `flox services logs [servicename]`.
+
+## Using ComfyUI
+
+Once the services have started successfully, you will be able to visit http://127.0.0.1:8188/ to see the ComfyUI interface.
+
+The interface will be populated with a default workflow. You will see the following nodes:
+
+- Load Checkpoint: load a model from a file
+- CLIP Text Encode: encode a text prompt
+- Empty Latent Image: establish an empty latent space of the correct size
+- VAE decode: convert data in latent space into an image
+
+![The default ComfyUI workflow](/images/blog/comfyui-default-workflow.png 'The default ComfyUI workflow')
+
+These nodes have already been connected together in a functional way; a model, two text prompts, and an empty latent image are passed into the sampler, and the result is decoded into an image, shown to you in a preview node, and saved.
+
+All that is missing is for us to select the correct model file in the Load Checkpoint box. We downloaded one in our `getmodels` service, and that's the one we want to use.
+
+From here, to generate an image:
+
+- Locate the leftmost node, Load Checkpoint
+- Click the `ckpt_name` selection arrow, and select the v1-5-pruned-emaonly-fp16 checkpoint
+- Update the prompt in the top CLIP Text Encode box, if you want
+- Click the Queue Prompt button in the toolbar on the right
+
+You should begin to see the pipeline working - nodes will have a green border while they are active. When it's fiunished, you should see an image generated on the right-hand side of the node graph.
+
+You've just run your first ComfyUI pipeline! If you ran this on a Linux machine, try it on a Mac. Or vice versa, because this environment works everywhere.
+
+## What to do next
+
+This is just the beginning of what ComfyUI can do.
+
+The very next thing you should do is install ComfyUI Manager. This will make ComfyUI do a lot more amazing stuff through the web UI, including:
+
+- download models
+- manage custom nodes
+- update ComfyUI
+- restart the server
+- view server metadata
+
+To install it, run these commands:
+
+```
+flox [flox/ComfyUI (remote)] % cd custom_nodes/
+flox [flox/ComfyUI (remote)] % git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+[...]
+flox [flox/ComfyUI (remote)] % cd ..
+flox [flox/ComfyUI (remote)] % flox services restart
+```
+
+After that, take a look at the [ComfyUI Example Library](https://comfyanonymous.github.io/ComfyUI_examples/). Each of the images in the library can be loaded into ComfyUI as workflows.
+
+I'll say that again. The _images_ in the example library can be loaded as _workflows_ because the node graph has been stored in the image as metadata! Cool stuff.
+
+With those examples + ComfyUI Manager, you have everything you need to learn and build advanced Stable Diffusion workflows.
+
+## Flox makes it easy
+
+This environment works across Mac and Linux, and offers GPU acceleration for both CUDA and Metal. That's because Flox is making sure the exact version of the `pytorch-bin` package is installed for the system you're working on. The result: portable ComfyUI.
+
+Flox makes it easy to create environments that contain infinite combinations of packages, variables, hooks, and configuration. If you're new to Flox, head to our [docs](https://flox.dev/docs/) and create one of your own.

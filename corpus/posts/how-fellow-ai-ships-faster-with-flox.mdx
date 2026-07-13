@@ -1,0 +1,81 @@
+---
+title: 'How Fellow.ai Ships Faster with Flox'
+altTitle: 'How Flox helped Fellow.ai ship new AI capabilities faster, with less risk'
+description: "How Flox became Fellow.ai's invisible foundation for reproducible development — consistent environments, faster onboarding, and no more works-on-my-machine failures."
+metaDescription: "How Flox became Fellow.ai's invisible foundation for reproducible development — consistent environments, faster onboarding, and no more works-on-my-machine failures."
+isPublished: true
+category: case-study
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 11 May 2026
+thumbnail: '/images/case-studies/fellow-ai-case-study.webp'
+orderBy: 20260511
+---
+
+[Fellow.ai](https://fellow.ai) is the watercooler, meeting room, and boardroom of the modern, decentralized office, serving tens of thousands of users in more than 100 countries. A key driver of Fellow's rapid growth is the ability to ship new AI capabilities quickly while adapting to constant change in models, frameworks, and tooling.
+
+That speed depends on a rock-solid engineering foundation, and for Fellow, that foundation is Flox: a platform for creating reproducible build and runtime environments that work the same way everywhere. Fellow engineers rely on Flox to onboard faster, collaborate effectively, and ship product features customers will use and pay for. For Fellow as a whole, Flox reduces release risk and increases developer velocity: teams deliver reliably with fewer fire drills.
+
+"We needed local dev to be consistent for everyone. Otherwise, people end up wasting time on 'works-on-my-machine' issues instead of working on product features. Plus, local inconsistencies have a way of surfacing later in CI or production," Samuel Cormier-Iijima says. "Flox gives us a dependable foundation so we can move fast with tight feedback loops."
+
+
+### Growing Pains
+
+Fellow had the kind of enviable "problem" that comes with success: it was starting to outgrow the engineering habits and tooling that had helped fuel its early growth. The loosely structured ways of working that had made it possible to move fast as an early-stage startup were becoming more difficult to maintain. Different engineers had configured their local environments in different ways; software updates didn't reliably propagate; and the team was frustrated by chronic "works on my machine" failures. Docker containers helped to standardize _parts_ of local development, but came with their own set of costs: slow startup times, performance issues on older MacBooks, a local experience that walled developers off from their computers, and unpredictable behavior when a large number of services was involved.
+
+What Fellow needed was a **reliable foundation** for local development: something that would force environments to run and behave reproducibly across its SDLC; something that would accelerate onboarding, reduce maintenance overhead, and (not least) improve developer velocity. Reproducibility in local dev would make every downstream handoff—across testing, CI, and deployment—faster and more reliable. This, in turn, would make it easier, and safer, for Fellow to move new capabilities from development into production, while also making issues easier to reproduce, triage, and resolve.
+
+The catch, however, was that Fellow wanted to achieve this outcome _without_ forcing every engineer to learn new tools, disrupt their local workflows, or learn a new mental model.
+
+
+### Finding the Right Fit
+
+Cormier-Iijima knew of at least one solution that could tick most of these boxes: Nix, the open source package and environment manager. Nix's specialty is reproducibility: Nix dev shells, expressions, and flakes run reproducibly across space (laptops, CI runners, and production infrastructure) and time: today, tomorrow, next week, next year. This is powerful stuff. But Cormier-Iijima had used Nix in his personal workflows, and his experience convinced him it was too heavy of a lift for his team.
+
+Cormier-Iijima discovered Flox while he was looking for technologies that would provide strong reproducibility and determinism guarantees _without_ imposing a steep learning curve on his team. "I liked that Flox would give us Nix-like guarantees under the hood, but in a way that let us get those benefits without the learning curve," he explained. "Flox was transparent for our team. They didn't have to learn new tools or a new language, or change anything, to work with it."
+
+<PullQuote
+  quote="I liked that Flox would give us Nix-like guarantees under the hood, but in a way that let us get those benefits without the learning curve. Flox was transparent for our team. They didn't have to learn new tools or a new language, or change anything, to work with it."
+  name="Samuel Cormier-Iijima"
+  role="CTO & co-founder, Fellow.ai"
+  photo="/images/case-studies/samuel-cormier-iijima.webp"
+/>
+
+
+### Rolling Out Flox
+
+Fellow started out small, giving engineers in local dev the option to use Flox. Most did, right from the start. "Honestly, Flox mostly sold itself. A person started using it, other people saw they were using it, so they switched to it too. Nobody had any real trouble understanding it," Cormier-Iijima explains.
+
+With Flox, Fellow was able to replace a patchwork of developer-specific setups with a shared, reproducible foundation that could be co-located with the team's GitHub repositories. This way each project's runtime dependencies lived (and traveled) with its code. Every engineer collaborating on a project—be they core contributors or cross-functional team members—worked in the same environment.
+
+This consistency was huge, Cormier-Iijima argues. Runtime dependencies could now be versioned, managed, shared, reviewed, and updated like any other part of a software project. The difference was night and day: before Flox, projects would routinely fail or behave differently across machines. This was infuriating, but it was still better than having those issues surface _later_, after code had already moved into testing, CI, or production. Flox didn't completely solve this problem, but it did essentially eliminate drift in local development. "We had a lot of different environments. When something changed, we didn't have a good way of getting everyone updated. You'd get somebody saying, 'This doesn't work on my machine.' Once all the dev machines could run the same Flox environments, this rarely happened," he says.
+
+By eliminating missing or conflicting runtime dependencies as a source of local variance, Flox gives Fellow tighter feedback loops, less rework, and a secure path for moving new features and services from development into production. It also makes local development a far more meaningful proving ground: engineers now spend less time debugging machine-specific failures and more time testing and detecting code, integration, and behavior—before software gets handed off to CI or escapes into production.
+
+
+### Expanding into CI and Deployment
+
+Fellow is starting to introduce Flox into its CI and deployment tooling. Currently, it uses OCI images to ship software releases to CI via its existing pipeline. But Cormier-Iijima notes that Flox can emit minimal, distroless OCI images based on declarative environment definitions. He says he and his team are currently exploring this pattern. The team also uses Flox environments to standardize the tools engineers rely on to build, deploy, and operate software across environments. Flox environments now provide standard access to **`kubectl`**, **`terraform`** CLI, and other dependencies that need to stay in sync across deployment contexts. This gives the company a centralized, reproducible way to introduce and manage changes to its deployment tooling without having to reconfigure tools across every context.
+
+The most promising next step is Flox's imageless [Kubernetes, Uncontained](https://flox.dev/blog/kubernetes-uncontained-explained-unlocking-faster-more-reproducible-deployments-on-k8s/) pattern, which gives Fellow a way to extend Flox's declarative reproducibility guarantees into its Kubernetes runtime infrastructure. Instead of relying entirely on prebuilt OCI images, Fellow can run imageless Flox environments natively in Kubernetes pods. Flox environments source their software dependencies at runtime via an immutable, node-local Flox cache. This imageless pattern starts faster, uses fewer resources, and (best of all) eliminates OCI image rebuild loops.
+
+"That's one of the most promising things I see with Flox. Containers have memory overhead, especially when you're running multiple copies on a node, and there's also a lot of image churn," Cormier-Iijima says. "Even small code changes can mean rebuilding and propagating layers everywhere."
+
+
+### A Foundation That Just Works
+
+Cormier-Iijima and Fellow rely on Flox as a proven, team-ready foundation for reproducible development. Its hidden, Nix-powered machinery gives Fellow dev environments that "just work" across engineers and machines: not just in local dev, but in CI and deployment workflows. Its **`git`**- and **`npm`**-like  semantics, combined with its intuitive environment definitions, help simplify setup, onboarding, and use.
+
+Flox's declarative model simplifies maintenance and change management, too. Before Flox, there _was_ no standard environment configuration; rather, there were multiple, competing environment configuration<em>s</em>, each dispersed across scripts and config files, package managers, service definitions, and local machine state, or siloed in each engineer's head. With Flox, all of these inputs are codified as a versioned, shared, human-readable definition. This makes dependency updates, security patches, setup changes, and service modifications easier to review, faster to roll out, and safer to roll back when needed.
+
+The best thing about Flox, Cormier-Iijima says, is that it's inconspicuous: Fellow's engineering team doesn't even need to know they're using it. "For most people, after it was set up, Flox just faded into the background," he concludes. "They know it's there, but they don't have to think about it when they're working. It doesn't get in the way. In fact, it's become part of how things work for us."
+
+Ready to give your team a portable, reproducible foundation for development? It all starts with [FloxHub](https://hub.flox.dev), where teams can discover, pull, and share portable Flox environments that make local dev reproducible just by running **flox activate**.
+
+Get started today!
+
+<PullQuote
+  quote="For most people, after it was set up, Flox just faded into the background. They know it's there, but they don't have to think about it when they're working. It doesn't get in the way. In fact, it's become part of how things work for us."
+  name="Samuel Cormier-Iijima"
+  role="CTO & co-founder, Fellow.ai"
+/>

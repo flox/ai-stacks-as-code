@@ -1,0 +1,281 @@
+---
+title: 'Pair with Claude in Your Shell Using Anthropic + Flox'
+altTitle: 'Pair with Claude in Your Shell Using Anthropic + Flox'
+description: "With Flox's new pre-built environment, you can pass prompts to Anthropic's Claude models and get on-point results right within your terminal."
+metaDescription: "With Flox's new pre-built environment, you can pass prompts to Anthropic's Claude models and get on-point results right within your terminal.."
+isPublished: true
+isPopularPackage: true
+packageCategory: ai-ml
+packageName: claude-code
+author: Steve Swoyer
+publishedDate: 19 July 2024
+thumbnail: '/images/blog/anthropic.webp'
+orderBy: 20240719
+---
+
+When you're working in your project environment and stuff's starting to come together, you gotta do everything you can to stay in your flow. You gotta avoid the distraction of context-switching, even if it's just from one browser tab to another.
+
+But even when you're in your flow, sometimes you run into questions you can't answer on your own, and you just _gotta know_. When this happens, you use tools like `googler` or `ddgr` to search the web from your CLI.
+
+Now you can prompt [Anthropic](https://www.anthropic.com)'s [Claude](https://www.anthropic.com/claude) LLMs from your CLI, too—staying within your flow.
+
+With Flox's latest pre-built example environment, you can pass prompts to Anthropic's Claude models and get on-point results right within your terminal. What's more, you can pipe files to the Claude model of your choice, prompt it to analyze their contents, and optionally persist the model's response.
+
+With a little coding, you could even add a quick-and-dirty Flask API endpoint to our Anthropic environment, giving you a way to access it programmatically.
+
+This blog explores how you might use Flox's Anthropic environment in your day-to-day workflow.
+
+## The Case of the Nattering Node App
+
+Picture this: You're in your Node.js project environment, building a new service that integrates streaming data from Apache Kafka. You've used Node.js's `kafkajs` library to set up your Kafka producers and consumers. That went swimmingly. Now you're in your flow state, trying to tune your Kafka consumer group so it scales better to handle increased throughput levels.
+
+That's when you start getting these messages in your terminal:
+
+```
+INFO: [ConsumerGroup] Rebalancing
+INFO: [ConsumerGroup] Member xyz is rejoining
+INFO: [ConsumerGroup] Rebalance complete
+```
+
+Rebalancing happens over and over again—even under normal load.
+
+Why? What gives? Output from Kafka's `kafka-consumer-groups` tool tells you there's pretty major lag between the current and log-end offsets. And your logs paint an even more dire picture:
+
+```
+[2024-07-18T09:55:00.000Z] INFO: [ConsumerGroup] Rebalancing
+[2024-07-18T09:55:05.000Z] INFO: [ConsumerGroup] Member xyz is rejoining
+[2024-07-18T09:55:10.000Z] INFO: [ConsumerGroup] Rebalance complete
+[2024-07-18T09:55:15.000Z] INFO: Processing message from partition 0, offset 800
+[2024-07-18T09:55:25.000Z] INFO: Processing message from partition 1, offset 1200
+[2024-07-18T09:55:35.000Z] INFO: Processing message from partition 0, offset 801
+[2024-07-18T09:55:45.000Z] INFO: Processing message from partition 1, offset 1201
+[2024-07-18T09:55:55.000Z] INFO: Processing message from partition 0, offset 802
+[2024-07-18T09:56:05.000Z] INFO: Processing message from partition 1, offset 1202
+[2024-07-18T09:56:10.000Z] WARN: High consumer lag detected. Current lag: 3000 messages.
+[2024-07-18T09:56:10.000Z] INFO: Current processing rate: 1 message per 1 seconds.
+```
+
+But why? Dammit this _was_ working! What the `^#@&\*` is going on?!
+
+This is what tools like CoPilot were created for. Let's say for the sake of argument that you don't use CoPilot... but you _do_ use the pre-built Flox environment for prompting Anthropic's Claude LLMs from your terminal.
+
+You remember how when you first set it up, it asked you a couple of questions and was ready to go. Just like that.
+
+```
+daedalus@parrhesia:~/dev/api-gateway-service$ flox activate -r flox/anthropic
+✅ You are now using the environment 'flox/anthropic (remote)'.
+
+To stop using this environment, type 'exit'
+
+Please enter your Anthropic API key:
+> Type something...
+```
+
+That was all there was to it.
+
+## Prompting i-Claudeius
+
+You're already in your Flox Node.js environment, building and testing your new application on the latest release of Node.js. So you go ahead and activate `Claude` as a FloxHub environment:
+
+```
+flox [node22.3] daedalus@parrhesia:~/dev/node22.3$ flox activate -r flox/anthropic
+
+✅ You are now using the environment 'flox/anthropic (remote)'.
+
+To stop using this environment, type 'exit'
+Anthropic API key loaded from config file.
+flox [flox/anthropic (remote) node22.3] daedalus@parrhesia:~/dev/node22.3$
+```
+
+This environment is [layered](https://flox.dev/blog/a-very-short-introduction-to-layering-in-flox)—or superimposed virtually—over your Node.js project environment. It basically gives you an on-when-you-need-it, gone-when-you-don't prompting playground.
+
+And right now, you need it! So you get right to it:
+
+```
+flox [flox/anthropic (remote) node22.3] daedalus@parrhesia:~/dev/node22.3$ claude ‘my node.js service uses the kafkajs library to integrate with Kafka. I made some changes to the consumer groups and tweaked the code in my node application, and now my consumer group is experiencing high lag and frequent rebalancing. they're not keeping up with message volumes, even at normal load. i've already checked my consumer group configuration, and it seems fine. i'm partitioned according to best practices, too. can you help? please limit your response, as i'm querying you from a terminal.'
+
+Here are some potential causes and solutions to investigate:
+1. Check consumer processing speed:
+- Ensure message processing isn't too slow
+- Optimize any heavy computations or I/O operations
+
+2. Verify consumer instance count:
+- Ensure enough consumers for your partitions
+- Scale up if needed
+
+3. Review batch processing:
+- Adjust batch size and max bytes settings
+- Balance between throughput and latency
+
+4. Check for errors or exceptions:
+- Look for hidden errors in logs
+- Ensure proper error handling
+
+5. Monitor resource usage:
+- Check CPU, memory, and network utilization
+- Upgrade resources if bottlenecked
+
+6. Verify Kafka cluster health:
+- Check broker metrics and logs
+- Ensure cluster can handle current load
+
+7. Review recent code changes:
+- Look for unintended side effects
+- Consider rolling back if issue persists
+
+8. Analyze consumer group behavior:
+- Use Kafka monitoring tools
+- Look for patterns in rebalancing events
+
+Start with these steps and let me know if you need more specific guidance.
+```
+
+This is frustratingly basic stuff. It does make you think, however. Yes, you made some configuration changes in Kafka, but you _also_ refactored code in your `kafkajs` app, implementing synchronous logic to speed up message processing. But these changes were supposed to _improve_ performance under load! Your refactored code couldn't be the root cause...could it?
+
+You decide to pipe your code to Claude for analysis, asking it to compare your original and current versions. It's been a minute since you've used Flox's Anthropic environment, so you type:
+
+```
+flox [flox/anthropic (remote) node22.3] daedalus@parrhesia:~/dev/node22.3$ claude --help
+
+Usage: -c [OPTIONS] PROMPT
+
+Options:
+  -m, --model <string>        The Claude model to use (sonnet3.5, opus3,
+                              sonnet3, haiku3, or full model name)
+  -t, --temperature <float>   The temperature (0.0 to 1.0) for response
+                              generation
+  -x, --max-tokens <integer>  The maximum number of tokens in the response
+  -i, --infile <file>         File to read input from
+  -o, --outfile <file>        File to write the response to
+  --help                      Show this message and exit.
+```
+
+Eureka! `-i` was the option you needed. This lets you pass files to a Claude model for analysis.
+
+```
+flox [flox/anthropic (remote) node22.3] $ claude -i after.js "i created this code snippet to try to improve the performance of my node.js application, but now i'm having problems with consumers constantly rebalancing. when i use the 'kafka-consumer-groups' cli tool, i see there's major lag between the current and log-end offsets. could the code changes i made here be at fault?"
+
+Yes, the code changes you made are likely contributing to the performance issues
+and consumer rebalancing problems you're experiencing. The main issue is that
+you've introduced synchronous, blocking operations in the message processing
+logic, which can significantly slow down the consumer and lead to the problems
+you're observing. Here's why:
+
+1. Synchronous file reading: The `fs.readFileSync()` operation in the
+`processMessage` function is a blocking operation. This means that for each
+message, your consumer is waiting for the file to be read before processing the
+next message. If the file is large or there are many messages, this can cause
+significant delays.
+2. JSON parsing: While not as significant as the file reading, `JSON.parse()`
+is also a synchronous operation that can add some overhead, especially for
+large messages.
+3. Potential CPU-intensive operations: The `doSomethingWithFileData` function
+might be performing CPU-intensive tasks, further slowing down the message
+processing.
+
+These slow operations can cause the consumer to fall behind in processing
+messages, leading to increased lag and triggering rebalances as Kafka tries
+to redistribute the load among available consumers.
+
+To improve the situation, consider the following changes:
+```
+
+Claude printed a lot more information than this to your console—dozens and dozens of off-screen lines.
+
+So you decide to prompt it again, this time serializing its response to a text file:
+
+```
+flox [flox/anthropic (remote) node22.3] daedalus@parrhesia:~/dev/node22.3$ claude -i after.js -o output.txt "i created this code snippet to try to improve the performance of my node.js application, but now i'm having problems with consumers constantly rebalancing. when i use the 'kafka-consumer-groups' cli tool, i see there's major lag between the current and log-end offsets. could the code changes i made here be at fault?"
+Output saved to output.txt
+```
+
+You fire up your text editor to see what Claude had to say. Ordinarily, you'd do this using `vi` in your terminal, but `vi` doesn't make for a pretty or compelling visual in a walk-through.
+
+So we'll use `gnome-text-editor` instead. It isn't particularly pretty, but at least it's a GUI!
+
+![](/images/blog/code-changes-1.webp)
+
+There it is. The change you made to _improve_ performance under load actually _nerfed_ performance under all conditions! You could just revert to your prior, known-good code, but let's first ask Claude for help. You've been using the Flox Anthropic environment's default model, Claude Sonnet 3.5, but now you use the `-m` option to switch to Claude Opus 3, an older model that's arguably at least as capable, just slower. You've gotten excellent results from it when you've used it to debug stuff in the past.
+
+```
+flox [flox/anthropic (remote) node22.3] daedalus@parrhesia:~/dev/node22.3$ claude -i output.txt -o fixed.txt -m opus3 "how do i fix this? const { Kafka } = require('kafkajs');
+const fs = require('fs'); // Added file system module
+const kafka = new Kafka({
+clientId: 'my-app',
+brokers: ['kafka1:9092', 'kafka2:9092']
+});
+
+const consumer = kafka.consumer({ groupId: 'test-group' });
+const run = async () => {
+await consumer.connect();
+await consumer.subscribe({ topic: 'test-topic', fromBeginning: true });
+await consumer.run({
+eachMessage: async ({ topic, partition, message }) => {
+// Synchronous blocking operation added
+const data = JSON.parse(message.value.toString());
+processMessage(data);
+},
+});
+};
+const processMessage = (data) => {
+// Blocking synchronous file system operation
+const fileData = fs.readFileSync('/path/to/large/file.txt', 'utf8');
+// Process the data with the file content
+doSomethingWithFileData(fileData, data);
+};
+run().catch(console.error);
+"
+Output saved to fixed.txt
+```
+
+This time, you passed both an input file (`-i`) and code as part of your prompt, as well as specified a new model. But you kept the `-o` option, saving the output to a text file so you can more easily view and change the code generated by Claude. You once again fire up `fixed.txt` in your GUI text editor:
+![](/images/blog/code-changes-2.webp)
+
+This code snippet is actually a little different from your original. But it passes your sniff test.
+
+So you try it in your app, restarting Node.js, running your stress tests, and going to your logs.
+
+```
+[2024-07-18T10:05:00.000Z] INFO: Kafka consumer connected.
+[2024-07-18T10:05:00.100Z] INFO: Subscribed to topic test-topic.
+[2024-07-18T10:05:01.000Z] INFO: Processing message from partition 0, offset 2000.
+[2024-07-18T10:05:01.050Z] INFO: Processing message from partition 1, offset 2500.
+[2024-07-18T10:05:01.100Z] INFO: Processing message from partition 0, offset 2001.
+[2024-07-18T10:05:01.150Z] INFO: Processing message from partition 1, offset 2501.
+[2024-07-18T10:05:01.200Z] INFO: Processing message from partition 0, offset 2002.
+[2024-07-18T10:05:01.250Z] INFO: Processing message from partition 1, offset 2502.
+...
+[2024-07-18T10:10:00.100Z] INFO: Current processing rate: 200 messages per second.
+```
+
+That's it. You've solved your problem. But you're curious: could Claude zero in on exactly the right answer if you constrain its output, passing `-x` to limit the number of tokens it uses to generate responses?
+
+```
+flox [flox/anthropic (remote) node22.3] $ claude -i after.js -m opus3 -x 50 "i created this code snippet to try to improve the performance of my node.js application, but now i'm having problems with consumers constantly rebalancing. when i use the 'kafka-consumer-groups' cli tool, i see there's major lag between the current and log-end offsets. could the code changes i made here be at fault?"
+
+Yes, the code changes you made could be the reason for the consumer rebalancing
+and the lag between the current and log-end offsets.
+
+In your code, you introduced a blocking synchronous operation inside the
+`eachMessage` handler.
+```
+
+The very model of conciseness! Every good writer knows that being succinct is an art. Four centuries ago, Blaise Pascal put this best, [deadpanning](https://en.wikipedia.org/wiki/Lettres_provinciales) “I would have written a shorter letter, but did not have the time.”
+
+Given the right prompt constraints, the best LLMs do a pretty good job at making the time.
+
+## A Better Way to Build, Share, and Deploy Software
+
+To date, we've built Flox example environments for [Ollama](https://flox.dev/blog/llms-in-your-project-with-ollama-flox), [Stable Diffusion + HuggingFace Diffusers](https://flox.dev/blog/ml-modeling-with-flaim-and-hugging-face-diffusers), [OpenAI](https://flox.dev/blog/supercharge-your-shell-with-openai-flox), [Jupyter Notebook](https://flox.dev/blog/using-jupyter-notebooks-with-flox), [Podman](https://flox.dev/blog/run-containers-easily-with-podman-flox), and other useful stuff.
+
+The thing is, you could easily use Flox to build these environments on your own! There's really nothing special about them, and you can view their source using `flox list -c -r` and the environment name. Take a look to see how this one was built!
+
+Curious? Intrigued? Skeptical? Why not take one of our example environments for a spin?
+
+It's as easy as installing [Flox on OS X, Linux, or WSL](https://flox.dev/docs/install-flox/), and typing
+
+```
+flox activate -r flox/anthropic
+```
+
+When you're finished, just type exit and—poof!—it's gone! Try it and see how easily Flox fits into your workflow!

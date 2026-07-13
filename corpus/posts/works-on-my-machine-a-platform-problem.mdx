@@ -1,0 +1,269 @@
+---
+title: 'Works on My Machine—A Platform Problem'
+altTitle: 'Works on My Machine—A Platform Problem'
+description: 'Local development is just the first surface of an organization-wide delivery platform. Platform teams own the shared runtime contract that engineers depend on to build, test, debug, and deploy. Flox gives them a way to provide a pinned, declared set of packages, services, and environment variables.'
+metaDescription: 'Local development is just the first surface of an organization-wide delivery platform. Platform teams own the shared runtime contract that engineers depend on to build, test, debug, and deploy. Flox gives them a way to provide a pinned, declared set of packages, services, and environment variables.'
+isPublished: true
+category: guide
+author: Steve Swoyer
+publishedDate: 19 May 2026
+thumbnail: '/images/blog/riding-the-blinds.webp'
+orderBy: 20260519
+---
+
+Some sayings conceal at least as much as they reveal. In software, “works on my machine” is one of them.
+
+Take [Fellow.ai](http://flox.dev/case-studies/how-fellow-ai-ships-faster-with-flox), a fast-growing start-up that provides AI-powered meeting assistant software. The works-on-my-machine problems Fellow.ai was dealing with _should_ have been confined solely to local development: one engineer, their team, occasional friction in team collaboration. But they weren’t.
+
+Fellow.ai co-founder and CTO Sam Cormier-Iijima recognized that “works on my machine” is a failure of _shared infrastructure_. The symptoms show up everywhere. Code reviews stall because reviewers cannot run the branch. Pair debugging turns into pair works-on-my-machine debugging. Onboarding slows to a crawl. Failures in CI could be actual product defects … or artifacts of “works on my machine.”
+
+Flox enables Fellow.ai to eliminate works-on-my-machine issues. Instead of expecting each engineer to assemble and maintain their own local setup, Fellow uses Flox to define reproducible project environments that travel with their repos. Declarative Flox environments, and the runtime dependencies they define, co-locate with code as a shared, versioned part of each project. Flox makes the same software, environment variables, services, and setup available to every engineer working in that repo.
+
+Anytime, anywhere.
+
+
+### Why “Works on My Machine” Is a Platform Problem
+
+This is where **platform teams** come in. Local development is just the first surface of an org’s delivery platform. Platform teams own the shared runtime contract that engineers depend on to build, test, debug, and deploy. Flox gives them a way to provide a pinned, declared set of packages, services, and environment variables. They can use Flox to define setup hooks, per-environment functions and aliases, even build recipes that run in a hermetically isolated sandbox. Flox environments run in subshells, not in containers, so engineers can work on their machines, with transparent access to local resources.
+
+The best part is that the Flox environments run the same everywhere. Not just across platforms—from Linux to macOS and back again, on x86-64 or ARM—but across boundaries: locally, in CI, in production.
+
+With Flox, teams get a common operating context without forcing everyone into a dev container, cloud workspace, or unfamiliar workflow. Platform teams get to be heroes … rather than bad guys.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/platform-dimension.svg"
+	alt="Diagram showing Declared Environments materializing exactly the same runtime dependencies and environment over time"
+/>
+
+
+### Platform Teams Own the Shared Runtime Contract
+
+Fellow.ai’s business depends on shipping useful AI capabilities as quickly as possible, even though models, frameworks, and tools keep changing all the time. This pace of innovation depends on trustworthy local feedback loops: engineers need to know that when an app starts, tests pass, or services spin up on their laptops, these signals reflect the state of the project instead of the arbitrary state of their machine. “Works on my machine” breaks this feedback loop: a local pass only proves that one engineer has the right undeclared dependency; a local failure may only prove that another engineer does not.
+
+Thus the platform team’s dilemma: impose a strict boundary around local development … and stifle local autonomy, constrain team velocity, and take on the operational burden of building, testing, and maintaining the images teams work in. Alternatively, leave everyone to manage their own setup, and pay for that freedom in s-l-o-w onboarding, cramped collaboration, failures in CI, and outages in production.
+
+Think of a “platform” as any shared substrate that equips a team to move faster by abstracting (or simply eliminating) the set of things it must discover, interact with, and manage in the course of doing its work. Looked at this way, local development **is** platform infrastructure: it’s a laboratory of innovation, the starting point (and in a distinct sense the locus) of software delivery. What can or cannot be done in local dev determines what the organization can or cannot deliver. It sets the practical ceiling for what the organization can (or can’t) ship. Less glamorously, it also determines which failures slip—or ship—downstream. Because what happens in local dev doesn’t _stay_ in local dev; it gets exported (in the form of uncertainty, failure, inconsistency, etc.) to other, more expensive stages of software delivery.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/boundary-cost.svg"
+	alt="Chart comparing the costs borne by developers in local dev and platform teams over time with dev containers and cloud dev shells"
+/>
+
+### Local Development Sets the Ceiling … and the Floor, Too
+
+Fellow’s journey with Flox shows the real-world impact of standardized dev environments. You can read the case study [here](URL_TO_COME), or check out a deep dive on standardized dev environments [here](http://flox.dev/case-studies/how-fellow-ai-ships-faster-with-flox).
+
+With standardized environments, new engineers onboard faster because following along with a README isn’t an exercise in archaeology … or exegesis. Teammates collaborate more effectively because they can reliably pull, run, and work with one another’s code. CI and deployment workflows give reliable signal because “works on my machine” is no longer a thing: the same reproducible runtime travels everywhere and materializes exactly the same at any time.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/manifest-compare.svg"
+	alt="Comparison of Dockerfiles and Flox manifests"
+/>
+
+The best platforms give teams a stable, shared foundation, well-defined interfaces, and enough leeway to work effectively. It all starts with [FloxHub](https://hub.flox.dev), where teams can discover, pull, and share portable Flox environments that make local dev reproducible just by running **flox activate**.
+
+Get started today!
+
+## FAQ
+
+<details>
+<summary>**Why should platform teams care about “works on my machine”?**</summary>
+
+Platform teams care because local development is the first surface of the software delivery platform.
+
+When local development produces unreliable signals, every later stage of delivery gets noisier. Engineers lose time debugging setup problems. Reviewers cannot reliably run one another’s branches. CI failures become harder to interpret. Onboarding turns into a long exercise in reconstructing undocumented setup steps.
+
+These issues do not stay local. They move downstream as uncertainty, rework, delayed reviews, failed builds, staging surprises, and production risk. Platform teams can reduce these costs by treating the local development environment as shared infrastructure instead of leaving it to each engineer to assemble by hand.
+</details>
+
+<details>
+<summary>**Why are works-on-my-machine failures so difficult to diagnose?**</summary>
+
+“Works on my machine” means the project depends on something that has not been declared, pinned, shared, or reproduced consistently.
+
+The problem is not merely that engineers use different machines. Sometimes they use the same nominal versions of Node.js, Python, Rust, Go, or another toolchain, but one machine has a newer `make`, another has different Postgres client libraries, and another has a globally installed dependency that nobody documented. The project then depends on each machine’s accidental state.
+
+For platform teams, the lesson is clear: when the machine becomes part of the build, the platform has an implicit contract nobody owns clearly enough.
+</details>
+
+<details>
+<summary>**Why call this a platform problem rather than a local development problem?**</summary>
+
+A local development problem affects one engineer. A platform problem affects the system that lets many engineers move code from idea to production.
+
+“Works on my machine” starts in local development, but it spreads across the delivery process. Code review slows because reviewers cannot run the branch. Pair debugging becomes setup debugging. CI can fail because it lacks a dependency that existed on a laptop. Deployment workflows can encode different assumptions than local workflows.
+
+Platform teams own the shared substrate that lets engineers move faster with less repeated setup work. If every project requires engineers to rediscover, install, configure, and maintain the same runtime assumptions manually, the platform has pushed too much work onto individual developers.
+</details>
+
+<details>
+<summary>**What is the shared runtime contract?**</summary>
+
+The shared runtime contract is the declared set of tools, packages, services, environment variables, hooks, aliases, build recipes, and runtime behaviors a project needs in order to build, test, run, debug, and deploy.
+
+A strong runtime contract answers questions like:
+
+* Which versions of language runtimes does this project use?
+* Which system packages and command-line tools does it require?
+* Which services need to run locally?
+* Which environment variables does the application expect?
+* Which setup steps must run before development starts?
+* Which build or test commands should run in a controlled context?
+* Can CI and local development use the same declared environment?
+
+When platform teams define this contract explicitly, they replace guesswork with a versioned, repeatable operating context.
+</details>
+
+<details>
+<summary>**What happens when the runtime contract stays implicit?**</summary>
+
+Teams pay for an implicit runtime contract through repeated friction.
+
+New engineers spend days assembling local environments from READMEs, Slack threads, teammate advice, package manager errors, and stale assumptions. Existing engineers hesitate to change dependencies because they cannot predict who will break. Reviewers skip local validation because setup takes too long. CI failures become harder to triage because nobody knows whether the code or the environment caused the failure.
+
+Platform teams also absorb support load. They must answer recurring setup questions, repair inconsistent workflows, maintain ad hoc scripts, and decide whether to impose a stricter environment boundary. The organization pays for the same missing contract again and again.
+</details>
+
+<details>
+<summary>**How does Flox help platform teams define that contract?**</summary>
+
+Flox lets platform teams and application teams define development and runtime environments declaratively.
+
+A Flox environment can specify the packages, services, environment variables, setup hooks, functions, aliases, and build recipes a project needs. Teams can commit that environment definition with the repo so it travels with the code. When engineers run `flox activate`, Flox materializes the declared environment for that project.
+
+The platform team gains a shared, versioned contract. Developers gain a local environment that works without manually reconstructing project setup. CI and production workflows can use the same declared environment, which helps align each stage of delivery around the same runtime assumptions.
+</details>
+
+<details>
+<summary>**How does Flox differ from a README-based setup process?**</summary>
+
+A README can describe setup, but it cannot enforce setup.
+
+A README might tell engineers to install a specific Node.js version, configure environment variables, install a database client, update a compiler, or run several shell commands. Each engineer still has to interpret the instructions, adapt them to their machine, resolve conflicts, and keep the result current.
+
+Flox moves the source of truth from prose into an executable environment definition. The README can explain how to use the project, but the project no longer depends on each engineer manually translating instructions into a working machine state.
+</details>
+
+<details>
+<summary>**How does Flox differ from language-specific version managers?**</summary>
+
+Language-specific tools solve part of the problem within one ecosystem. Tools such as `asdf`, `uv`, Poetry, Conda, and JavaScript runtime managers can help pin runtimes or packages for specific languages.
+
+Platform teams usually need a wider contract. A service may require Node.js, Python, shell tools, native libraries, a database client, cloud CLIs, test utilities, environment variables, and local services. A language-specific manager often cannot define that full context across local development, CI, staging, and production.
+
+Flox treats the project environment as the unit of standardization. It can include language-specific tools, but it does not stop at the language boundary.
+</details>
+
+<details>
+<summary>**How does Flox differ from dev containers?**</summary>
+
+Dev containers solve environment inconsistency by putting development inside a containerized userspace. This gives platform teams a strong boundary and more control over dependencies.
+
+That control introduces costs. Developers may need to route editors, debuggers, credentials, filesystems, ports, and local services through a container boundary. Platform teams must build, test, patch, secure, document, and support the images engineers use. Over time, the dev container can become a platform product of its own.
+
+Flox standardizes the project runtime without forcing engineers into a container. Flox environments run in subshells, so developers keep working on their own machines while the project still gets a declared, reproducible set of tools, packages, services, and variables.
+</details>
+
+<details>
+<summary>**How does Flox differ from cloud development environments?**</summary>
+
+Cloud development environments move the developer’s workspace into a managed remote environment. This can help platform teams centralize control, provisioning, and policy.
+
+That model can work well for some organizations, but it also creates operational and developer experience costs. Engineers depend on network connectivity, remote workspace performance, centralized provisioning, permissions, quotas, and platform uptime. Platform teams must manage those workspaces as a service.
+
+Flox keeps development local while still giving platform teams a shared runtime contract. Engineers can use their existing editors, terminals, files, credentials, and local workflows. The platform team standardizes what the project needs, not every detail of how each engineer works.
+</details>
+
+<details>
+<summary>**How does Flox promote developer autonomy?**</summary>
+
+Flox standardizes the project context without standardizing the entire person-at-keyboard workflow.
+
+Engineers can keep their editor, terminal, shell preferences, local debugging tools, credentials, filesystem layout, and machine-specific productivity setup. They activate the environment for the project and leave it when they finish.
+
+This balance matters for platform teams. A good platform removes repetitive setup work, but it should not make skilled engineers fight the platform to do their jobs. Flox helps platform teams provide a common operating context while leaving room for local expertise and preference.
+</details>
+
+<details>
+<summary>**How does Flox improve onboarding?**</summary>
+
+Onboarding improves because new engineers no longer have to reconstruct the project environment from scattered instructions.
+
+With Flox, the environment definition travels with the repo. A new engineer can clone the project, run `flox activate`, and receive the declared tools, packages, services, variables, and setup behavior the project expects.
+
+This does not teach the codebase, architecture, product domain, or team practices by itself. It does remove a large category of setup work that teaches little and delays useful contribution.
+</details>
+
+<details>
+<summary>**How does this impact CI?**</summary>
+
+CI becomes more useful when it tests code in an environment that matches local development assumptions.
+
+If local development and CI use different undeclared dependencies, a CI failure can mean several things. The code might contain a real defect. CI might lack a package present on a laptop. A tool version might differ. A setup hook might have run locally but not in automation.
+
+Flox helps teams use the same declared environment across local and CI contexts. This makes CI failures easier to interpret because the environment becomes less mysterious. The signal shifts back toward the code and away from setup drift.
+</details>
+
+<details>
+<summary>**Does Flox replace Docker, Kubernetes, or CI systems?**</summary>
+
+No. Flox does not need to replace containers, orchestrators, or CI systems.
+
+Flox defines and materializes the runtime environment a project needs. Teams can still build containers, deploy to Kubernetes, run tests in CI, and operate production services through existing systems. Flox helps those systems share the same environment assumptions instead of each one rebuilding them differently.
+
+For platform teams, Flox can become the common environment layer that supports local development and automation without demanding a wholesale replacement of existing delivery infrastructure.
+</details>
+
+<details>
+<summary>**What kinds of project requirements can Flox declare?**</summary>
+
+Flox can declare project requirements such as:
+
+* Language runtimes
+* Compilers
+* System packages
+* Command-line tools
+* Database clients
+* Cloud CLIs
+* Linters and formatters
+* Test tools
+* Environment variables
+* Services
+* Setup hooks
+* Functions and aliases
+* Build recipes
+
+This breadth matters because platform teams rarely deal with a single missing runtime. Real projects combine multiple tools, services, and assumptions. Flox lets teams capture that combination as shared project infrastructure.
+</details>
+
+<details>
+<summary>**What is the platform-team dilemma this article describes?**</summary>
+
+Platform teams often face two unattractive choices.
+
+They can impose a strict boundary around local development with containers, remote workspaces, or other controlled environments. This can improve consistency, but it can also constrain developer workflows and create a larger operational surface for the platform team.
+
+Or they can leave local setup mostly unmanaged. This preserves autonomy, but the organization pays for it through slow onboarding, inconsistent collaboration, CI confusion, and delivery risk.
+
+Flox gives platform teams a third option: standardize the runtime contract without taking local development away from developers.
+</details>
+
+<details>
+<summary>**What role does FloxHub play for platform teams?**</summary>
+
+FloxHub gives teams a place to discover, share, and reuse portable Flox environments.
+
+Platform teams can publish known-good environments, standardize common patterns, and make approved project contexts easier to adopt. Application teams can pull and activate environments instead of inventing setup from scratch.
+
+This turns environment management into a reusable platform capability. Instead of every repository carrying its own undocumented setup history, teams can share declared environments that encode the organization’s preferred tools and practices.
+</details>
+
+<details>
+<summary>**What is the main takeaway?**</summary>
+
+“Works on my machine” signals that the organization has not fully declared the runtime contract its engineers depend on.
+
+Platform teams can solve this by treating local development as shared infrastructure. Flox gives them a way to define a pinned, declared, reproducible environment that travels with the repo and can run across local development, CI, and production.
+
+The result is a common operating context for engineering teams: less manual setup, faster onboarding, more reliable collaboration, clearer CI signal, and fewer environment surprises downstream. Platform teams get the consistency they need without forcing every developer into a container, cloud workspace, or unfamiliar workflow.
+</details>

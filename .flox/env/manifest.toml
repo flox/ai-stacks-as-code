@@ -1,0 +1,87 @@
+schema-version = "1.13.0"
+
+[install]
+
+[vars]
+
+[hook]
+on-activate = '''
+# Project layout + backend selection (all overridable at activation time).
+export AI_BRIEF_ROOT="$FLOX_ENV_PROJECT"
+export SOURCES_DIR="${SOURCES_DIR:-$AI_BRIEF_ROOT/sources}"
+export WORK_DIR="${WORK_DIR:-$AI_BRIEF_ROOT/work}"
+export REPORTS_DIR="${REPORTS_DIR:-$AI_BRIEF_ROOT/reports}"
+export PROMPTS_DIR="${PROMPTS_DIR:-$AI_BRIEF_ROOT/prompts}"
+export EVALS_DIR="${EVALS_DIR:-$AI_BRIEF_ROOT/evals}"
+export NOTEBOOKS_DIR="${NOTEBOOKS_DIR:-$AI_BRIEF_ROOT/notebooks}"
+export PIPELINE_DIR="${PIPELINE_DIR:-$AI_BRIEF_ROOT/pipeline}"
+export AI_BRIEF_JUSTFILE="${AI_BRIEF_JUSTFILE:-$AI_BRIEF_ROOT/justfile}"
+export AI_BRIEF_PYTHON="${AI_BRIEF_PYTHON:-python3.13}"
+
+# Backend: honor an explicit AI_BACKEND, else detect (cuda / mps / cpu).
+if [ -z "${AI_BACKEND:-}" ]; then
+  if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then
+    AI_BACKEND="mps"
+  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+    AI_BACKEND="cuda"
+  else
+    AI_BACKEND="cpu"
+  fi
+fi
+export AI_BACKEND
+
+# Idempotent project skeleton.
+mkdir -p "$SOURCES_DIR" "$WORK_DIR" "$REPORTS_DIR" "$PROMPTS_DIR" \
+         "$EVALS_DIR" "$NOTEBOOKS_DIR" "$PIPELINE_DIR" 2>/dev/null || true
+
+cd "$FLOX_ENV_PROJECT"
+'''
+
+[profile]
+bash = '''
+_ai_brief_just() { just --justfile "${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}" "$@"; }
+ingest()    { _ai_brief_just ingest "$@"; }
+index()     { _ai_brief_just index "$@"; }
+brief()     { _ai_brief_just brief "$@"; }
+ai-eval()   { _ai_brief_just ai-eval "$@"; }
+notebook()  { _ai_brief_just notebook "$@"; }
+ai-doctor() { _ai_brief_just ai-doctor "$@"; }
+'''
+zsh = '''
+_ai_brief_just() { just --justfile "${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}" "$@"; }
+ingest()    { _ai_brief_just ingest "$@"; }
+index()     { _ai_brief_just index "$@"; }
+brief()     { _ai_brief_just brief "$@"; }
+ai-eval()   { _ai_brief_just ai-eval "$@"; }
+notebook()  { _ai_brief_just notebook "$@"; }
+ai-doctor() { _ai_brief_just ai-doctor "$@"; }
+'''
+fish = '''
+function _ai_brief_just
+    set -l jf "$FLOX_ENV_PROJECT/justfile"
+    test -n "$AI_BRIEF_JUSTFILE"; and set jf "$AI_BRIEF_JUSTFILE"
+    just --justfile "$jf" $argv
+end
+function ingest;    _ai_brief_just ingest $argv;    end
+function index;     _ai_brief_just index $argv;     end
+function brief;     _ai_brief_just brief $argv;     end
+function ai-eval;   _ai_brief_just ai-eval $argv;   end
+function notebook;  _ai_brief_just notebook $argv;  end
+function ai-doctor; _ai_brief_just ai-doctor $argv; end
+'''
+
+[services]
+
+## Composed components ------------------------------------------------
+[include]
+environments = [
+    { dir = "envs/ai-base" },
+    { dir = "envs/ai-ingest" },
+    { dir = "envs/ai-embeddings" },
+    { dir = "envs/ai-notebook" },
+]
+
+[build]
+
+[options]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]

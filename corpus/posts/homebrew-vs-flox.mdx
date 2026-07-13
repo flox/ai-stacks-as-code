@@ -1,0 +1,99 @@
+---
+title: "Homebrew vs Flox"
+description: "Both Homebrew and flox are package managers, but their approach to package management is very different. 
+Homebrew is a package manager primarily designed for MacOS.
+flox is built on Nix, a more advanced package manager designed for Linux and other Unix-like operating systems, 
+including MacOS. Let's explore how you would migrate from Homebrew to flox."
+metaDescription: "Both Homebrew and flox are package managers, but their approach to package management is very different."
+isPublished: false
+category: guides
+publishedDate: 15 March 2023
+thumbnail: /images/blog/homebrew.webp
+orderBy: 12
+---
+
+Both [Homebrew](https://brew.sh/) and flox are package managers, but their approach to package management is very different. Homebrew is a package manager primarily designed for MacOS, and thus focuses on providing a simple and user-friendly interface for fetching packages for OSX.
+[flox](https://flox.dev/docs) is also a package manager that provides a simple and user-friendly interface, but flox is built on Nix, a more advanced package manager designed for Linux and other Unix-like operating systems, including MacOS.
+
+Let's explore how you would migrate from Homebrew to flox.
+
+### Install flox
+
+Installing flox feels like installing any other application on your Mac. If you haven't yet, you can install it [here](https://flox.dev/docs). As flox comes bundled with Nix, you can also use flox to install Nix.
+
+To finish the installation and to use flox to replace Homebrew you need to activate it in your terminal. Please add the following to your `~/.zshrc`:
+
+`. <(flox activate)`
+
+Once you've installed flox, run `flox --version` to verify your install.
+
+### Search and install
+
+As flox is built on Nix it also installs packages from the biggest collection of packages - Nixpkgs. We've written at length on the [importance of Nixpkgs](https://flox.dev/blog/nixpkgs-the-big-recipe-book-of-open-source) and what makes it stand out above the rest.
+
+As you would search for packages with a `brew search`, you can search for packages with `flox search` as well:
+
+```
+$ flox search ripgrep
+ripgrep - A utility that combines the usability of The Silver Searcher with the raw speed of grep
+ripgrep-all - Ripgrep, but also search in PDFs, E-Books, Office documents, zip, tar.gz, and more
+vgrep - User-friendly pager for grep/git-grep/ripgrep
+```
+
+To install a package simply use the `flox install` command:
+
+```
+$ flox install ripgrep
+$ # If you haven't yet, activate the default environment.
+$ flox activate
+$ # Is it there?
+$ rg
+$ flox remove ripgrep
+$ # It's gone!
+$ which rg
+```
+
+In essence, flox can supplant Homebrew by sourcing packages from Nixpkgs. However, flox can do much more: you can **define multiple environments coexisting on one machine**, and since they’re defined as code, the environments can be **moved from one machine to another**. Let’s see how.
+
+### One machine, many environments
+
+Everyone has a flox environment called “default”. If I want to switch between versions of Python, for example, I simply switch environments: both versions of Python can coexist on my machine without any issues.
+
+To install a package to a specific `python3-env` environment, use the `-e` flag:
+
+```
+$ flox install -e python3-env python310
+Installed 'python310' package(s) into 'python3-env' environment.
+```
+
+Brew can’t do this, and neither can most package managers. **flox can handle any number of environments** and thereby manage which packages, versions, and the shell environments they run in.
+
+And it can do something truly magical: since environments are defined as code, they can be moved around like code, freeing us from the constraints of our machine-bound environments.
+
+### Sharing environments
+
+Once you have created an environment, you can share it with the world by pushing it to github/lab with:
+
+``` flox push -e python3-env```
+
+Recreating your default machine environment on a new machine is as easy as `flox pull`.
+In fact if your repo is public, anyone could run `flox pull` and get your exact environment.
+“Works on my machine” is over for good!
+
+### Containerize
+
+You can also render any flox environment in a [container](https://flox.dev/blog/nix-and-containers-why-not-both):
+
+``` flox containerize > my-container ```
+
+Check out the [docs](https://flox.dev/docs/build-container-images) for more detail.
+
+### Hold My Beer 🍺
+
+flox opens up possibilities that Homebrew can’t go near, like enabling truly portable environments.
+
+You can also **run both flox and Homebrew side by side without any issue**.
+
+One disadvantage of flox is that it contains fewer MacOS applications for download than Homebrew, since many MacOS developers have contributed to Homebrew. However, this is rapidly changing and you can contribute to [Nixpkgs](https://flox.dev/blog/nixpkgs-the-big-recipe-book-of-open-source) too!
+
+So if you want a taste of the future of package management, get started with flox via our [docs](https://flox.dev/docs), check out our [GitHub](https://github.com/flox), and follow us on [Twitter](https://twitter.com/floxdevelopment)!

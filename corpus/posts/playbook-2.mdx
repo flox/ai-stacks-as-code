@@ -1,0 +1,178 @@
+---
+title: 'Playbook 2: Decide Where the Service Boundary Belongs'
+description: 'Define which responsibilities belong in the Flox project runtime, backing-service containers, CI, or local workflows.'
+isPublished: true
+isUnlisted: true
+publishedDate: '2026-05-27'
+thumbnail: '/images/blog/wizard-or-witches-hat.webp'
+author: Steve Swoyer
+category: 'guides'
+---
+
+## Playbook 2: Decide Where the Service Boundary Belongs
+
+The first section covers how to distribute that responsibility among Flox, CI, and individual engineers. The second examines how to divide the runtime contract cleanly between Flox (the **project runtime**) and containers (**backing services**) to match real-world production conditions. The third covers when and why to use Flox-managed services.
+
+Once the team inventories the runtime contract, the next question concerns how to implement and honor its terms. This playbook's first two sections are grounded on the assumption that human contributors, agents, and automated pipelines typically expect to run against the same services the org uses in production; in most cases, these services run as containers. **Section 1** covers how to distribute that responsibility among Flox, CI, and individual engineers. **Section 2** examines how to divide the runtime contract cleanly between Flox (the **project runtime**) and containers (**backing services**) to match real-world production conditions. **Section 3** covers when and why to use Flox-managed services.
+
+
+### Separating Concerns
+
+This section looks at the build or runtime environment through three distinct lenses:
+
+1. The shared tools required to run the code;
+2. The automated guardrails that validate it;
+3. The personal preferences of the engineers authoring it.
+
+The section outlines a clear separation of concerns before pivoting to the question of backing services.
+
+
+#### What Flox is responsible for
+
+-  **Language runtimes and interpreters**. Node.js, Python, Go, Rust, Java, Ruby, and the like. 
+-  **Compilers and build tools**. GCC and CLang; **`make`**, **`automake`**, **`cmake`**, etc.
+-  **Database clients and database-specific dependencies**. Clients like **`psql`**, **`mysql`**, **`mariadb`**, **`redis-cli`**, and **`mongosh`**. Libraries like **`libpq`**, **`libmysqlclient`**, etc.
+-  **CLI tools**, like **`git`**, **`gh`**, **`aws`**, **`kubectl`**, **`k9s`**, **`terraform`**, etc.
+-  **Environment variables**. These define shared project defaults, such as database connection settings, mode (**`APP_ENV`**, **`NODE_ENV`**), logging (**`LOG_LEVEL`**), and feature flags.
+-  **Setup hooks**. These idempotently bootstrap project setup, such as creating a Python virtual environment; preparing cache directories, exporting derived paths, etc.
+-  **Aliases and shell functions**. These improve the environment’s UX or DX: e.g., shortcuts for accessing, migrating, or inspecting services; wrappers for CLI tools like **`gh`**, **`aws`**, or **`kubectl`**.
+-  **Task entrypoint wrappers** for commands the team needs to run the same way every time: **`test`**, **`lint`**, **`format`**, **`build`**, **`migrate`**, **`seed`**, **`serve`**, and **`release`**. These usually wrap the underlying tools in Make targets, Just recipes, package-manager scripts, repo scripts, etc.
+- **`Build recipes`**, if teams are building, packaging, and publishing with Flox.
+
+**Note**: Put literal values only under **`[vars]`**; values derived from the runtime context, such as repo-relative paths, cache directories, venv paths, and **`PATH`** edits, belong in **`[hook].on-activate`**.
+
+
+#### What CI is responsible for
+
+- **Running the same Flox environment used by contributors**. CI always runs with the project’s declared runtimes, compilers, database clients, and CLIs. The contract is clear: run the same bits everywhere.
+- **Starting service containers needed for checks**. These include PostgreSQL, Redis, Airflow, Temporal, Kafka, Elasticsearch, MinIO, RabbitMQ, and any other backing services.
+- **Running the project’s task entrypoints**. Testing **`test`**, **`lint`**, **`format`**, **`build`**, **`migrate`**, **`seed`**, and **`release`** and validating that they behave as expected.
+- **Handling CI-only orchestration**. Waiting for health checks, running migrations before integration tests, collecting logs, uploading test reports, caching dependency stores, running matrix jobs.
+- **Managing CI-only credentials and publication steps**. Registry tokens, cloud deploy credentials, signing keys, artifact uploads, package and/or image publishing operations, tagging, deployment.
+
+
+#### What each individual engineer is responsible for
+
+- **Their editor and IDE preferences**. VS Code, vim, JetBrains IDEs, extensions, themes, keybindings etc.
+- **Their terminal and shell preferences**. Choice of terminal emulator, shell, prompt theme, history behavior, and completion style. Any personal functions or aliases that aren’t part of the project workflow.
+- **Local credentials and IAM config**. SSH keys, Git signing keys, personal access tokens, one-off service credentials stay local or use the team’s secrets manager. **Note**: Teams can use Flox to define tooling and wrappers for secure access, but Flox manifests should never contain secret values.
+- **Their own machine-specific settings**. This category includes where they put the repo on local disk; the layout of their **`$HOME`** directory; their local hardware and its specific requirements, etc.
+
+
+### Container-Managed Services in Local Dev
+
+Containers make sense in local development when teams need to run against exactly the same services used elsewhere in the SDLC. If CI, staging, or production consume a specific Postgres, Redis, or other backing service image, it makes sense for engineers to run that same image locally. This gives the team an explicit service boundary and ensures that local development mimics the workflow used downstream.
+
+This is especially useful when:
+
+-  The team needs to test against the same OCI image CI or production uses;
+-  The service specifies a production-like configuration that needs to be accounted for locally;
+-  The project already expects to reset the service’s state via Compose or the container runtime;
+-  The team prefers a hard boundary between the project runtime and the service runtime;
+-  The organization already versions and governs the service using OCI images.
+
+In this pattern, **Flox provides the project runtime**. Platform teams define Ruby, Python, Node.js, Go, Rust, Java, compilers, native libraries, database clients, platform CLIs, linters, formatters, test tools, and other dependencies. They set shell environment variables, define useful functions and services, etc. The Flox **`manifest.toml`** and **`manifest.lock`** become the contract for the _project environment_.
+
+**Containers run the backing services**. They package and run PostgreSQL, Redis, MariaDB, MinIO, OpenSearch, or other long-running services behind a clear boundary. The Dockerfile/Compose file and container runtime become the contract for the _service artifact_: image, tag or digest, ports, volumes, health checks, credentials, initialization scripts, and restart behavior. Developers don’t work _inside_ that service runtime; they connect to it via its public interface, using clients and variables supplied by Flox.
+
+The interface between the two contracts is explicit. The Flox manifest defines the variables the project uses to discover backing services—**`PGHOST`**, **`PGPORT`**, **`REDIS_URL`**, **`DATABASE_URL`**, etc.—along with socket paths, client tools, and so on.
+
+The service side of the contract consists of the OCI image reference plus the configuration used to run it: a Compose file, Kubernetes manifest, **`docker run`** wrapper, or equivalent script that defines ports, credentials, health checks, volumes, initialization and restart behavior, and so on. 
+
+For example:
+
+```
+Flox:
+-  Ruby
+-  Bundler
+-  PostgreSQL client libraries
+-  gcc / make / pkg-config
+-  Rails CLI
+-  test and migration commands
+
+Containers:
+- PostgreSQL
+- Redis
+```
+
+This pattern lets engineers work on their local machines, with their own editors, shells, Unix sockets, and debugging tools; backing services run behind an explicit lifecycle, networking, and state boundary.
+
+But this is only one valid pattern.
+
+
+### Flox-Managed Services in Local Dev
+
+Flox environments provide built-in service management. Platform teams can define packages, variables, hooks, and long-running services as part of the declared Flox environment. Postgres, Redis, and other services (even Kafka or Spark) can be part of a project’s Flox-defined runtime contract, defined either in the project environment’s manifest or composed/layered as modular environments on-demand.
+
+If the team does not need to reproduce a downstream container image, or if a requirement is more opportunistic—e.g., “This project needs a local relational database” or “This test suite needs Postgres”—then a Flox-managed service might be the better fit. In this model, the service becomes part of the declared Flox environment: either defined as an explicit **`[postgres.service]`**; **`[include]`**ed as a composed environment in the manifest itself; or activated on-demand using a pattern called [layering](https://flox.dev/docs/tutorials/layering-multiple-environments/?h=layering), as shown below:
+
+```
+flox activate -s -r flox/postgres
+```
+
+This gives engineers a versioned, managed Postgres environment without requiring that they install Postgres globally; create and maintain a Compose file; install a container runtime; or configure container networking and/or storage. This service uses the same declared model as the project runtime. Engineers continue to work with transparent access to all local affordances: their own shells, local credentials, Unix sockets, project-local directories, and database settings they can inspect or modify as needed.
+
+
+### Codifying the Service Boundary Decision
+
+This deliverable could take the form of a markdown document or an issue attached to the repo. It should be specific enough that human or machine intelligence could turn it into a Flox manifest.
+
+An example:
+
+```
+Project: payments-api
+Owner: Payments team
+Platform contact: DevEx / Platform
+
+Boundary decision:
+
+Flox project runtime:
+- Node.js 24
+- Python 3.13
+- gcc
+- gnumake
+- pkg-config
+- jq
+- curl
+- kubectl
+- terraform
+- PostgreSQL client libraries
+
+Container-managed backing services:
+- PostgreSQL via Compose
+- Redis via Compose
+
+Flox-managed services:
+- none
+
+Service interface:
+- PGHOST=localhost
+- PGPORT=5432
+- REDIS_URL=redis://localhost:6379
+
+CI responsibilities:
+- run the same Flox environment
+- start PostgreSQL and Redis service containers for checks
+- run dev, test, lint, migrate, and deploy-plan entrypoints
+- manage CI-only credentials, reports, caches, artifacts, and publication steps
+
+Engineer-owned choices:
+- editor choice
+- terminal choice
+- shell prompt
+- local credentials
+- personal Git aliases
+
+Reasoning:
+- PostgreSQL and Redis remain container-managed because the project already tests against the same service images in CI and expects Compose-owned state reset behavior.
+- Flox owns the project runtime, client tools, variables, activation behavior, and task entrypoints.
+```
+
+At the end of this step, the team should have a clear answer to four questions:
+
+-  What does Flox own?
+-  What do containers own?
+-  What does CI own?
+-  What remains the prerogative of the individual engineer?
+
+This boundary decision becomes the input to **Playbook 3**: decomposing Dockerfiles, Compose files, devcontainer configs, entrypoint scripts, and CI setup and mapping the relevant pieces to a declared Flox environment.

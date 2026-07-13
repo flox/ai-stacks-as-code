@@ -1,0 +1,312 @@
+---
+title: 'Composable Dev Environments: Layering and Composition in Flox'
+metaTitle: 'Composable Dev Environments: Layering and Composition in Flox'
+description: 'Layering and composition are two powerful ways to create and share Flox environments.'
+metaDescription: 'Layering and composition are two powerful ways to create and share Flox environments.'
+isPublished: true
+publishedDate: 26 Aug 2025
+author: Steve Swoyer
+authorKey: steve-swoyer
+thumbnail: /images/blog/nothing-will-come-of-nothing.webp
+orderBy: 20250826
+---
+
+TL;DR
+- Layering adds tools dynamically at runtime.
+- Composition merges environments declaratively at build.
+- Layering suits ad hoc, flexible workflows best.
+- Composition ensures reproducibility and version control.
+- Combine both methods: layering for speed, composition for stability.
+
+This guide explores how layering and composition work in Flox—and when and why you might use each.
+
+Both let you combine environments, but differ in how they're designed, how they behave, and where they fit.
+
+**Layering** is an imperative, runtime pattern. In a [layered Flox stack](https://flox.dev/blog/a-very-short-introduction-to-layering-in-flox/), each environment inherits the capabilities of the ones below it while adding its own. That makes layering ideal for ad hoc use—when a project suddenly needs extra tools or services.
+
+**Composition** is declarative, resolving dependencies as soon as you save your edited manifest. You [create a `composing` environment](https://flox.dev/docs/concepts/composition/) that defines one or more `included` environments. Composition gives you a creation-time guarantee that you can successfully build the environment, plus a versioned, shareable composing environment you can reproduce anywhere.
+
+With this as a prelude, let’s dig into what layering and composition are and how they work.
+
+
+## Layering 101: Accessing The Right Tool, Every Time
+
+An individual Flox environment is like a foundation: it’s the dev-time environment you use to author, build, run, and debug code, and the production runtime where it executes.
+
+But you can stack Flox environments like so many strata, one on top of another. Each new stratum, or layer, adds capabilities on top of what’s beneath it.
+
+Imagine you need to debug connectivity issues between the frontend and backend services you’re developing locally on your laptop. To troubleshoot, you’re going to need access to tools like `ncat`, `dig`, `curl`, `httpie`, `nmap`, and others so that you can inspect DNS resolution, open ports, HTTP responses, and network behavior. You’re developing on your bare metal system, but you’re using Flox.
+
+Layering gives you a pretty simple solution to this. All you need to do is run **`flox activate -r barstoolbluz/nettools`** from within your project repo. The **`-r`** switch activates a FloxHub environment (`nettools`) versioned under your FloxHub profile. 
+
+This way you get easy access to required software and services on an ad hoc basis. Packages like:
+
+```
+ncat: ncat (7.92)
+hey: hey (0.1.4)
+wrk: wrk (4.2.0)
+curl: curl (7.81.0)
+dig: dig (9.16.25)
+dog: dog (1.7)
+httpie: httpie (3.0.2)
+jq: jq (1.6)
+ngrep: ngrep (1.47)
+openssl: openssl (1.1.1m)
+socat: socat (1.7.4.3)
+socket_wrapper: socket_wrapper (1.3.3)
+websocat: websocat (1.9.0)
+wstunnel: wstunnel (0.4.1.0)
+yq: yq (2.13.0)
+```
+
+Once you **`flox activate`** the `nettools` environment, you can run these and other pre-defined packages—plus dozens of aliases and helper functions. Like this one:
+
+```
+# gipr gets my public-facing ip from ipinfo.io + parses json with jq
+gipr() {
+  local ip=$(curl -s https://ipinfo.io)
+  gum style --border rounded --border-foreground 240 --padding "1 2" --width 50 \
+    "$(gum style --foreground 33 --bold "Your Public IP Information")" \
+    "" \
+    "$(gum style --foreground 214 "IP:")        $(gum style --foreground 82 "$(echo $ip | jq -r .ip)")" \
+    "$(gum style --foreground 214 "Location:")  $(gum style --foreground 82 "$(echo $ip | jq -r '.city + ", " + .region + ", " + .country')")" \
+    "$(gum style --foreground 214 "ISP:")       $(gum style --foreground 82 "$(echo $ip | jq -r .org)")" \
+    "$(gum style --foreground 214 "Coords:")    $(gum style --foreground 82 "$(echo $ip | jq -r .loc)")"
+}
+```
+
+This is a textbook ad hoc use case for layering: you’re in your workflow and need _just the right tool_, a collection of just-the-right tools, or purpose-specific services, automations, and/or helper functions. Layering gives you access to these when and where you need them; when you type `exit` to quit your layered stack, your project is still right where you left it—and there’s no installation residue to clean up.
+
+Let’s look at a more advanced application of layering in Flox.
+
+
+## Layering 202: Design Strategy
+
+You can use layering to create modular, purpose-built app, tool, and/or services runtimes—just by activating and stacking pre-built Flox environments one on top of the other. 
+
+Say you’re working on a TypeScript project and need a local replica of your production database to try out schema changes before shipping to CI. No problem! Just run **`flox activate -s -r platform-team/postgres`** and—presto!—you’ve brought up an ephemeral PostgreSQL instance that’s maintained by your platform team. It matches prod, runs without containers…and vanishes when you’re done.
+
+Next, imagine you need Python tools for working with PostgreSQL. Easy! Just layer your team’s **`frontend-team/python-dbms`** Flox environment on top of `[postgres]`.
+
+But—shh! don’t tell anyone!—authoring SQL isn’t exactly your métier, so you also need an LLM that generates SQL queries for you. That’s when you fire up your personal **`my-github-handle/ollama`**  environment, pull and run `qwen3:14b`, and layer _that_ on top.
+
+Now your stack looks like:
+
+![](/images/blog/layered-flox-stack.svg)
+
+This pattern supports a _repeatable use case_—you’re working on your service and need to run database-backed tests—but also reflects a _pragmatic balance_, preserving separation-of-concerns boundaries by scoping each Flox environment to a specific concern, while giving teams (and individual devs) the flexibility to activate layers on demand. Since this is a regular part of your workflow, you use an alias to bring up your layered stack:
+
+```
+alias cromulent=‘flox activate -r flox/postgres -- \ 
+flox activate -r flox/metabase -- \ 
+flox activate -r flox/nb' -- \
+flox activate -r flox/ollama’
+```
+
+True, you _could_ build all of this stuff into a single Flox environment, just as you _could_ use composition to merge each of these into a composed meta-environment.
+
+But here, you’re using layering _deliberately_—i.e., as a design pattern that reflects classic separation-of-concerns (SoC) principles, keeping application logic, infrastructure services, and dev tools logically isolated.
+
+
+### Advantages of Layering in a Dev Environment
+
+In both **Layering 101** and **Layering 202**, you activate and layer environments _as you need them_, i.e., in the context of your workflow. This can be mostly ad hoc or (as in **Layering 202**) part of a deliberate strategy. But you neither need to know nor care that you’re layering; what matters is that you’re able to access and use the tools, services, and helper logic you need when and where you need them.
+
+These real-world use cases demonstrate several of the essential advantages of layering with Flox.
+
+**It’s great for ad hoc requirements**. How many times have you been working on your local system or in a VM/container and needed access to something—a tool, a service, variables, secrets—that wasn’t built into it? Layering gives you a way to bring up not just the tools you need, but a pre-built, preconfigured runtime designed just for them, with services, helper functions, built in env vars, auth management, etc.
+
+**It’s convenient**. Because layering is ideal for ad hoc use, you don’t need to design ahead or conform to any spec. There’s no reference standard for making an environment layer-able—[you can layer virtually any Flox environment](https://flox.dev/docs/tutorials/layering-multiple-environments), and you can stack them in nearly any combination. It’s convenient and _ergonomic_.
+
+**It reinforces separation of concerns (SOC)**. With layering, dev teams can invoke Flox environments scoped to specific concerns, like auth services or observability (o11y) tools. This separation maps cleanly to _ownership boundaries_, too: for example, platform teams can maintain shared service environments (like `platform-team/postgres`, or `platform-team/o11y`), which dev teams can layer into their workflows.
+
+**It’s easier to reuse**. Instead of reinventing the wheel each time, owners can publish tool-, service, or even use case-specific Flox environments—like `platform-team/postgres` and `platform-team/redis`, or `devtools/networking` or `devtools/auth`—and teams can layer them into their workflows as needed.
+
+
+### Disadvantages of Layering in a Dev Environment
+
+**Conflicts surface at runtime, not build time**. Unlike composed environments, layered environments are _implicitly constructed_: you’re stacking Flox subshells, so there’s no single declarative spec you can inspect to see which versions of binaries, or which conflicting env vars, aliases, functions, or services, are accessible.
+
+**A layered stack might not behave as expected**. Binaries, variables, and other resources available in lower layers can be overridden or hidden by upper layers. This can lead to situations where upper layers use incompatible versions of binaries, mask identical vars, or silently alter runtime behavior. You may not notice anything’s off until you run a command or reference a var that doesn’t behave quite the way you expected.
+
+**Order is everything**. Because layered environments aren’t composed, the order in which they’re layered affects which tools, services, and variables take precedence. To avoid conflicts or unintended overrides, you need to be deliberate about how you layer—especially in workflows where reliability and predictability matter.
+
+**They’re harder to share and manage**. Unlike composed environments—which are defined declaratively in a manifest, versioned, and shared across teams—layered environments are assembled procedurally and imperatively at runtime. “Sharing” a layered setup involves documenting the activation sequence and scripting it manually. This makes layered environments less portable, less reproducible, and harder to manage at scale.
+
+
+## Composition 101: How it Works
+
+Rather than telling you what composition is, let’s instead demonstrate how it works. Then we’ll talk about how and why it’s different from layering, and also explore its advantages and disadvantages.
+
+Let’s say I’m a Rust developer and that my go-to Rust toolchain consists of my compiler, system build tools, and developer tools. Prior to composition’s debut in version 1.4 of Flox, I might have layered this toolchain as part of my workflow. The process of doing this would have been _procedural_ and _sequential_, like this:
+
+```
+flox activate -r barstoolbluz/rustc
+```
+
+From within the `rustc` environment, I’d then have activated my `barstoolbluz/rustb` build environment. And once inside _that_ environment, I would have activated my `barstoolbluz/rustd` dev tools.
+
+More likely, I’d create an alias that did this for me automatically:
+
+```
+alias crusty='flox activate -r barstoolbluz/rustc -- \
+flox activate -r barstoolbluz/rustb -- \
+flox activate -r barstoolbluz/rustd'
+```
+
+But this feels slightly … inelegant? Almost like a four-letter word beginning with “h” that has a pejorative connotation among programmers? To be sure, it’s simple and it works, but … is there a different way?
+
+There is. What if one could do something like this in a Flox environment manifest:[a]
+
+```
+version 1
+
+[include]
+environments = [
+    { remote = "barstoolbluz/rustc" },
+    { remote = "barstoolbluz/rustb" },
+    { remote = "barstoolbluz/rustd" }
+]
+```
+
+If I **`flox activate`** this environment, I’m put into a **`composed`** manifest that merges the manifests from `rustc`, `rustb`, and `rustd`.
+
+Typing **`flox list -c`** displays the contents of this `composed` Flox manifest:
+
+```
+version = 1
+
+[install]
+cargo.pkg-path = "cargo"
+cargo-nextest.pkg-path = "cargo-nextest"
+clang.pkg-path = "clang"
+pkg-config.pkg-path = "pkg-config"
+rust-analyzer.pkg-path = "rust-analyzer"
+rustc.pkg-path = "rustc"
+
+[options]
+systems = ["aarch64-darwin", "aarch64-linux", "x86_64-darwin", "x86_64-linux"]
+
+ℹ️  Displaying merged manifest.
+```
+
+## Composition 202: Composing Full-Stack Environments
+
+Let’s look at another example, this time [involving a composed dev manifest for BI and analytics](https://flox.dev/popular-packages/creating-a-reproducible-bi-and-analytics-stack-that-just-works-anywhere-with-flox/).
+
+This composed manifest consists of:
+
+-  Flox’s pre-built PostgreSQL example environment
+-  Flox’s pre-built Metabase example environment
+-  Flox’s pre-built JupyterLab example environment
+
+The composing manifest looks like:
+
+```
+version = 1
+
+[install]
+
+[vars]
+PGHOSTADDR = "127.0.0.1"
+PGPORT = "15432"
+PGUSER = "pguser"
+PGPASS = "pgpass"
+PGDATABASE = "pgdb"[b]
+
+[include]
+environments = [
+    { remote = "flox/postgres" },
+    { remote = "flox/metabase" },
+    { remote = "flox/nb" }
+]
+```
+
+This second example illustrates a different, equally powerful use case for composition: creating full-stack environments composed of multiple runtime services. The composed Rust environment in **Composition 101** combined separate compiler, build tool, and dev tool environments to create a unified runtime for Rust development. It’s a workflow-specific composed environment designed for modular, repeatable software development.
+
+The composed manifest shows how composition can be used to define _a complete software stack_: in this case, a database, BI layer, and notebook interface. Each component (PostgreSQL, Metabase, JupyterLab) is usable on its own, but when they’re composed declaratively, they become a reproducible, portable stack environment: a composed manifest designed for repeatable data exploration and analysis.
+
+Other potential patterns include:
+
+- **Ephemeral manifests for testing**. Much like you’d create a multi-container runtime in Docker Compose by wiring together an app runtime (e.g., `foo/node-app`) with a test driver env (`foo/playwright`) and database or cache services (`foo/postgres`, `foo/redis`) to create an ephemeral test environment for integration testing, you can use composition to define a composed manifest for integration testing that Just Works anywhere.
+
+- **Polyglot projects and/or monorepos**. For a monorepo with language-specific subprojects—say, Python (`foo/python`) for data, Node.js (`foo/nodejs`) for frontend, and Rust (`foo/rust`) for a CLI—you can combine separate, language-specific manifests using a single composing manifest. 
+
+- **Portable sandbox/demo environments**. See [this article](https://flox.dev/blog/creating-a-reproducible-bi-and-analytics-stack-that-just-works-anywhere-with-flox/) for an excellent example of how this works. Composition lets you create demo environments that Just Work anywhere, at any time, without containers. It’s an elegant alternative to building all requirements (including setup/teardown logic) into a single manifest.
+
+
+### Advantages of Composition
+
+**It’s shareable**. Composition gives you a reliable, manageable, convenient way to combine separate Flox environments into a single, unified manifest. You can use it to design the equivalent of **multi-container runtimes**, as shown above—and showcased in the [composed Flox environment](https://hub.flox.dev/barstoolbluz/metabase-postgres/manifest) for [Metabase](https://github.com/metabase/metabase) and [PostgreSQL](https://github.com/postgres/postgres) featured in [this guide](https://flox.dev/blog/creating-a-reproducible-bi-and-analytics-stack-that-just-works-anywhere-with-flox/).
+
+**Composition gives you deterministic safeguards**. With _layering_, you can’t detect incompatibilities until _runtime_. You're stacking subshells, one on top of the other, each of which inherits libraries and env vars from the ones beneath it. There’s no build graph to resolve and no hash-based validation; instead, any conflicts are resolved implicitly by whatever is defined in the most recently activated shell. So if two environments expose the same binary or define the same environment variables, the one “on top” silently wins
+
+With _composition_, by contrast, Flox resolves all dependencies at _creation time_, i.e., _when it merges the `included` manifests. This means the composed environment is built from known inputs, hashed, cached, and validated as to its structure. If there are conflicts—e.g., duplicate binaries, conflicting setup or teardown logic, incompatible packages—they surface at composition time, and the merged manifest explicitly fails unless you resolve them. _You get reproducibility and determinism because the composed manifest is materialized from an immutable spec._
+
+**Composed manifests can be shared, and audited**. A composed Flox manifest isn’t just something you activate. Rather, it’s something you _declare_, its meta-structure explicitly defined in the manifests of the `composing` and `composed` Flox manifests—down to what it includes, what variables it sets, what hooks it runs, what services it starts. This definition is declarative, reproducible, and portable. It's a concrete, inspectable object—just like source code.
+
+For this reason, the `composing` manifest _can itself_ be versioned, shared, and audited. You can push a `composing` manifest to FloxHub and manage it just like any other Flox manifest. And pushing to GitHub gives you a way to manage/version project code alongside runtime dependencies. 
+
+
+### Disadvantages of Composition
+
+**It isn’t ideal for ad hoc tasks**. With composition, you have to define the composing manifest _ahead of time_. That’s great for repeatable use cases, projects, CI, or anything long-lived—but it makes for a protracted cold start time if you just need to quickly access and use tools as part of your workflow. 
+
+**It elides separation of concerns (SOC)[c]**. One pattern we see with layering is that users create environments that preserve modularity and subshell-level isolation, reflecting SOC priorities. With layering, each Flox environment lives in its own subshell with its own boundaries; services, variables, and hooks are scoped to that layer unless explicitly overridden. Conversely, merging separate Flox manifests into a composed manifest elides these boundaries: it is not unlike smushing them together.
+
+**It works best when manifests are designed with composition in mind**. The included Flox manifests should ideally be _compatible by design_—with authors taking care to avoid overlapping environment variables, conflicting setup or teardown logic, or similar (but subtly different) service definitions. If Flox environments aren’t built with composition in mind, you're more likely to have build-time failures.
+
+**It _may_ favor unified ownership.** Composition, _when used deliberately_, tends to work best when a single person, team, or project owns all composed manifests. When manifests are owned and maintained by different parties, composing them doesn't just create a shared responsibility, but a situation where deliberate design and active coordination) are required for sustainable scaling..
+
+
+## Both/and, not either/or
+
+Ready for the best part? Layering and composition are designed to be used together.
+
+Say you’re working in the composed BI and analytics manifest described in **Composition 202**, above. You need a fast way to run DDL statements or ad hoc queries without dropping into `psql`. So you run **`flox activate -r barstoolbluz/harlequin`** to layer your [Harlequin SQL TUI](https://github.com/tconbeer/harlequin) environment on top of your composed `metabase-postgres` manifest. You couldn’t ask for a [faster, prettier solution](https://flox.dev/blog/psst-want-a-pretty-polished-and-powerful-sql-ide-for-your-terminal/) to your problem.
+
+But wait. There’s more. You can likewise layer composed manifests _on top of_ one another.
+
+Imagine you’re trying to refactor one of your org’s Rust-based services to work with Kafka’s new [KRaft protocol](https://developer.confluent.io/learn/kraft/). You’re using a composed Flox manifest, `barstoolbluz/kafka-stack`, combining manifests for Kafka, Karapace (an open source schema registry for Kafka), and Kafka Connect. On top of this, you run `flox activate -r barstoolbluz/crust`, layering your composed `crusty` Rust toolchain so you build against a local mirror of  your Kafka stack.
+
+And … this Just Works. Even better, you can add _even more_ layers—mixing and matching discrete Flox environments or composed manifests. Need to layer an LLM on top of your layered-composed Flox stack? Go ahead. Want to layer a composed manifest that merges separate Colima, Kind, and Localstack Flox environments? Go ahead! Just be aware that you’re stacking runtime contexts, not composing manifests. That means conflicts can surface unexpectedly—at runtime, not build time—especially when you’re layering discrete environments with composed manifests
+
+
+## Layering and Composition Give You Superpowers
+
+Layering and composition are two powerful ways to create and share Flox environments.
+
+Layering gives you flexibility when you’re working in emergent, unpredictable situations. It’s ideal for use cases where you just need a specific toolset (like `nettools`) or a service (like `postgres`). Composition gives you reproducibility, auditability, and predictable behavior at runtime—at the cost of upfront design and testing.
+
+The beauty is that you can combine them: use composition to define portable stacks, layering in the extras you need to get work done. Whether you’re debugging a service, building a dev sandbox, or shipping to prod, Flox lets you define environments that reflect how you actually want to work—not the other way around.
+
+If you’re intrigued by what you’ve read here, check out [the Flox Docs](https://flox.dev/docs/#get-started) for more. And if you’re more than just intrigued, why not [download Flox](https://flox.dev/docs/install-flox/) and take it for a test drive? Start by creating your first environment and layering in a few tools—you’ll get the feel in just minutes!
+
+## Composable Dev Environment FAQs
+
+### What are composable dev environments?
+
+Composable development environments are modular, flexible setups where each part of a developer’s toolchain is packaged as an independent, reusable environment that can be combined (or composed) into complete stacks. They allow developers to construct specific toolchains as needed. 
+
+### What are the main benefits of a composable dev environment?
+
+This approach offers enhanced reproducibility across different systems, faster setup times for new projects, and the ability to share consistent development setups across teams. It also promotes better isolation of dependencies, minimizing conflicts and streamlining complex workflows.
+
+### How does Flox's composition feature differ from layering for environment management?
+
+Flox's composition is a declarative, creation-time pattern where multiple environment manifests are merged into a single, unified environment, resolving dependencies at build time. Layering, conversely, is an imperative, runtime pattern where environments are stacked as subshells, adding capabilities on demand. 
+
+Unlike traditional containerization approaches, Flox operates at the package level. Composition provides determinism and shareability, ideal for repeatable full-stack setups, while layering offers ad-hoc flexibility for temporary tool additions.
+
+### How does Flox ensure the reproducibility and portability of composed environments?
+
+Flox achieves reproducibility and portability by leveraging Nix under the hood, storing all software artifacts in an immutable build cache with content-derived cryptographic hashes. 
+
+This means every component's path is unique. Every component includes a hash of its entire dependency tree, preventing binary mismatches and ensuring consistent behavior regardless of the underlying operating system or architecture. Composed environments are built from these known, validated inputs.
+
+### Can Flox environments be used for ephemeral development and testing?
+
+Yes, both layering and composition in Flox are well-suited for ephemeral development and testing. 
+
+Layering allows for the temporary activation of specific tools or services for ad-hoc debugging or experimentation, which disappear upon exit. Composition enables the declarative definition of entire ephemeral stacks (e.g. database, BI layer, and notebook interface) ensuring a reproducible and portable testing environment that can be spun up and torn down as needed for integration tests or demos.
+

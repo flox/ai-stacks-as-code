@@ -1,0 +1,96 @@
+---
+title: "Flox vs. Docker Containers: A Comparison FAQ"
+---
+
+Flox is a software environment and packaging system built on the Nix package manager that provides reproducible environments and can also run as image-free containers via its containerd runtime. Docker is the industry-standard containerization platform that packages applications and dependencies into OCI-compliant images that run in isolated containers. Both address reproducibility and deployment consistency, but they take different architectural approaches and excel in different scenarios.
+
+<Accordion title="Doesn't Docker do the same thing?">
+
+There is meaningful overlap, both aim to solve "it works on my machine", but the mechanisms differ. Docker wraps your application in an isolated Linux container built from a layered image, which provides strong isolation but involves base images, registries, and a container runtime. Flox works at the package layer using Nix's content-addressed storage, producing reproducible environments that can run natively in your shell or as containers. A useful way to think about it: Docker ships an isolated runtime environment around your app, while Flox ships a precise set of declared dependencies. Each approach has tradeoffs depending on what you're trying to accomplish.
+</Accordion>
+
+<Accordion title="How is Flox different from Docker?">
+
+The simplest way to explain the difference is that Flox believes that software packaging should be distinct from the chosen type of isolation. With Docker, packaging and container isolation are mixed together. With Flox, packaging is distinct from isolation. Flox environments work the same on bare metal, in VMs, in containers, in agent sandboxes.
+
+The main architectural difference is image-based containerization versus declarative package management. Docker typically uses a Dockerfile, a base image, layered builds, a registry, and a container runtime to deliver isolation. Flox uses a declarative `manifest.toml` and Nix's build system to produce consistent environments across machines, without requiring a base image or registry. Flox also offers multiple deployment models (native shell activation, image-free containers via its containerd runtime, or OCI images via `flox containerize`), whereas Docker is primarily focused on the container model. Which approach fits better depends on your workflow and infrastructure.
+</Accordion>
+
+<Accordion title="Is Flox just a simpler version of Docker?">
+
+Not really, they're built on different foundations. Flox is based on Nix's functional package management, which emphasizes deterministic builds, while Docker is based on layered container images. Flox can activate environments directly in your shell without containerization, and can also produce containers when needed. Docker has a larger ecosystem and is commonly used as a developer tool for building containers. Often those containers built with Docker are run in a separate runtime like Kubernetes for production deployments. Flox and Docker are better understood as different tools that sometimes solve overlapping problems. They can also be used together where Flox does packaging and Docker provides isolation.
+</Accordion>
+
+<Accordion title="So it's just Docker but faster?">
+
+Speed and image size differences exist, but they aren't the whole picture. Flox containers can start faster and produce smaller images (often 20-50MB compared to typical Docker images of 200-500MB), and image-free Flox containers have minimal base overhead. However, the more substantive differences are architectural: Nix-based reproducibility, a different security model that avoids inheriting base image vulnerabilities, and native shell activation as an alternative to containerization. Whether these differences matter depends on your priorities and existing infrastructure.
+</Accordion>
+
+<Accordion title="Why use Flox when Docker already exists and works?">
+
+Docker works well for many teams, and if your workflows are stable and your team is productive with it, there may not be a compelling reason to switch. Teams typically consider Flox when they're experiencing specific pain points: slow file I/O with Docker on macOS, friction from the host/container split during development, security overhead from scanning and patching base image CVEs, long onboarding times for new developers, or environment drift across teams. Flox aims to address those specific issues, but it's not necessarily a wholesale replacement for Docker—many teams use both.
+</Accordion>
+
+<Accordion title="Can't you just use Docker for the same thing?">
+
+Yes, Docker can be used for development environments. The question is whether the tradeoffs work for your team. The Docker development workflows involve container rebuilds when dependencies change, performance considerations with volume mounts on macOS, and managing Dockerfile consistency across teams.
+</Accordion>
+
+<Accordion title="Isn't this what containerization technology already solves?">
+
+Containerization solves isolation and deployment portability well, and Flox doesn't replace those benefits. The distinction is more about what containerization was designed for. Containers were primarily built for shipping applications to production with isolation guarantees, and using them for development means using a deployment-oriented tool for daily development workflows. That works fine for many teams, but others prefer separating the concerns: a lightweight environment manager for development, and containerization specifically when isolation boundaries are needed. Flox focuses on the package management and gives you the option to use or not use an isolation mechanism at various stages of development.
+</Accordion>
+
+<Accordion title="Is being easy to learn the main advantage of Flox over Docker?">
+
+Ease of learning is part of the picture, but it isn't the main differentiator. Flox has a smaller command surface (roughly `flox init`, `flox install`, `flox activate`, `flox push`, `flox pull`), which can help with adoption. The more substantive differences are the reproducibility model (Nix's content-addressed store), the security model (minimal dependencies rather than full base images), native shell execution, and centralized environment management via FloxHub. Docker has its own significant advantages, including a mature ecosystem, broad industry familiarity, and extensive tooling. The right choice depends on which set of strengths matters more for your use case.
+</Accordion>
+
+<Accordion title="Is Flox free? Does it charge for storing images or for the software itself?">
+
+The Flox CLI is free and open source, similar to how Docker's core engine is free. There's no charge for the software itself or for using the public Flox Catalog of packages. FloxHub is free for individuals and open-source projects, with paid plans for organizations that want private catalogs, team governance, and enterprise features, roughly analogous to how Docker Hub charges for private repositories and Docker Desktop has paid tiers for larger organizations. The pricing models are comparable in structure.
+</Accordion>
+
+<Accordion title="What about Docker's base image vulnerabilities?">
+
+This is a real consideration for some teams. Research from [Chainguard](https://get.chainguard.dev/hubfs/Collateral/Reports_and_Whitepapers/ChainguardHardenedImagesReport.pdf) and [Sysdig](https://sysdig.com/press-releases/sysdig-2023-usage-report) has noted that popular base images often ship with significant numbers of CVEs, and that a substantial portion of running containers contain high-risk vulnerabilities. Docker users typically address this through image scanning, patching, and using minimal or hardened base images (like Alpine, distroless, or Chainguard images). Flox's approach is to include only the packages explicitly declared in the manifest, which can reduce the attack surface.
+</Accordion>
+
+<Accordion title="What is the 'two-world problem'?">
+
+This refers to the gap between your host machine (macOS, Windows, or Linux with native tools and IDEs) and the container's isolated Linux environment. Bridging the two can involve volume mounts, port forwarding, and using `docker exec` to access tools inside the container. Some teams find these as adding friction to daily workflows. Flox's native shell activation avoids this split by running directly on the host, which is a different approach with its own tradeoffs—notably, it doesn't provide the built-in isolation that containers do unless you use flox containerize or Flox’s kubernetes integration.
+</Accordion>
+
+<Accordion title="Can Flox be used in production, or is it just for development?">
+
+Flox can be used in production on Kubernetes via its containerd runtime plugin (image-free containers with OCI isolation) or via `flox containerize`, which generates standard OCI-compliant images. Flox also has integrations with systemd and can be used easily with other non-container isolation mechanisms such as bare metal, virtual machines, and sandboxes.
+</Accordion>
+
+<Accordion title="Can Flox and Docker be used together?">
+
+Yes, and this is a common pattern. Many teams use Flox to manage their local development environment and tooling while optionally using Docker for running services (databases, message queues). Flox can also generate OCI images via `flox containerize` that work with existing Docker registries and Kubernetes clusters, which provides a bridge between the two ecosystems.
+</Accordion>
+
+<Accordion title="How do they compare on performance, image size, and startup time?">
+
+Numbers vary by use case, but in general: traditional Docker images often range from 200-500MB with startup times of 2-5 seconds. Flox's `containerize` command typically produces 20-50MB OCI images. The Flox containerd runtime can run with minimal base overhead and faster startup times since there's no image layer to pull or mount. Flox's native execution avoids the VM overhead Docker Desktop incurs. These differences matter more for some workflows than others.
+</Accordion>
+
+<Accordion title="What is FloxHub and how does it compare to Docker registries?">
+
+FloxHub and Docker Hub are both registries that are primarily about publishing and sharing content in their ecosystems. Docker registries store and distribute container images, with a mature ecosystem including Docker Hub, GitHub Container Registry, and many enterprise registries. FloxHub manages reproducible environment definitions rather than images, and provides organization-level features like shared catalogs, audit trails, and rollback. For distributing internal tools, Flox offers a workflow of `flox build`, `flox publish`, and `flox install` from private catalogs.
+</Accordion>
+
+<Accordion title="When should I use Docker instead of Flox?">
+
+Docker can be the right choice when the lack of deterministic reproducibility, additional container friction in development workflows, and container image lifecycle management overhead is not too burdensome for your team. Using Flox along with Docker addresses those pain points.
+</Accordion>
+
+<Accordion title="When should I use Flox instead of Docker?">
+
+Flox can be a good fit when developer experience friction with Docker is significantly impacting productivity, when you want a lighter-weight approach for managing development environments without full containerization, when you need reproducibility guarantees, when project onboarding times are a pain point, or when you want to manage internal tooling across teams via a declarative catalog. It's worth piloting on a specific use case rather than assuming it will replace Docker wholesale.
+</Accordion>
+
+## Summary
+
+Docker and Flox solve overlapping problems with different approaches. Docker is mature, ubiquitous, and the standard for development time containerization, with a rich ecosystem built around it. Flox is a newer tool focused on reproducible environment management via Nix, with optional container capabilities. They can be used together—Flox for development environments alongside and inside Docker containers during deployment is a common pattern. The right choice depends on your team's specific pain points, existing infrastructure, and priorities.

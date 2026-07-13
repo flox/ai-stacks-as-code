@@ -1,0 +1,207 @@
+---
+title: 'Totally Transform your Terminal Workflow with broot and Flox'
+altTitle: 'Totally Transform your Terminal Workflow with broot and Flox'
+description: 'broot has it all: Fast, intuitive file navigation, search, and management capabilities; built-in support for cp, rm, and other common commands; plus the ability to integrate with your Git workflow'
+metaDescription: 'broot has it all: Fast, intuitive file navigation, search, and management capabilities; built-in support for cp, rm, and other common commands; plus the ability to integrate with your Git workflow'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: broot
+author: Steve Swoyer
+publishedDate: 25 October 2024
+thumbnail: '/images/blog/underground-tree.webp'
+orderBy: 20241025
+---
+
+Are you the kind of person who’s always up for a cool new-to-you terminal tool?
+
+If so, do you know about [broot](https://dystroy.org/broot/)?
+
+It’s got ... a lot going for it:
+
+- Fast, intuitive folder + file navigation, search, and management capabilities;
+- Built-in support for commands like `rm`, `cp`, and others;
+- The ability to preview the contents of a file without opening it;
+- Integration with your Git workflow.
+
+Broot is the kind of _sui generis_ tool that just might change your _life_, to say nothing of your workflow. It always makes me think of legendary concert promoter Bill Graham’s take on the Grateful Dead: They’re not just the best at what they do, they’re the _only ones_ who do what they do. That’s as good a description as I can think of for broot.
+
+Read on to get an idea how broot can fit into and improve your workflow.
+
+## Getting It
+
+This article assumes you've already installed Flox. If you haven’t, you can easily [download](https://flox.dev/docs/install-flox/) Flox and play along at home. We’ll pause to give you a chance to do so.
+
+Ready?
+
+OK. Once Flox is installed, you can transparently pull and activate a pre-built environment from FloxHub that includes not just broot, but other essential packages, too. Just run the following command:
+
+```
+flox activate -r flox/a-perfect-shell
+```
+
+This activates a FloxHub environment, which is cached locally, and puts you in a subshell. When you type `exit` to quit (or press `CTRL + D`), the session ends (but the cache remains for next time).
+
+If you prefer to work in a local environment, Flox makes installing broot a snap:
+
+```
+mkdir rhizome && cd rhizome && flox init && flox install broot && flox activate
+✅ 'broot' installed
+✅ You are now using the environment 'rhizome'.
+To stop using this environment, type 'exit'
+```
+
+All right. One way or another, you’ve got broot. Now, what can you do with it?
+
+## Broot Basic Usage
+
+Let’s say you’ve got tens of thousands of folders on your local 4TB NVME drive. You need a file that’s in a specific folder, but you can’t remember _which_ folder, or where it lives. You can, however, remember part of its name. Broot makes finding the right folder or file a snap.
+
+First, let’s start it up:
+
+```
+daedalus@askesis:~/home/daedalus/nfs$ broot
+```
+
+Broot’s terminal UI is reminiscent of a tool like [Ranger](https://github.com/ranger/ranger). It has a familiar [ncurses](https://en.wikipedia.org/wiki/Ncurses)-like interface, with a search box at the bottom. I can navigate using the `UP` and `DOWN` cursor keys, moving broot's cursor (`▶`) to the file or directory I want, or … I can just start typing!
+
+For example, when I type `Miles\ Davis`, broot starts searching recursively, fuzzily matching directories and files in my path.
+
+```
+   /home/daedalus/nfs
+   └── opus
+       └── tunez …
+▶           └── opus/tunez/miles
+               ├── Miles Davis – A Tribute to Jack Johnson (1971) [FLAC] …
+               ├── Miles Davis - Miles in the Sky (1968) [FLAC] …
+               ├── Miles Davis - Paraphernalia (1969) [FLAC] …
+               ├── Miles Davis & Gil Evans - The Complete Columbia Studio Recordings (1957–1968) [FLAC] …
+               ├── Miles Davis & Jimmy Forrest - Our Delight (1952) [FLAC] …
+               ├── Miles Davis & John Coltrane - Live in New York (1988) [FLAC] …
+               └── 356 unlisted
+
+ Hit enter to go up, esc to clear the filter, ? for help, or a space then a verb
+Miles\ Davis
+```
+
+Unlike with [zoxide](https://flox.dev/blog/jump-around-from-directory-to-directory-with-zoxide-and-flox/), the Fun package profiled in last week’s segment, broot searches and matches in real-time, so you don’t need to manually add directories to find stuff.
+
+Grrrr, the specific folder I want isn’t listed. Right now, I’m looking for a folder containing _just_ the right pressing of Miles Davis’ magnum opus _Agharta_, the most profound musical achievement of the 20th century. But even though this folder isn’t listed, I can still move the cursor to the `miles` directory, press `ENTER`, and jump right into that path. Once there, I can easily navigate to find what I’m looking for or ... wait! I can fuzzy search again! I’ll just type `Agharta` and...
+
+```
+   /home/daedalus/sshfs/opus/tunez/miles
+   ├── Miles Davis – Agharta (1975) [FLAC] {Austria Columbia 467897 2}
+   │   ├── artwork …
+   │   ├── disc 01 …
+   │   └── disc 02 …
+   ├── Miles Davis – Agharta (1975) [FLAC] {Columbia CK 46799}
+   │   ├── artwork …
+   │   ├── disc 01 …
+   │   └── disc 02 …
+   ├── Miles Davis – Agharta (1975) [FLAC] {Japan Blu-Spec CD2}
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan Blu-Spec CD2}/cover.png
+   ├── Miles Davis – Agharta (1975) [FLAC] {Japan Blu-Spec CD2}/obi.jpg
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan SICP-1230-31}
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan SICP-1230-31}/combined.log
+   │   └── Miles Davis – Agharta (1975) [FLAC] {Japan SICP-1230-31}/cover.png
+   ├── Miles Davis – Agharta (1975) [FLAC] {Japan SICP-1230-31}/info.txt
+   ├── Miles Davis – Agharta (1975) [FLAC] {Japan SRCS-9128-29}
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan SRCS-9128-29}/cover.png
+▶  ├── Miles Davis – Agharta (1975) [FLAC] {Japan LP CBS-Sony SOPJ 92~93} [24-192]
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan LP CBS-Sony SOPJ 92~93} [24-192]/01 – Prelude (Part 1).flac
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan LP CBS-Sony SOPJ 92~93} [24-192]/02 – Prelude (Part 2) – Maiysha.flac
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan LP CBS-Sony SOPJ 92~93} [24-192]/03 – Interlude.flac
+   │   ├── Miles Davis – Agharta (1975) [FLAC] {Japan LP CBS-Sony SOPJ 92~93} [24-192]/04 – Theme from Jack Johnson.flac
+   │   └── Miles Davis – Agharta (1975) [FLAC] {Japan LP CBS-Sony SOPJ 92~93} [24-192]/folder.jpg
+   ├── 4 unlisted
+
+ Hit enter to go up, esc to clear the filter, ? for help, or a space then a verb
+Agharta
+```
+
+In the code block above, the cursor indicates just the folder I need. Using broot, I can press `ENTER` to jump into it, cycle through its contents, and find the specific file I'm looking for: a `discogs.json` containing album-release metadata. I can even use broot to preview this file and get the info I want that way!
+
+So that’s a basic introduction to broot. Now let’s consider something a little more advanced.
+
+## Broot Advanced Use Cases
+
+Let’s say I go to pull a Pytorch container from DockerHub. After fetching a few layers, I get this error:
+
+```
+daedalus@askesis:~$ docker pull pytorch/pytorch:2.5.0-cuda12.4-cudnn9-devel
+...
+No space left on device
+```
+
+Argh!
+
+My go-to solution for freeing up disk space is to use [ncdu](https://dev.yorhel.nl/ncdu), but broot gives me another option. I just need to run it using the appropriately named `--whale-spotting` (or `-w`) switch:
+
+```
+daedalus@askesis:~$ broot –whale-spotting
+```
+
+This starts broot in my $HOME and puts me into its familiar terminal UI:
+
+```
+/home/daedalus      /dev/sda3 SSD 1.1TB/1.1TB                           100%
+
+  773G ├──.ollama …
+  161G ├──dev …
+   33G ├──documents …
+  2.8G ├──downloads …
+  7.3M ├──Pictures …
+  1.1M ├──Videos …
+...
+```
+
+[Ollama](https://flox.dev/blog/llms-in-your-project-with-ollama-flox/): of course! I _could_ start tactically deleting models from the `.ollama` subdirectory using broot’s `rm` command. But the more elegant way to do that is with Ollama itself, using `ollama rm`.
+
+And you know what? My `~/dev` directory is kinda huge, too. So let’s use broot to jump into it and see if anything is disposable. Broot makes this simple enough, automatically sorting the folders and files in a subdirectory based on their size. Basically, I can jump right into `dev`, navigate through the topmost (i.e., largest) folders, highlight the ones I want to delete, and type `:rm`.
+
+Why a colon (`:`) followed by `rm`? Because broot uses vi[m]-like syntax; typing `:` puts it into command mode.
+
+```
+161G /home/daedalus/dev    /dev/sdc3 SSD 1.1T/1.1TB                   100%
+
+▶ 67G ├──comfy_ui …
+   41G ├──ComfyUI …
+   24G ├──stable_diffusion …
+   11G ├──zed …
+    9G ├──verba
+…
+Hit enter to rm: rm -rf /home/daedalus/comfy_ui
+:rm
+```
+
+Hmmm. This looks promising! If I blow away one of my over-sized ComfyUI dev environments, I’ll have plenty of room for PyTorch! Again, All I have to do is highlight the folders (or files) I want to remove, type `:rm`, hit `ENTER`, and voila.
+
+Also, the point I made earlier about vi[m] command syntax reminds me: to quit broot, you just need to type `:q`.
+
+## A Masterclass in Using broot
+
+I’m not actually going to teach this masterclass here. But I am going to link to [this blog](https://dystroy.org/blog/gg/), which shows you how you can use broot with Git to see and review only _changed_ files before you commit them—i.e., without using `git status`, `git diff`, or other commands.
+
+This setup enables fast diffing, editing, and staging directly from within broot. It’s kind of neat!
+
+## Housekeeping Notes
+
+As with many hugely useful shell tools, broot requires just a bit of bootstrapping.
+
+First, you need to make sure its path is available as an environment variable. You can do this by exporting it manually whenever you want to invoke it (e.g., creating an alias that does this), or by just adding it to your shell configuration file. I have the following line in my `.bashrc`, for example:
+
+```
+export PATH="$PATH:/home/daedalus/.cargo/bin/broot"
+```
+
+Of course, in a Flox environment, you don't have to do this, because Flox knows just where to find the `broot` binary. As mentioned earlier, we’ve added broot to our `a-perfect-shell` example environment on FloxHub. By running:
+
+```
+flox activate -r flox/a-perfect-shell
+```
+
+You can get broot, [fzf](https://flox.dev/blog/get-warm-and-fuzzy-search-in-your-shell-with-fzf-and-flox/), [zoxide](https://flox.dev/blog/jump-around-from-directory-to-directory-with-zoxide-and-flox/), and a growing list of other workflow-enhancing tools pre-built and pre-configured in a turnkey environment!
+
+Note: it isn’t that difficult to implement broot’s [shell function](https://dystroy.org/broot/#find-a-directory-then-cd) in a Flox environment, but for simplicity’s sake, our `a-perfect-shell` example environment doesn’t do this.
+
+If you like what you see in broot, you can always run `broot --install` to create this. The main benefit of using the shell function is that when you highlight a directory and press `ALT + ENTER`, you exit broot and jump right into that folder. If you're curious about how you'd implement this in a portable Flox environment that works across bash, zsh, and fish, [shout at me on LinkedIn](https://www.linkedin.com/in/stephenswoyer/). I'd be happy to help!

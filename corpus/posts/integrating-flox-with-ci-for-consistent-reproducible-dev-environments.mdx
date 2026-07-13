@@ -1,0 +1,129 @@
+---
+title: 'Integrating Flox with CI for Consistent, Reproducible Dev Environments'
+altTitle: 'Integrating Flox with CI for Consistent, Reproducible Dev Environments'
+description: 'By testing your environments as part of your CI workflows, you can guarantee they work the same way—everywhere.'
+metaDescription: 'By testing your environments as part of your CI workflows, you can guarantee they work the same way—everywhere.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 26 September 2024
+thumbnail: '/images/blog/riding-the-blinds.webp'
+orderBy: 20240926
+---
+
+
+
+Are you using CI to test and validate your Flox environments?
+
+It's a smart move. CI is just another case of Flox's core value proposition: declarative, reproducible dev environments that work the same way everywhere. But rather than a one-time proof of consistency, testing in CI with Flox provides a continuous, automated check against environment drift.
+
+The practical benefit is that everyone who relies on your environments always uses the same tested, validated version.
+
+If this sounds intriguing, read on for a quick overview of how you can set up CI pipelines that automatically run, build, and validate your Flox environments.
+
+
+## Reusable, Pre-Built Automation for CI
+
+It’s startlingly simple to integrate Flox into your CI runs.
+
+This walk-through will focus on GitHub Actions, the most widely used CI platform. If you’re curious about Flox and CircleCI, or want to know how Flox supports GitLab CI/CD jobs, check out [Flox Docs](https://flox.dev/docs/tutorials/ci-cd/?h=continu#github-actions). The short answer is: Yes, there’s an action for that—regardless of which popular CI platform you’re using.
+
+For GitHub Actions, you can use Flox’s `flox/install-flox-action` and `flox/activate-action` to run, test, and validate your Flox environments during CI runs. Let’s briefly unpack what these actions do:
+
+-  [**`flox/install-flox-action`**](https://github.com/flox/install-flox-action). This action gives you a way to install Flox in the VM or container runner during the CI pipeline’s setup phase. First you use GitHub's actions/checkout@v4 GitHub Action to pull your environment’s repo, then use the `flox/install-flox-action` to install and set up Flox.
+
+-  [**`flox/activate-action`**](https://github.com/flox/activate-action/). This action runs after you pull your environment from GitHub and install Flox. It activates the environment, executing the steps you’ve defined to trigger a build process (if applicable), and run smoke, unit, integration, or other tests for validation.
+
+
+The rest is the familiar stuff of CI 101. For example, you define these actions and steps in the `.github/workflows/*.yaml` file in your environment’s project directory. The workflow is triggered by events like code pushes or pull requests (PR), which you also define in the `*.yaml` file. That’s basically it.
+
+To understand how this works in practice, let’s pivot to explore a production example!
+
+
+
+## Flox and CI in Production
+
+For this section, we’ll explore how [floxdocs](https://github.com/flox/floxdocs), the public repo for Flox’s official documentation, uses CI to test and validate the environment we use to build documentation for both the Flox CLI and FloxHub, while simultaneously deploying it to production.
+
+First, we’ll clone the `floxdocs` repo to the local system:
+
+```
+daedalus@askesis:~/dev$ git clone https://github.com/flox/floxdocs
+Cloning into 'floxdocs'...
+remote: Enumerating objects: 170, done.
+remote: Counting objects: 100% (64/64), done.
+remote: Compressing objects: 100% (43/43), done.
+remote: Total 170 (delta 43), reused 24 (delta 20), pack-reused 106 (from 1)
+Receiving objects: 100% (170/170), 3.88 MiB | 21.34 MiB/s, done.
+Resolving deltas: 100% (61/61), done.
+```
+
+This is a great example of how Flox sips its own champagne. For instance, once you clone the `floxdocs` repo, you can run `flox activate` to create a local instance of the `floxdocs` production environment. Naturally, all this runs in Flox! In the example below, `flox activate -s` tells Flox to start and manage [MkDocs](https://www.mkdocs.org/) as a service.
+
+```
+daedalus@askesis:~/dev/floxdocs$ flox activate -s
+✅ You are now using the environment 'floxdocs'.
+To stop using this environment, type 'exit'
+
+1. 👉 Python environment activated
+2. 👉 FLOX_VERSION set to 1.3.2
+3. 👉 Downloaded Flox source archive
+4. 👉 Extracted Flox source archive
+5. 👉 Copy man pages from Flox source archive
+
+     ╔═══════════════════════════════════╗
+     ║                                   ║
+     ║  To build a production docs run:  ║
+     ║  > mkdocs build                   ║
+     ║                                   ║
+     ║  To write docs locally run:       ║
+     ║  > mkdocs serve                   ║
+     ║                                   ║
+     ╚═══════════════════════════════════╝
+
+(floxdocs-py3.11) flox [floxdocs] (floxdocs-py3.11) 
+```
+
+The `floxdocs` repo already contains a `.github/workflows/ci.yaml` file. Instead of pasting the contents of that file here, let’s instead walk through what it does. If you’re curious, you can clone the repo and check it out for yourself, or just [click here to view it on GitHub](https://github.com/flox/floxdocs/blob/preview/.github/workflows/ci.yml).
+
+Basically, the `ci.yaml` in `floxdocs` does the following:
+
+**Triggers the CI workflow on specific events**, including manual runs (`workflow_dispatch`), but also pushes to the `main` or `preview` branches, and any PR.
+
+
+**Ensures only one workflow runs at a time per branch/PR**, avoiding race conditions and similar concurrency issues.
+
+
+**Installs Flox**, spinning up a VM runner that: 
+  -  Checks out code from the FloxDocs repo using the `actions/checkout@v4` GitHub Action;
+  -  Installs Flox using the `flox/install-flox-action` action;
+  -  Activates the Flox environment using the `flox/activate-action` action.
+
+**Builds documentation and deploys to Netlify**:
+  -  Uses MkDocs to compile documentation;
+  -  Copies the files built by MkDocs to `public/docs`, and prepares for deployment;
+  -  Uses the `nwtgck/actions-netlify@v3.0 action` to deploy to [Netlify](https://www.netlify.com/).
+
+
+That’s it. The Flox Docs team, of which I am a member, uses this environment to build, test, and deploy its documentation. The cool thing about this is that it’s a case of _facta non verba_, of actions speaking louder than words.
+
+The Flox environment I use to build and edit documentation on my Dell Linux laptop not only runs and behaves exactly the same on Flox Docs teammate Brendan Magee’s MacBook Pro, but works without a hitch on an Ubuntu runner in CI. Every time I push changes to `origin`, I’m both testing the `floxdocs` environment and teeing up new (or changed) documentation for production. 
+
+Flox Docs is both an essential service and a highly effective proof-of-concept.
+
+Try it for yourself! The `floxdocs` repo itself is public, so you can contribute, too. Flox is getting better with every new release, and you might discover something we forgot to add! 
+
+
+
+## Declarative Reproducibility You Can Count On
+
+When you integrate your Flox environments into CI, everyone who uses them—your team, the VMs and containers your org runs in CI, the customers who pull them from GitHub or [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub)—stays in sync. Instead of users upgrading packages or changing settings willy-nilly, _everyone’s_ environment advances together. Just as important, your CI workflows give you a structured, reliable process for testing and validating changes—with code pushes or PRs triggering automated testing and validation.
+
+The upshot is that updates to a Flox environment’s packages, dependencies, and settings are _always_ thoroughly vetted before being deployed to production.
+
+It’s as close to turn-key as software (and CI) can get: environments-as-code.
+
+If you’ve read this far, you probably already know about Flox. If you don’t, the best way to discover what’s new, different, and transformative about Flox is to [download and take it for a test drive](https://flox.dev/docs/install-flox/). Discover how using Flox radically refactors your dev workflows!
+
+

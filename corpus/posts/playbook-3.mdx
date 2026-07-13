@@ -1,0 +1,1676 @@
+---
+title: 'Playbook 3: Map Docker and Compose Artifacts to the Declared Flox Environment'
+description: 'Map Docker- and Compose-era runtime artifacts into a declared Flox environment design and migration plan.'
+isPublished: true
+isUnlisted: true
+publishedDate: '2026-05-27'
+thumbnail: '/images/blog/wizard-or-witches-hat.webp'
+author: Steve Swoyer
+category: 'guides'
+---
+
+## Playbook 3: Map Docker and Compose Artifacts to the Declared Flox Environment
+
+Once the team has inventoried the runtime contract and decided where the service boundary belongs, the next phase is to decompose and translate the workflow that currently encodes it.
+
+In many if not most cases today, this workflow involves using OCI images and containers.
+
+This playbook turns that boundary decision into a migration path. It demonstrates how to map existing Dockerfiles, Compose files, devcontainer configs, image tags or digests, entrypoint scripts, or service wrappers as inputs to Flox environments: package declarations, variables, hooks, aliases, task wrappers, services, build steps (if applicable), and the supporting CLIs that make the project runtime reproducible.
+
+The sections that follow show how to map these artifacts to the Flox environment’s **`manifest.toml`**.
+
+
+### 3.1 Recover the Runtime Contract
+
+Before authoring the Flox manifest, inspect the Docker-related artifacts already attached to the repo. Treat them as evidence for the current runtime contract. A useful inspection starts by asking what each artifact proves about the current development runtime and how that evidence maps to the Flox manifest.
+
+<aside class="info" aria-labelledby="note-title">
+**Note**: Flox has an [experimental repo](https://github.com/flox/dock2flox) that automates the process of inspecting and mapping Dockerfiles, Compose Files, and dev container configurations to Flox environments. **Section 3.5** describes this tool, walks through its use, and is upfront about its limitations.
+</aside>
+
+
+#### Dockerfile
+Map application-level build steps to the **`[install]`**, **`[vars]`**, and **`[hook]`** sections in the declarative Flox manifest. Probative examples include steps that package and install native libraries (executed via **`RUN`** commands); runtime environments specified via **`FROM`** image tags or **`ARG`** declarations; and environment variables set via **`ENV`** instructions.
+
+However, it typically makes sense to **omit** OCI-specific packaging instructions. Examples include **`COPY`** and **`WORKDIR`** instructions; layer cleanup optimizations; **`USER`** safety declarations; filesystem ownership operations like **`chown`**; and **`CMD/ENTRYPOINT`** paths.
+
+#### Docker Compose
+Map container runtime overrides to their equivalent runtime and/or wrapper definitions in the Flox manifest. Examples include execution targets declared via **`command`** directives; process variables injected via **`environment`** arrays; and host source paths mounted via **`bind`** volumes.
+
+Treat infrastructure dependencies as service boundaries that define which external resources the Flox environment must consume. Examples include host network mappings (**`ports`**); data states managed via named **`volumes`**; orchestration-specific metadata (**`depends_on`**); or health checks.
+
+#### Dev container configuration
+Map dev container configuration specs like **`devcontainer.json`** to dev-only dependencies, shell initialization steps, shell environment variables, and (optionally) helper functions or wrappers in the declarative Flox manifest. Common examples include language runtimes and global utilities declared via **`features`** objects; project-level package installation scripts that execute via **`postCreateCommand`** hooks; and logic that hydrates and sets up the shell environment.
+
+Editor-specific workspace preferences can typically be omitted unless coupled to strict toolchain dependencies. Examples include UI personalization settings and **`extensions`** arrays.
+
+#### Entrypoint scripts
+Map runtime initialization logic to hooks or explicit task wrappers in the declarative Flox manifest. Examples include preflight checks; binary version or dependency existence checks; workspace state setup, like generating a cache directory; and running + like database migrations or seeding commands. 
+
+Adapt or omit container-specific assumptions from the declared Flox environment: things like hardcoded absolute paths; init loop management for PID 1 processes; and container bridge networking definitions.
+
+#### CI configuration
+Map pipeline runtime requirements to guarantee parity between the local dev and CI environments. Map and declare any language toolchains, linters, and testing suites that are used as part of pipeline setup steps. Optionally, look for pipeline commands that could be standardized as task entrypoint wrappers in the declared Flox environment. e.g., Consider wrapping complex commands that run linters or tests (as **`lint`** or **`test`**) so they behave the same for engineers, agents, or runners in local dev and CI.
+
+Remember: Pipeline orchestration logic is a CI-only prerogative, so exclude mechanics like job matrix definitions, step execution order, health-check delays, artifact caching, and pipeline secrets injection.
+
+
+### 3.2 Mapping Dockerfiles to Flox environments
+
+Dockerfiles typically combine three different concerns in one file:
+
+-  The project runtime
+-  The image-build procedure
+-  The production process contract
+
+Only the project-runtime portions should be mapped to the Flox environment.
+
+The mapping process is mechanical:
+
+1. Extract runtime inputs: base-image language versions, OS packages, compilers, native libraries, package managers, and CLIs.
+2. Extract runtime variables: **`ENV`** values consumed by project tools or application code.
+3. Extract setup behavior: dependency hydration, virtualenv setup, package-manager cache setup, generated directories, and build preparation.
+4. Extract project commands: tests, linting, migrations, seed commands, local serve commands, and build wrappers.
+5. Filter image-only mechanics: layer cleanup, image filesystem assembly, production user setup, production entrypoints, and deployment-only process launch behavior.
+
+#### Example Dockerfile
+
+```dockerfile
+FROM python:3.13-slim
+
+ARG NODE_VERSION=24
+ENV APP_ENV=development
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y \
+  curl \
+  jq \
+  gcc \
+  make \
+  pkg-config \
+  libpq-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+
+CMD ["pytest"]
+```
+
+#### Dockerfile mapping
+
+```text
+Dockerfile line or pattern:
+FROM python:3.13-slim
+
+Meaning for Flox:
+The project requires Python 3.13. The `slim` image flavor is an OCI packaging detail, not a Flox input.
+
+Flox destination:
+[install]
+python.pkg-path = "python3"
+python.version = "3.13.12"
+```
+
+```text
+Dockerfile line or pattern:
+ARG NODE_VERSION=24
+
+Meaning for Flox:
+The project expects Node 24 if that ARG feeds a Node installation step or build command. If the ARG never affects developer or CI behavior, omit it.
+
+Flox destination:
+[install]
+node.pkg-path = "nodejs_24"
+```
+
+```text
+Dockerfile line or pattern:
+ENV APP_ENV=development
+ENV PYTHONUNBUFFERED=1
+
+Meaning for Flox:
+These variables affect application or tool behavior at runtime.
+
+Flox destination:
+[vars]
+APP_ENV = "development"
+PYTHONUNBUFFERED = "1"
+```
+
+```text
+Dockerfile line or pattern:
+RUN apt-get install curl jq gcc make pkg-config libpq-dev
+
+Meaning for Flox:
+These are runtime or build-time tools needed by developers or CI.
+
+Flox destination:
+[install]
+curl.pkg-path = "curl"
+jq.pkg-path = "jq"
+gcc-unwrapped.pkg-path = "gcc-unwrapped"
+gnumake.pkg-path = "gnumake"
+pkg-config.pkg-path = "pkg-config"
+postgresql.pkg-path = "postgresql"
+```
+
+```text
+Dockerfile line or pattern:
+rm -rf /var/lib/apt/lists/*
+
+Meaning for Flox:
+Image-layer cleanup. No Flox equivalent needed.
+
+Flox destination:
+No mapping.
+```
+
+```text
+Dockerfile line or pattern:
+WORKDIR /app
+COPY requirements.txt .
+COPY . .
+
+Meaning for Flox:
+Image filesystem assembly. Flox activates in the checked-out project directory.
+
+Flox destination:
+No direct mapping. Use $FLOX_ENV_PROJECT in hooks when a project-root path is needed.
+```
+
+```text
+Dockerfile line or pattern:
+RUN pip install -r requirements.txt
+
+Meaning for Flox:
+Python dependency hydration. Map this either to activation-time setup or to an explicit repo-local task entry point.
+
+Setup wrapper form:
+- Create an executable dispatcher file, e.g. ./scripts/tasks.
+- Add an `install-deps` subcommand that hydrates Python dependencies.
+- Run it with: `flox activate -- ./scripts/tasks install-deps`.
+
+Flox destination:
+[hook].on-activate
+OR
+./scripts/tasks install-deps.
+```
+
+```text
+Dockerfile line or pattern:
+CMD ["pytest"]
+
+Meaning for Flox:
+The image default command is a test command. If this Dockerfile exists to provide a test shell, map the command to a repo-local task entry point. If this Dockerfile defines the production service image, treat CMD as the production process contract and do not map it into the local Flox environment by default.
+
+Task wrapper form:
+- Put task logic in an executable dispatcher file, e.g. ./scripts/tasks.
+- Add a test subcommand that runs pytest.
+- Run it non-interactively with: flox activate -- ./scripts/tasks test.
+- For interactive Bash/Zsh users, expose a profile function that delegates to ./scripts/tasks test.
+
+Flox destination:
+./scripts/tasks test
+plus optional [profile].bash / [profile].zsh / [profile].fish / [profile].tcsh functions for interactive use.
+OR
+no Flox mapping when CMD defines the production process.
+```
+
+#### Resulting Flox manifest fragment
+
+```toml
+[install]
+## We declare bash because scripts/tasks uses bash-compatible function syntax.
+## The shebang or source call should resolve against the Flox-provided Bash when run inside Flox.
+bash.pkg-path = "bash"
+
+python.pkg-path = "python3"
+python.version = "3.13.12"
+
+node.pkg-path = "nodejs_24"
+uv.pkg-path = "uv"
+
+curl.pkg-path = "curl"
+jq.pkg-path = "jq"
+
+gcc-unwrapped.pkg-path = "gcc-unwrapped"
+gnumake.pkg-path = "gnumake"
+pkg-config.pkg-path = "pkg-config"
+postgresql.pkg-path = "postgresql"
+
+
+[vars]
+APP_ENV = "development"
+PYTHONUNBUFFERED = "1"
+
+
+## Repo-local file expected by this manifest:
+## - requirements.txt
+##
+## The hook uses requirements.txt, when present, to hydrate the Python virtualenv
+## under $FLOX_ENV_CACHE/venv.
+##
+## Repo-local file sourced by this manifest:
+## - scripts/task_wrapper.bash
+##
+## The hook sources scripts/task_wrapper.bash during activation so non-interactive
+## shell commands can source the same task definitions before invoking project tasks.
+## Example non-interactive invocation:
+##
+##   flox activate -s -c 'source "$PROJECT_TASKS"; project_test'
+##
+[hook]
+on-activate = '''
+set -e
+
+export VIRTUAL_ENV="$FLOX_ENV_CACHE/venv"
+export UV_CACHE_DIR="$FLOX_ENV_CACHE/uv"
+export PIP_CACHE_DIR="$FLOX_ENV_CACHE/pip"
+export PROJECT_TASKS="$FLOX_ENV_PROJECT/scripts/task_wrapper.bash"
+
+mkdir -p "$UV_CACHE_DIR" "$PIP_CACHE_DIR"
+
+if [ ! -d "$VIRTUAL_ENV" ]; then
+  uv venv "$VIRTUAL_ENV" --python python3
+fi
+
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+
+if [ -f "$FLOX_ENV_PROJECT/requirements.txt" ]; then
+  uv pip install \
+    --python "$VIRTUAL_ENV/bin/python" \
+    -r "$FLOX_ENV_PROJECT/requirements.txt"
+fi
+
+if [ -f "$PROJECT_TASKS" ]; then
+  source "$PROJECT_TASKS"
+fi
+'''
+
+
+## Repo-local file sourced by interactive shell profiles:
+## - scripts/task_wrapper.bash
+##
+## Bash and Zsh users get the task functions automatically when they run:
+##   flox activate
+##
+## Example interactive commands, assuming task_wrapper.bash defines them:
+##   project_test
+##   lint
+##   build
+[profile]
+bash = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+
+zsh = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+```
+
+
+### 3.3 Mapping Compose files to Flox environments
+
+A Docker Compose file typically performs two jobs at once: it (1) defines how to run an application and (2) sets up the network of databases or caches the app needs. Flox takes over the application side by managing your runtime variables and commands; Docker Compose continues to run backing services. The Flox environment declares the client tools and connection strings the app needs to talk to services.
+
+```markdown
+
+       ┌─────────────────────────────────────────────────────┐
+       │                 DOCKER COMPOSE FILE                 │
+       │  (Contains both App Config & Infrastructure Setup)  │
+       └──────────────────────────┬──────────────────────────┘
+                                  │
+                 ┌────────────────┴────────────────┐
+                 ▼                                 ▼
+   [ APPLICATION EXECUTION ]           [ BACKING-SERVICE TOPOLOGY ]
+   How your specific code runs         The infrastructure network dependencies
+                 │                                 │
+                 ▼                                 ▼
+   ┌───────────────────────────┐     ┌───────────────────────────┐
+   │       FLOX ENVIRONMENT    │     │    REDUCED COMPOSE FILE   │
+   ├───────────────────────────┤     ├───────────────────────────┤
+   │ • App Runtimes (Python/Go)│     │ • Databases (Postgres)    │
+   │ • Execution Wrappers      │     │ • Caches (Redis)          │
+   │ • Port Declarations       │     │ • Message Queues (Kafka)  │
+   │ • Client CLI Tools (psql) │     │ • Network Isolation Rules │
+   └─────────────┬─────────────┘     └─────────────┬─────────────┘
+                 │                                 │
+                 └───────────────┬─────────────────┘
+                                 │
+                                 ▼
+               ┌───────────────────────────────────┐
+               │         CONNECTED WORKSPACE       │
+               │ (Flox app talks to Compose infra) │
+               └───────────────────────────────────┘
+```
+
+The mapping process is:
+
+1. Identify the application services.
+2. Extract command shapes from **`command`** and **`entrypoint`**.
+3. Extract project variables from **`environment`**.
+4. Translate Compose-network endpoints to host-facing endpoints when Flox runs on the host.
+5. Keep backing-service images, volumes, health checks, init scripts, and restart behavior in Compose when the service boundary is intended to be container-owned.
+6. Add Flox wrappers for service lifecycle commands developers use directly.
+
+#### Example Compose file
+
+```yaml
+services:
+  app:
+    build: .
+    command: pytest
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      APP_ENV: development
+      PGHOST: db
+      PGPORT: "5432"
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app_dev"]
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
+```
+
+#### Compose mapping
+
+```text
+Compose line or pattern:
+services.app.command: pytest
+
+Meaning for Flox:
+Developer-facing test command currently executed inside the app container.
+
+Flox destination:
+[profile] test wrapper.
+```
+
+```text
+Compose line or pattern:
+services.app.environment.APP_ENV: development
+
+Meaning for Flox:
+Project runtime variable consumed by application code or project tooling.
+
+Flox destination:
+[vars] APP_ENV = "development"
+```
+
+```text
+Compose line or pattern:
+services.app.environment.PGHOST: db
+services.app.environment.REDIS_URL: redis://redis:6379
+
+Meaning for Flox:
+Container-network endpoints. They work from the app container, not from a host Flox shell.
+
+Flox destination:
+[vars] PGHOST = "localhost"
+[vars] REDIS_URL = "redis://localhost:6379"
+```
+
+```text
+Compose line or pattern:
+services.db.ports: "5432:5432"
+services.redis.ports: "6379:6379"
+
+Meaning for Flox:
+Host-facing service endpoints that Flox wrappers and tools can consume.
+
+Flox destination:
+[vars] PGPORT = "5432"
+[vars] REDIS_URL = "redis://localhost:6379"
+```
+
+```text
+Compose line or pattern:
+services.db.image: postgres:16
+services.redis.image: redis:7
+
+Meaning for Flox:
+Backing-service runtimes remain container-owned under the boundary decision.
+
+Flox destination:
+No direct service mapping. Declare client tools in [install] and lifecycle wrappers in [profile].
+```
+
+```text
+Compose line or pattern:
+services.db.volumes: pgdata:/var/lib/postgresql/data
+services.db.healthcheck
+
+Meaning for Flox:
+Service-owned persistence and readiness behavior.
+
+Flox destination:
+Keep in Compose. Use Flox-defined services to start / destroy Compose containers (see below) or define
+Flox wrappers in [profile] to invoke `docker compose up` before running commands requiring the service.
+```
+
+#### Resulting Flox manifest fragment
+
+```toml
+[install]
+postgresql.pkg-path = "postgresql"
+redis.pkg-path = "redis"
+
+[vars]
+APP_ENV = "development"
+PGHOST = "localhost"
+PGPORT = "5432"
+PGUSER = "app"
+PGDATABASE = "app_dev"
+REDIS_URL = "redis://localhost:6379"
+
+[profile]
+common = '''
+  db-shell() {
+    psql
+  }
+
+  test() {
+    services-up
+    pytest "$@"
+  }
+'''
+
+# You can use Flox service management to start/stop/destroy Compose containers.
+# To preserve containers between sessions, remove "docker compose rm -f ..."
+# from the shutdown.command entries below.
+[services.db]
+command = "docker compose up -d db"
+is-daemon = true
+shutdown.command = "docker compose stop db && docker compose rm -f db"
+
+[services.redis]
+command = "docker compose up -d redis"
+is-daemon = true
+shutdown.command = "docker compose stop redis && docker compose rm -f redis"
+```
+
+This environment uses Flox’s built-in service management capabilities to start and stop the Docker Compose-backed **`db`** and **`redis`** containers, so they behave like any other Flox-managed service. Engineers can start services individually from inside the activated environment by running (e.g.) **`flox services start redis`**; they can activate the environment with all services running via **`flox activate -s`**. Engineers can check service logs by running **`flox services logs db`** (for Postgres) or **`flox services logs redis`** for Redis; the **`flox services logs <name> --follow`** pattern tails services.
+
+
+### 3.4 Mapping devcontainer configuration to Flox environments
+
+A devcontainer configuration typically combines four different concerns in one file:
+
+* The project runtime
+* Container bootstrap and workspace mounting behavior
+* Dependency hydration for the dev shell
+* Editor and IDE integration metadata
+
+Only the project-runtime and developer-command portions should be mapped to the Flox environment. Editor settings are, and should remain, editor settings. Container bootstrap behavior should map only when it describes a real project dependency, environment variable, task, or dependency hydration step.
+
+The goal is to extract and map the following schema properties to equivalents in the Flox environment. In some cases, such as container-only mechanics, there are no Flox equivalents. This is by design.
+
+1. **Runtime inputs**. Dev Container Features, language versions, package managers, native libraries, CLIs, and toolchain hints.
+2. **Runtime variables**. `containerEnv`, `remoteEnv`, and environment assignments embedded in lifecycle commands when project tools or application code consume them.
+3. **Setup behavior**. Dependency hydration expressed in `onCreateCommand`, `updateContentCommand`, `postCreateCommand`, and related lifecycle hooks.
+4. **Project-specific commands**. `test`, `lint`, `format`, `build`, `serve`, `migration`, `seed`, and `setup` commands currently invoked through lifecycle hooks or editor tasks.
+5. **Editor metadata**. Keep `customizations`, VS Code extensions, settings, and UI preferences outside the runtime contract; declare any project CLIs these extensions expect.
+6. **Container-only mechanics**. Drop container-runtime keys such as `mounts`, `workspaceMount`, `workspaceFolder`, `containerUser`, `remoteUser`, `updateRemoteUserUID`, `runArgs`, and `overrideCommand` unless they encode a project dependency, command, environment variable, or runtime assumption that should survive outside the container.
+7. **Container networking**. Treat `forwardPorts` as port-forwarding metadata, not as an application configuration source. Map ports to `PORT`, `HOST`, or related variables only when the project actually reads those variables.
+8. **Container-specific paths**. Replace devcontainer workspace paths such as `/workspaces/<repo>` or `/workspace` with `$FLOX_ENV_PROJECT` in hooks and wrappers.
+9. **Path-qualified executables**. When a lifecycle hook calls a binary by explicit container path and Flox declares that binary in `[install]`, call the binary by name inside the activated Flox environment.
+
+**Note**: Use Flox `[vars]` to define static defaults. Export environment variables in `[hook]` when a value needs shell logic, path expansion, or caller-controlled defaulting, for example:
+
+```sh
+export PORT="${PORT:-3000}"
+```
+
+#### Example devcontainer fragment
+
+This is a fragment, not a complete `devcontainer.json`; it omits the base `image`, `build`, or `dockerComposeFile` configuration on purpose.
+
+```json
+{
+  "name": "python-node-dev",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true
+    }
+  },
+  "containerEnv": {
+    "APP_ENV": "development",
+    "PYTHONUNBUFFERED": "1"
+  },
+  "remoteEnv": {
+    "UV_CACHE_DIR": "${containerWorkspaceFolder}/.cache/uv",
+    "PIP_CACHE_DIR": "${containerWorkspaceFolder}/.cache/pip"
+  },
+  "postCreateCommand": "uv sync && npm ci",
+  "postAttachCommand": "npm run dev",
+  "forwardPorts": [3000],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "python.defaultInterpreterPath": "/workspaces/app/.venv/bin/python"
+      }
+    }
+  }
+}
+```
+
+#### Devcontainer mapping
+
+```text
+Devcontainer line or pattern:
+features."ghcr.io/devcontainers/features/node:1".version = 24
+features."ghcr.io/devcontainers/features/python:1".version = 3.13
+
+Meaning for Flox:
+The development shell requires Node 24 and Python 3.13. The Feature identifiers
+are source syntax; the Flox manifest should declare the toolchain directly.
+
+Flox destination:
+[install]
+node.pkg-path = "nodejs_24"
+python.pkg-path = "python3"
+python.version = "3.13"
+```
+
+```text
+Devcontainer line or pattern:
+features."ghcr.io/devcontainers/features/common-utils:2".installZsh = true
+
+Meaning for Flox:
+This Feature customizes the container image shell experience. Map only the tools
+that developers or project scripts actually invoke. Do not map image
+personalization by default.
+
+Flox destination:
+[install]
+zsh.pkg-path = "zsh"
+
+OR
+No mapping when no project command depends on zsh.
+```
+
+```text
+Devcontainer line or pattern:
+containerEnv.APP_ENV = development
+containerEnv.PYTHONUNBUFFERED = 1
+
+Meaning for Flox:
+These variables affect application or tool behavior during development.
+
+Flox destination:
+[vars]
+APP_ENV = "development"
+PYTHONUNBUFFERED = "1"
+```
+
+```text
+Devcontainer line or pattern:
+remoteEnv.UV_CACHE_DIR = ${containerWorkspaceFolder}/.cache/uv
+remoteEnv.PIP_CACHE_DIR = ${containerWorkspaceFolder}/.cache/pip
+
+Meaning for Flox:
+These values configure developer-tool caches. Replace container workspace
+variables with Flox paths.
+
+Use [vars] for static manifest-owned values. Use [hook] when a value needs
+path expansion, shell logic, or caller-controlled defaulting.
+
+Flox destination:
+[hook].on-activate exports:
+UV_PROJECT_ENVIRONMENT="$FLOX_ENV_PROJECT/.venv"
+VIRTUAL_ENV="$UV_PROJECT_ENVIRONMENT"
+UV_CACHE_DIR="$FLOX_ENV_CACHE/uv"
+PIP_CACHE_DIR="$FLOX_ENV_CACHE/pip"
+```
+
+```text
+Devcontainer line or pattern:
+postCreateCommand = "uv sync && npm ci"
+
+Meaning for Flox:
+This hydrates Python and Node dependencies for the development shell. Put this
+behind an explicit repo-local task unless the team wants activation to run
+dependency installation.
+
+Setup wrapper form:
+- Create a sourced task file, e.g. ./scripts/task_wrapper.sh.
+- Define an install-deps function that runs uv sync and npm ci.
+- Developers run:
+    flox activate
+    install-deps
+
+Flox destination:
+[profile] sources ./scripts/task_wrapper.sh
+```
+
+```text
+Devcontainer line or pattern:
+postAttachCommand = "npm run dev"
+
+Meaning for Flox:
+Editor attach behavior starts a developer-facing service command. In Flox, make
+this an explicit task or service rather than starting it on every activation.
+
+Flox destination:
+./scripts/task_wrapper.sh defines dev
+
+OR
+
+[services.web]
+command = "npm run dev"
+```
+
+```text
+Devcontainer line or pattern:
+forwardPorts = [3000]
+
+Meaning for Flox:
+The app exposes a local development port. Flox does not need to forward a port
+when the process runs on the host. Treat the port as service documentation or as
+a wrapper/service default only when the application reads a port variable.
+
+Flox destination:
+No direct mapping.
+
+Optional, only when npm run dev reads PORT:
+[vars]
+PORT = "3000"
+
+OR, when the developer should be able to override the value before activation:
+[hook].on-activate exports:
+PORT="${PORT:-3000}"
+```
+
+```text
+Devcontainer line or pattern:
+customizations.vscode.extensions = ["ms-python.python", "charliermarsh.ruff"]
+customizations.vscode.settings.editor.formatOnSave = true
+customizations.vscode.settings.python.defaultInterpreterPath = "/workspaces/app/.venv/bin/python"
+
+Meaning for Flox:
+Editor configuration is not a runtime contract. The referenced tools may still
+imply project dependencies. Convert container workspace paths to Flox paths only
+in repo files that need them; do not map UI preferences into the manifest.
+
+Flox destination:
+Declare ruff in [install] only when project commands, CI, or repo scripts call it directly.
+Do not map editor.formatOnSave.
+Do not map python.defaultInterpreterPath directly; Flox supplies Python on PATH,
+and this example's hook sets VIRTUAL_ENV for Python tooling.
+```
+
+```text
+Devcontainer line or pattern:
+${containerWorkspaceFolder}
+/workspaces/app
+/workspace
+
+Meaning for Flox:
+Container workspace paths refer to the checked-out project root. In Flox, use
+$FLOX_ENV_PROJECT when a hook, profile script, wrapper, or task needs a stable
+reference to that root. Do not assume the caller's current working directory is
+the project root.
+
+Flox destination:
+Use $FLOX_ENV_PROJECT in hooks and wrappers when a project-root path is needed.
+```
+
+#### Resulting Flox manifest fragment
+
+```toml
+[install]
+python.pkg-path = "python3"
+python.version = "3.13"
+
+node.pkg-path = "nodejs_24"
+uv.pkg-path = "uv"
+
+## Declare ruff only when project commands, CI, or repo scripts call it directly.
+ruff.pkg-path = "ruff"
+
+
+[vars]
+APP_ENV = "development"
+PYTHONUNBUFFERED = "1"
+
+
+## Repo-local files expected by this manifest:
+## - package-lock.json, when npm ci should hydrate Node dependencies
+## - pyproject.toml or uv.lock, when uv sync should hydrate Python dependencies
+##
+## The hook prepares cache and virtualenv locations. It does not run dependency
+## hydration; developers run install-deps explicitly after activation.
+[hook]
+on-activate = '''
+set -e
+
+export UV_PROJECT_ENVIRONMENT="$FLOX_ENV_PROJECT/.venv"
+export VIRTUAL_ENV="$UV_PROJECT_ENVIRONMENT"
+export UV_CACHE_DIR="$FLOX_ENV_CACHE/uv"
+export PIP_CACHE_DIR="$FLOX_ENV_CACHE/pip"
+export NPM_CONFIG_CACHE="$FLOX_ENV_CACHE/npm"
+export PROJECT_TASKS="$FLOX_ENV_PROJECT/scripts/task_wrapper.sh"
+
+mkdir -p \
+  "$UV_CACHE_DIR" \
+  "$PIP_CACHE_DIR" \
+  "$NPM_CONFIG_CACHE"
+
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+'''
+
+
+## Repo-local file sourced by interactive shell profiles:
+## - scripts/task_wrapper.sh
+##
+## Bash and Zsh users get task functions automatically when they run:
+##   flox activate
+##
+## Example interactive commands, assuming task_wrapper.sh defines them:
+##   install-deps
+##   dev
+##   test
+##   lint
+[profile]
+bash = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+
+zsh = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+
+
+## Equivalent to devcontainer postAttachCommand = "npm run dev", but explicit.
+## Engineers can start it from inside the activated environment with:
+##   flox services start web
+##
+## They can activate with services running via:
+##   flox activate -s
+##
+## They can inspect logs via:
+##   flox services logs web
+##   flox services logs web --follow
+##
+## Do not set is-daemon = true for typical foreground dev servers. Use
+## is-daemon only when the command forks a background daemon and exits, and pair
+## it with shutdown.command.
+[services.web]
+command = "npm run dev"
+
+## Optional, only when npm run dev reads PORT and a static default is acceptable:
+## [vars]
+## PORT = "3000"
+##
+## If the developer should be able to override PORT before activation, set it in
+## [hook] instead:
+## export PORT="${PORT:-3000}"
+```
+
+#### Companion repo-local task wrapper
+
+This file is a sourced shell function library, not an executable dispatcher. Do not put a shebang or global `set -euo pipefail` in a file sourced by interactive shells.
+
+```sh
+install-deps() {
+  if [ -f "$FLOX_ENV_PROJECT/pyproject.toml" ] || [ -f "$FLOX_ENV_PROJECT/uv.lock" ]; then
+    uv sync
+  fi
+
+  if [ -f "$FLOX_ENV_PROJECT/package-lock.json" ]; then
+    npm ci
+  fi
+}
+
+dev() {
+  npm run dev -- "$@"
+}
+
+test() {
+  if [ -f "$FLOX_ENV_PROJECT/package.json" ]; then
+    npm test -- "$@"
+  elif command -v pytest >/dev/null 2>&1; then
+    pytest "$@"
+  else
+    echo "No test command found" >&2
+    return 1
+  fi
+}
+
+lint() {
+  found_linter=0
+
+  if command -v ruff >/dev/null 2>&1; then
+    ruff check "$FLOX_ENV_PROJECT" "$@"
+    found_linter=1
+  fi
+
+  if [ -f "$FLOX_ENV_PROJECT/package.json" ]; then
+    npm run lint -- "$@"
+    found_linter=1
+  fi
+
+  if [ "$found_linter" -eq 0 ]; then
+    echo "No lint command found" >&2
+    return 1
+  fi
+}
+```
+
+This mapping gives devcontainers the same treatment as Dockerfiles and Compose files: Flox absorbs the developer runtime, variables, dependency hydration, and command surface; editor metadata stays with the editor; container-only workspace and attach mechanics do not become environment inputs unless they describe a dependency or command that developers actually use.
+
+**Note**: If the source devcontainer uses `dockerComposeFile` for backing services such as Postgres or Redis, those services can be represented as Flox services that wrap `docker compose` commands; otherwise Compose services should not be defined as part of the Flox environment during mapping.
+
+Flox’s **`dock2flox`** addresses items 1–3 and 6–8 from the mapping spec above: viz., runtime inputs, variables, setup behavior, container-only mechanics, networking metadata, and path substitution. It does _not_ generate companion task wrapper scripts (item 4), **`[profile]`** sections that source them, or make decisions about item 5: which VSCode extensions imply **`[install]`** entries. The **`dock2flox`** tool also flags extensions that _imply_ project tools: for example, **`charliermarsh.ruff`** generates a **`REVIEW[devcontainer-extensions]`** comment noting that it may belong in **`[install]`**. Teams decide whether the project needs to invoke those tools outside the editor; if so, they add them to **`[install]`**.
+
+See the next section for more on **`dock2flox`**.
+
+
+### 3.5 Programmatically Mapping Dockerfiles, Compose Files, and Dev Container Configurations to Flox Environments
+
+Flox Labs created **dock2flox** to automate the process of inspecting and mapping Dockerfiles, Compose Files, and dev container configurations to Flox environments. The scripts in this repo are a solid starting point for automating the work of translating these artifacts to Flox primitives and semantics.
+
+#### How it works
+
+The **`dock2flox`** tool reads a Dockerfile and classifies each instruction. It resolves base images to Flox packages and, if applicable, pins them to specific versions. Right now, it maps system packages that get installed via **`apt-get`**, **`apk`**, or **`yum`** to their **`nixpkgs`** equivalents via static lookup tables covering ~600 common packages. When a package isn't in the tables, the tool applies heuristic transforms (stripping `-dev` suffixes, `lib` prefixes, etc.) and flags the result for review. Running with **`--validate`** verifies heuristic mappings against the live Flox catalog via **`flox search`**.
+
+The tool converts environment variables to **`[vars]`** entries and setup logic to **`[hook]`** logic. It discards or preserves OCI-specific instructions like layer cleanup, **`COPY`**, **`USER`**, **`WORKDIR`** as review metadata. These describe how a container is packaged, rather than the environment itself.
+
+This translation is not a line-by-line rewrite. The tool analyzes **`RUN`** bodies via a stubbed Bash interpreter that expands variables, walks loops, and evaluates architecture-conditional branches … without executing anything on the host. This means it handles patterns like the following correctly:
+
+```dockerfile
+ENV PKGS="curl jq wget"
+RUN apt-get install -y $PKGS
+
+RUN for tool in yarn pnpm; do corepack enable "$tool"; done
+
+RUN case "$(uname -m)" in
+      x86_64) apt-get install -y amd64-tool ;;
+      aarch64) apt-get install -y arm64-tool ;;
+    esac
+```
+
+The tool gives Python packages special treatment. It distinguishes between packages that cross the Python/system boundary—i.e., CLI tools like **`ruff`** and **`mypy`**, native-extension packages like **`psycopg2`** that link against system libraries—and packages that _live inside_ the Python project graph. It declares the former in **`[install]`** and delegates the latter to tools like **`uv`** at activation time via **`requirements.txt`** or **`pyproject.toml`**. A **`--pip`** flag lets teams override this default: **`--pip flox`** places everything in **`[install]`**, **`--pip cuda`** adds CUDA-accelerated packages from the Flox Catalog, and **`--pip requirements`** delegates all Python dependencies to the project lockfile.
+
+For multi-stage Dockerfiles, the tool resolves the runtime inheritance chain. When the final stage inherits from a named intermediate stage, **`dock2flox`** extracts packages from both. It excludes builder stages that only appear as **`COPY --from`** sources.
+
+For Compose files, the tool extracts service definitions and surfaces a boundary decision: e.g., keep backing services as external containers (emitting connection variables like **`PGHOST`** and **`PGPORT`**), or convert them to Flox-managed **`[services]`** definitions. When it cannot map something with certainty, it emits a **`REVIEW[...]`** comment at the top of the generated manifest.
+
+
+#### Dockerfile example
+
+Given a Rails application Dockerfile:
+
+```dockerfile
+FROM ruby:3.3-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev libvips curl git \
+    nodejs npm postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g yarn
+
+ENV RAILS_ENV=development
+ENV DATABASE_URL=postgresql://localhost:5432/myapp
+
+WORKDIR /app
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+COPY . .
+EXPOSE 3000
+CMD ["rails", "server", "-b", "0.0.0.0"]
+```
+
+Running **`dock2flox --dry-run Dockerfile`** produces:
+
+```toml
+schema-version = "1.11.0"
+
+[install]
+bundler.pkg-path = "bundler"
+curl.pkg-path = "curl"
+gcc.pkg-path = "gcc"
+git.pkg-path = "git"
+nodejs.pkg-path = "nodejs"
+postgresql.pkg-path = "postgresql"
+ruby.pkg-path = "ruby"
+ruby.version = "3.3"
+vips.pkg-path = "vips"
+
+[vars]
+DATABASE_URL = "postgresql://localhost:5432/myapp"
+RAILS_ENV = "development"
+
+[hook]
+on-activate = '''
+export npm_config_cache="$FLOX_ENV_CACHE/npm"
+export GEM_HOME="$FLOX_ENV_CACHE/gems"
+export BUNDLE_PATH="$FLOX_ENV_CACHE/bundle"
+mkdir -p "$FLOX_ENV_CACHE/npm" "$FLOX_ENV_CACHE/gems" "$FLOX_ENV_CACHE/bundle"
+
+npm install -g yarn
+if [ -f Gemfile ]; then
+  bundle config set path "${BUNDLE_PATH:-$FLOX_ENV_CACHE/bundle}" >/dev/null 2>&1 || true
+  bundle install
+fi
+
+cd "$FLOX_ENV_PROJECT"
+'''
+
+[services]
+app.command = "rails server -b 0.0.0.0"
+```
+
+The tool automatically mapped **`build-essential`** to **`gcc`**, **`libpq-dev`** to **`postgresql`**, **`libvips`** to **`vips`**; resolved **`ruby:3.3-slim`** to a version-pinned Ruby package; detected **`npm install -g yarn`** as a lifecycle hook; auto-generated cache directories for Node.js and Bundler, and converted the **`CMD`** into a runnable service definition.
+
+**What it missed:** The **`npm install -g yarn`** command stays as a hook rather than mapping to the `yarn-berry` Flox package. A team reviewing this manifest might replace the hook with **`yarn-berry.pkg-path = "yarn-berry"`** in **`[install]`**. In addition, the cleaned example above omits the **`DOCK2FLOX_CONTAINER_WORKDIR`** and **`DOCK2FLOX_EXPOSED_PORTS`** metadata variables for brevity; the raw output includes them to preserve the Dockerfile's runtime intent for review.
+
+#### Compose file example
+
+Given a Compose file that defines a web service with PostgreSQL and Redis:
+
+```yaml
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:secret@db:5432/myapp
+      - REDIS_URL=redis://cache:6379/0
+      - RAILS_ENV=development
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=myapp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
+```
+
+Running **`dock2flox --services container --dry-run docker-compose.yml`** produces connection variables for the backing services and preserves all Compose metadata as **`DOCK2FLOX_COMPOSE_*`** variables:
+
+```toml
+schema-version = "1.11.0"
+
+[vars]
+DATABASE_URL = "postgresql://postgres:secret@db:5432/myapp"
+PGHOST = "localhost"
+PGPORT = "5432"
+POSTGRES_DB = "myapp"
+POSTGRES_PASSWORD = "secret"
+POSTGRES_USER = "postgres"
+RAILS_ENV = "development"
+REDIS_HOST = "localhost"
+REDIS_PORT = "6379"
+REDIS_URL = "redis://cache:6379/0"
+```
+
+The tool extracted environment variables from all three services, generated **`PGHOST`/`PGPORT`** and **`REDIS_HOST`/`REDIS_PORT`** connection variables for the backing services, and kept both PostgreSQL and Redis as external containers. The full output also includes **`DOCK2FLOX_COMPOSE_DB_IMAGE`**, **`DOCK2FLOX_COMPOSE_CACHE_IMAGE`**, volume mappings, port specs, and **`REVIEW[compose-*]`** comments for networking, orchestration, and volumes — all preserved as reviewable metadata.
+
+**What it missed:** The `DATABASE_URL` still references **`db`** (the Compose service hostname) rather than **`localhost`**. A team reviewing this manifest would update it to **`postgresql://postgres:secret@localhost:5432/myapp`** to match the local connection. The **`POSTGRES_PASSWORD=secret`** value is a dev placeholder; teams should replace it with a secret reference or env-var injection for anything beyond local dev.
+
+**Two options for managing backing services:**
+
+The example above emits connection variables only: teams start and stop backing containers outside Flox (via **`docker compose up -d`** / **`docker compose down`**). This keeps Flox and Docker Compose fully independent.
+
+Alternatively, running **`dock2flox --services compose`** wraps Compose services in Flox service definitions so that **`flox activate -s`** starts the containers and **`flox services stop`** tears them down. The Compose file stays as the source of truth for container configuration; Flox manages the lifecycle:
+
+```toml
+[services.db]
+command = "docker compose up -d db"
+is-daemon = true
+shutdown.command = "docker compose stop db && docker compose rm -f db"
+
+[services.cache]
+command = "docker compose up -d cache"
+is-daemon = true
+shutdown.command = "docker compose stop cache && docker compose rm -f cache"
+```
+
+This pattern lets engineers run **`flox activate -s`** and get both the project runtime and its backing services in one step. To preserve containers between sessions, remove the **`docker compose rm -f ...`** from the shutdown commands. Either pattern works — the choice depends on whether the team wants Flox to own the full lifecycle or just the project environment.
+
+#### Dev container example
+
+The tool also reads **`devcontainer.json`** and maps its properties to Flox equivalents. Given:
+
+```json
+{
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.13" }
+  },
+  "build": { "dockerfile": "Dockerfile" },
+  "containerEnv": { "APP_ENV": "development" },
+  "remoteEnv": {
+    "UV_CACHE_DIR": "${containerWorkspaceFolder}/.cache/uv"
+  },
+  "postCreateCommand": "uv sync && npm ci",
+  "postAttachCommand": "npm run dev"
+}
+```
+
+Running **`dock2flox --dry-run .devcontainer/devcontainer.json`** maps features to **`[install]`** entries with version pins, converts **`containerEnv`** to **`[vars]`**, translates **`remoteEnv`** to **`[hook]`** exports (replacing **`${containerWorkspaceFolder}`** with **`$FLOX_ENV_PROJECT`**), emits lifecycle commands as hooks, and detects **`npm run dev`** as a dev server for **`[services]`**. When the devcontainer references a Dockerfile via **`build.dockerfile`**, dock2flox automatically chains to the Dockerfile parser and extracts its packages into the same manifest.
+
+Editor-specific settings (**`customizations.vscode`**) stay with the editor. The tool skips container-only mechanics (**`mounts`**, **`containerUser`**, **`workspaceMount`**). Anything it cannot map with certainty gets a **`REVIEW[...]`** comment.
+
+The output is a starting point, not a finished product. Teams should review the generated manifest, adjust package choices, and verify the environment with **`flox activate`** before committing it alongside the repo.
+
+
+### 3.6 Mapping entrypoint scripts to Flox hooks and wrappers
+
+Regardless of whether the aim of a project is to migrate dev containers or containerized application services to a Flox environment, platform teams must first disassemble and inspect the underlying container entrypoints. After all, entrypoint scripts tend to obscure the discrete phases that developers expect to interact with: steps like preparing state, validating dependencies, running service health checks, migrating databases, seeding data, initializing processes, and so on. Teams must isolate and—if applicable—expose these steps as visible, legible operations in the declared Flox environment. This makes it easier for engineers to execute, debug, and trace each phase independently on their host machines.
+
+The mapping process is:
+
+1. Split preparation from action.
+2. Move cheap, repeatable shell preparation in **`[hook].on-activate`**.
+3. Put dependency hydration and state-mutating project actions in explicit wrappers.
+4. Adapt container paths and networking to host execution.
+5. Replace container-only service discovery such as `db:5432` with host-reachable endpoints such as `localhost:5432`, unless the command still runs inside the Compose network.
+6. Leave production process supervision outside the local Flox declaration unless it is part of local development.
+
+#### Example entrypoint script
+
+```sh
+#!/usr/bin/env sh
+set -e
+
+mkdir -p /app/.cache
+python -m pip install -r requirements.txt
+./scripts/wait-for-it.sh db:5432
+alembic upgrade head
+python scripts/seed.py
+exec gunicorn app:app --bind 0.0.0.0:8000
+```
+
+
+#### Entrypoint mapping
+
+```
+Entrypoint line or pattern:
+mkdir -p /app/.cache
+
+Meaning for Flox:
+Workspace or cache setup.
+
+Flox destination:
+[hook].on-activate using $FLOX_ENV_CACHE or a project-relative cache path.
+```
+
+```
+Entrypoint line or pattern:
+python -m pip install -r requirements.txt
+
+Meaning for Flox:
+Dependency hydration. This mutates the Python environment, so it should usually
+be an explicit setup task rather than activation-time behavior.
+
+Flox destination:
+install-deps wrapper.
+```
+
+```
+Entrypoint line or pattern:
+wait-for-it.sh db:5432
+
+Meaning for Flox:
+Readiness check against a container-network endpoint. The hostname db works
+inside a Compose network, but not necessarily from the host.
+
+Flox destination:
+Adapt to ${PGHOST:-localhost}:${PGPORT:-5432}, or keep Compose-backed service
+readiness behind a services-up wrapper.
+```
+
+```
+Entrypoint line or pattern:
+alembic upgrade head
+python scripts/seed.py
+
+Meaning for Flox:
+Project actions that mutate backing-service state.
+
+Flox destination:
+migrate and seed wrappers.
+```
+
+```
+Entrypoint line or pattern:
+alembic upgrade head
+python scripts/seed.py
+
+Meaning for Flox:
+Project actions that mutate backing-service state.
+
+Flox destination:
+migrate and seed wrappers.
+```
+
+```
+Entrypoint line or pattern:
+exec gunicorn app:app --bind 0.0.0.0:8000
+
+Meaning for Flox:
+This may be local serve behavior or production process launch behavior. Binding
+to 0.0.0.0 is often needed inside a container so forwarded ports can reach the
+process. On the host, default to 127.0.0.1 unless developers intentionally want
+LAN-visible binding.
+
+Flox destination:
+serve wrapper or [services.web] only when this is the intended local developer
+command.
+```
+
+#### Resulting Flox manifest fragment
+
+```toml
+[install]
+python.pkg-path = "python3"
+uv.pkg-path = "uv"
+
+## Needed only if wrappers use pg_isready for readiness checks.
+postgresql.pkg-path = "postgresql"
+
+## alembic and gunicorn may instead come from requirements.txt.
+## Declare them here only if the project wants those CLIs supplied by Flox.
+# alembic.pkg-path = "python3Packages.alembic"
+# gunicorn.pkg-path = "python3Packages.gunicorn"
+
+
+[vars]
+APP_CACHE_DIR = "$FLOX_ENV_CACHE/app"
+PGHOST = "localhost"
+PGPORT = "5432"
+HOST = "127.0.0.1"
+PORT = "8000"
+
+
+## The hook prepares cheap local state only. It does not install dependencies,
+## migrate the database, seed data, or start the web process.
+[hook]
+on-activate = '''
+set -e
+
+export APP_CACHE_DIR="$FLOX_ENV_CACHE/app"
+export VIRTUAL_ENV="$FLOX_ENV_PROJECT/.venv"
+export PROJECT_TASKS="$FLOX_ENV_PROJECT/scripts/entrypoint_tasks.sh"
+
+mkdir -p "$APP_CACHE_DIR"
+
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+'''
+
+
+## Source Bash/Zsh-compatible task functions only in shells that can parse them.
+## Do not put these functions in profile.common, because profile.common must be
+## compatible with every shell Flox supports.
+[profile]
+bash = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+
+zsh = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+
+
+## Optional service form for the local development web process.
+## This is appropriate only when gunicorn is the intended local dev server.
+[services.web]
+command = '''
+  cd "$FLOX_ENV_PROJECT"
+  wait-for-db
+  gunicorn app:app --bind "${HOST:-127.0.0.1}:${PORT:-8000}"
+'''
+```
+
+#### Companion repo-local task wrapper
+
+This file is a sourced Bash/Zsh-compatible function library. It should not use a shebang or global set -euo pipefail.
+
+```
+install-deps() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+
+  if [ ! -d "$VIRTUAL_ENV" ]; then
+    uv venv "$VIRTUAL_ENV" --python python3
+  fi
+
+  uv pip install --python "$VIRTUAL_ENV/bin/python" -r "$FLOX_ENV_PROJECT/requirements.txt"
+}
+
+wait-for-db() {
+  host="${PGHOST:-localhost}"
+  port="${PGPORT:-5432}"
+
+  until pg_isready -h "$host" -p "$port" >/dev/null 2>&1; do
+    sleep 1
+  done
+}
+
+migrate() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+  wait-for-db
+  alembic upgrade head
+}
+
+seed() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+  wait-for-db
+  python scripts/seed.py
+}
+
+serve() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+  wait-for-db
+  gunicorn app:app --bind "${HOST:-127.0.0.1}:${PORT:-8000}"
+}
+```
+
+If the team wants an executable dispatcher instead of shell functions, move these actions into ./scripts/tasks with a case "$1" dispatcher and call it with flox activate -- ./scripts/tasks serve. Do not source an executable strict-mode script into interactive profiles.
+
+One more optional change: if you want the **`HOST`**, **`PORT`**, **`PGHOST`**, and **`PGPORT`** values to be caller-overridable at activation, move them from **`[vars]`** into **`[hook]`** like so:
+
+```bash
+export HOST="${HOST:-127.0.0.1}"
+export PGHOST="${HOST:-10.10.1.12}"
+export PGPORT="5432"
+export PGUSER="homer"
+export PGDATABASE="simpson"
+```
+
+
+### 3.7 Mapping CI configuration to Flox environments
+
+CI files tell you exactly what system libraries, language runtimes, pinned package versions, and test scripts must execute to test, build, and deliver a project.  They serve as blueprints for pinning Flox dev environments so they exactly match what runs in CI. The objective is not to bulk-copy CI pipeline logic into the Flox manifest. Instead, the aim is to identify build tools, libraries, environment variables, service assumptions, test flags, validation commands, and other runtime inputs so that engineering runs the same software environments and project checks locally that CI runs during pull requests and releases.
+
+The mapping process is:
+
+1. **Extract runtime tools**. Map language setup actions, package managers, CLIs, native libraries, and build toolchains to **`[install]`**.
+2. **Extract dependency installation**. Map repeated setup steps such as **`pip install -r requirements.txt`**, **`uv sync`**, **`npm ci`**, **`pnpm install`**, or **`bundle install`** to setup wrappers.
+3. **Extract project checks**. Consider mapping test, lint, type-check, build, formatting, security scan, and schema-validation commands to repo-local wrappers.
+4. **Extract state-changing commands**. Map migration, seed, codegen, and fixture-loading commands to explicit wrappers so they do not run automatically during activation or unrelated checks.
+5. **Make database and service assumptions explicit**. Identify CI service-container hostnames, ports, credentials, and readiness checks. Consider mapping them to host-facing variables and wrappers when local commands need those services: e.g., **`PGHOST=`**; checking that Postgres accepts connections before running tests; setting **`REDIS_URL=`** and checking that Redis responds before running tests.
+6. **Keep CI orchestration in CI**. Don’t map runner selection, matrix expansion, secrets management, scheduling, caching, artifact uploads, coverage uploads, or notification behavior into the Flox manifest.
+7. **Use the same Flox environment for shared checks**. CI can install Flox, activate the environment, and call the same wrappers developers use locally for pull-request checks, build validation, and validation.
+
+
+#### Example CI fragment
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: ruff check .
+      - run: pytest
+```
+
+#### CI mapping
+
+```text
+CI line or pattern:
+actions/setup-python@v5 with python-version: "3.13"
+actions/setup-node@v4 with node-version: "24"
+
+Meaning for Flox:
+CI requires Python 3.13 and Node 24. If developers need to reproduce the same
+validation path locally, the Flox manifest should declare the same runtime
+contract.
+
+Flox destination:
+[install]
+python.pkg-path = "python3"
+python.version = "3.13"
+node.pkg-path = "nodejs_24"
+```
+
+```text
+CI line or pattern:
+pip install -r requirements.txt
+npm ci
+
+Meaning for Flox:
+Dependency hydration is required before validation. These commands mutate local
+project state or dependency directories, so keep them behind an explicit setup
+wrapper unless the team intentionally wants activation to run dependency setup.
+
+Flox destination:
+install-deps wrapper.
+```
+
+```text
+CI line or pattern:
+ruff check .
+pytest
+
+Meaning for Flox:
+Validation commands should be invocable the same way locally and in CI.
+
+Flox destination:
+lint and test wrappers.
+```
+
+```text
+CI line or pattern:
+services.postgres.image: postgres:16
+ports: 5432:5432
+env.POSTGRES_USER = app
+env.POSTGRES_PASSWORD = app
+env.POSTGRES_DB = app_test
+
+Meaning for Flox:
+CI uses a Postgres service container and exposes it on the runner host. Local
+Flox commands should expect a host-reachable Postgres endpoint when they run on
+the host. Flox should declare client tools and connection defaults, but the
+Postgres server runtime should remain in CI, Compose, or another local service
+manager unless the repo intentionally wants Flox to manage it.
+
+Flox destination:
+[install] PostgreSQL client tools when wrappers use pg_isready or psql.
+[vars] host-facing database variables.
+Wrappers that wait for a reachable database before running tests or migrations.
+```
+
+```text
+CI line or pattern:
+runs-on, matrix, cache, secrets, artifact upload, coverage upload, schedules,
+job dependencies, permissions
+
+Meaning for Flox:
+CI orchestration and platform policy. These do not describe the developer
+runtime contract.
+
+Flox destination:
+No direct mapping.
+```
+
+#### Resulting Flox manifest fragment
+
+```toml
+[install]
+python.pkg-path = "python3"
+python.version = "3.13"
+
+node.pkg-path = "nodejs_24"
+uv.pkg-path = "uv"
+
+## Needed only when wrappers use pg_isready or psql.
+postgresql.pkg-path = "postgresql"
+
+## Declare ruff and pytest here only if the project wants Flox to supply these
+## CLIs directly. Otherwise they can come from requirements.txt or pyproject.toml.
+# ruff.pkg-path = "ruff"
+# pytest.pkg-path = "python3Packages.pytest"
+
+
+[vars]
+PGHOST = "localhost"
+PGPORT = "5432"
+PGUSER = "app"
+PGDATABASE = "app_test"
+
+## Do not put real secrets in the manifest. Set PGUSER/PGDATABASE defaults here
+## when useful, but pass PGPASSWORD through the developer shell, CI secrets, or a
+## local secret manager.
+
+
+## The hook prepares cheap local state only. It does not install dependencies,
+## start databases, run tests, or mutate service state.
+[hook]
+on-activate = '''
+set -e
+
+export VIRTUAL_ENV="$FLOX_ENV_PROJECT/.venv"
+export PROJECT_TASKS="$FLOX_ENV_PROJECT/scripts/ci_tasks.sh"
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+'''
+
+
+## Source Bash/Zsh-compatible task functions only in shells that can parse them.
+## Do not put these functions in profile.common, because profile.common must be
+## compatible with every shell Flox supports.
+[profile]
+bash = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+
+zsh = '''
+  if [ -f "$PROJECT_TASKS" ]; then
+    source "$PROJECT_TASKS"
+  fi
+'''
+```
+
+#### Companion repo-local CI task wrapper
+
+This file is a sourced Bash/Zsh-compatible function library. Do not put a shebang or global `set -euo pipefail` in a file sourced by interactive shells. Each function returns immediately on command failure so CI does not hide failed setup, lint, or test steps.
+
+```sh
+install-deps() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+
+  if [ ! -d "$VIRTUAL_ENV" ]; then
+    uv venv "$VIRTUAL_ENV" --python python3 || return $?
+  fi
+
+  if [ -f "$FLOX_ENV_PROJECT/requirements.txt" ]; then
+    uv pip install --python "$VIRTUAL_ENV/bin/python" -r "$FLOX_ENV_PROJECT/requirements.txt" || return $?
+  fi
+
+  if [ -f "$FLOX_ENV_PROJECT/package-lock.json" ]; then
+    npm ci || return $?
+  fi
+}
+
+wait-for-db() {
+  host="${PGHOST:-localhost}"
+  port="${PGPORT:-5432}"
+
+  until pg_isready -h "$host" -p "$port" >/dev/null 2>&1; do
+    sleep 1
+  done
+}
+
+lint() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+  ruff check . "$@"
+}
+
+test() {
+  cd "$FLOX_ENV_PROJECT" || return 1
+  wait-for-db || return $?
+  pytest "$@"
+}
+
+ci-check() {
+  install-deps && lint && test
+}
+```
+
+#### Example CI usage after migration
+
+After the Flox environment is committed, CI can keep its orchestration but call the same commands developers use locally:
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      - run: flox activate -- bash -lc 'source scripts/ci_tasks.sh && ci-check'
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: app
+          PGPASSWORD: app
+          PGDATABASE: app_test
+```
+
+The CI job still owns the runner, service container, credentials, caches, artifacts, and reporting. Flox owns the runtime tools and the commands developers and CI should run the same way.
+
+### 3.8 Produce the mapping artifact
+
+The output of this playbook should be a concrete mapping from existing Docker-related artifacts to the Flox declaration. It can live in an issue, pull request description, migration note, or design document.
+
+Use this form:
+
+```text
+Source artifact:
+Dockerfile
+
+Source evidence:
+RUN apt-get install gcc make pkg-config libpq-dev
+
+Runtime meaning:
+The project requires a native build toolchain and PostgreSQL client/library support.
+
+Flox destination:
+[install]
+gcc-unwrapped.pkg-path = "gcc-unwrapped"
+gnumake.pkg-path = "gnumake"
+pkg-config.pkg-path = "pkg-config"
+postgresql.pkg-path = "postgresql"
+
+Notes:
+Do not map apt cache cleanup.
+```
+
+```text
+Source artifact:
+Compose file
+
+Source evidence:
+PGHOST=db
+ports: "5432:5432"
+
+Runtime meaning:
+The app currently connects to Postgres through the Compose network. A host Flox
+shell should connect through the published port.
+
+Flox destination:
+[vars]
+PGHOST = "localhost"
+PGPORT = "5432"
+
+Notes:
+Keep the Postgres image, volume, health check, and init behavior in Compose.
+```
+
+```text
+Source artifact:
+CI configuration
+
+Source evidence:
+run: ruff check .
+run: pytest
+
+Runtime meaning:
+CI and developers need the same validation commands.
+
+Flox destination:
+scripts/ci_tasks.sh defines:
+lint() { cd "$FLOX_ENV_PROJECT" && ruff check . "$@"; }
+test() { cd "$FLOX_ENV_PROJECT" && pytest "$@"; }
+
+Notes:
+Keep job ordering, permissions, secrets, caches, and artifact upload in CI.
+```
+
+At the end of this playbook, the repo should have a reviewed mapping from Dockerfiles, Compose files, devcontainer configuration, entrypoint scripts, and CI setup into the Flox manifest. That mapping becomes the basis for committing the environment and updating the developer workflow.

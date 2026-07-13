@@ -1,0 +1,269 @@
+---
+title: 'Flox and AWS: Building, Testing, and Deploying Lambda Functions with Flox and AWS SAM'
+altTitle: 'Flox and AWS: Building, Testing, and Deploying Lambda Functions with Flox and AWS SAM'
+description: 'How to use Flox to install all the runtime dependencies you need to build and test your Lambda functions locally, and also containerize them for deployment to AWS Lambda.'
+metaDescription: 'How to use Flox to install all the runtime dependencies you need to build and test your Lambda functions locally, and also containerize them for deployment to AWS Lambda.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 02 December 2024
+thumbnail: '/images/blog/cloud-clockwork.webp'
+orderBy: 20241202
+---
+
+Flox simplifies your workflow for building, testing, and deploying functions in AWS Lambda.
+
+But talk is cheap, right? So rather than _tell_ you how Flox does this, why don’t we _show_ you?
+
+This article explores how you can use Flox to install all the runtime dependencies you need to build and test your Lambda functions _locally_, and also containerize them for deployment to AWS Lambda.
+
+**First**, Flox gives you just one place—the Flox Catalog—from which to get both up-to-date and legacy versions of AWS CLI, AWS SAM, GitHub CLI, and thousands of other dependencies. **Second**, Flox lets you _declaratively_ define not just the software packages and versions in your environment’s runtime, but variables, available services, setup and tear-down logic, alias and functions, and other affordances, too.
+
+We saved the best part for last. Using Flox, you can define both your code and runtime in the same GitHub, GitLab, or CodeCommit repo. This makes it straightforward to build, test, and deploy new Lambda functions _along with their runtime dependencies_ as part of a single, integrated workflow.
+
+Intrigued? Let’s get down to it!
+
+
+## A priority directive for a new Lambda function
+
+You work for “Fluffirmations,” a social media site where pet guardians connect by sharing thoughts, images, and videos. Your monetization angle revolves around products like “Box-o-Treats,” a personalized monthly subscription package that’s delivered to a customer’s home, addressed to their pets by name. 
+
+You grow your subscription revenues by driving traffic and engagement on your website and mobile app.
+
+One of Fluffirmations’ most popular features is a curated feed that lets users select pet types by species and breed, batch-scraping and analyzing platforms like TikTok, Instagram, Facebook, and Twitter to surface relevant content. With its surge in popularity, you now need to be able to scrape Bluesky as well.
+
+This is a priority directive from your CEO, who is obsessed with [Bernedoodles](https://www.reddit.com/r/Bernedoodles/). They’ve heard there’s a thriving [Bernedoodle subculture](https://bsky.app/search?q=bernedoodle) on Bluesky. You’re told to reprioritize everything to get this done.
+
+The good news is you’re using AWS Lambda and you’ve got Flox, so this isn’t as heavy a lift as it could be!
+
+
+
+## Bootstrapping your local Lambda dev environment
+
+The first thing you do is clone the GitHub repo containing your Lambda project code.
+
+This repo also includes the runtime configuration for Lambda, located in the `.flox` folder. It’s defined in a file called `manifest.toml`, the default configuration artifact used by Flox.
+
+Once you’ve cloned your `scrape-and-sniff` project repo, you type:
+
+```
+flox activate
+```
+
+This activates your Flox `scrape-and-sniff` runtime environment, putting you into a subshell in your terminal.
+
+```
+✅ You are now using the environment 'scrape-and-sniff'.
+To stop using this environment, type 'exit'
+
+Retrieving AWS credentials from Secrets Manager...
+Credentials retrieved successfully.
+```
+
+When your Floxified function runs in AWS Lambda, it automatically retrieves your org’s AWS credentials from the AWS Secrets Manager using the IAM role attached to your function. This way you don’t need to hard-code credentials in the container image itself. During local development, the environment uses the credentials you’ve configured for the AWS CLI, such as those in `~/.aws/credentials` or [exported as variables](https://flox.dev/blog/adding-1password-secrets-to-flox-environments/).
+
+(Note: Your Flox environment could also be configured to use the appropriate [aws-secretsmanager-caching](https://github.com/aws/aws-secretsmanager-caching-python) library, enabling you to locally cache credentials retrieved from AWS Secrets Manager.)
+
+Because you’re curious, you use **`flox list`** to see which packages are available in this environment:
+
+```
+aws-lambda-builders: python311Packages.aws-lambda-builders (python3.11-aws-lambda-
+aws-secretsmanager-caching: python311Packages.aws-secretsmanager-caching (python3.11-aws-secretsmanager-caching-1.1.3)
+builders-1.50.0)
+aws-sam-cli: aws-sam-cli (1.119.0)
+awscli2: awscli2 (2.17.0)
+boto: python311Packages.boto (python3.11-boto-2.49.0)
+curl: curl (8.8.0)
+github-cli: github-cli (gh-2.52.0)
+localstack: localstack (3.0.0)
+pip: python311Packages.pip (python3.11-pip-24.0)
+python311Full: python311Full (python3-3.11.9)
+sagemaker: python311Packages.sagemaker (python3.11-sagemaker-2.219.0)
+```
+
+Among other packages, you note `aws-sam-cli`, which is the CLI front-end for managing AWS Serverless Application Model (SAM) applications. You can use the `sam` tool to run your function in a local Lambda container for testing. After that, you'll use `flox containerize`** to containerize your Flox runtime so it can be deployed to AWS Lambda.
+
+Your Flox environment runs in an isolated context on your system, so you don’t have to worry about conflicts with existing, system-wide dependencies. And because it’s running _on your local system_, you get transparent access to local tools, data, secrets, and other resources. It’s like a one-way mirror you can use to look _and reach into_ your system—the complete opposite of building locally with containers or VMs.
+
+
+
+## Kickstarting your local Lamba runtime
+
+With your local Flox runtime environment activated, you’re basically ready to fire up AWS SAM and initialize your project.
+
+You do this the same way you always do, by running
+
+```
+sam init
+```
+
+Next, you’re prompted to either choose an AWS Lambda Quick Start application template or create a custom template of your own. You opt for the former, breezing through the now-familiar setup wizard.
+
+Your configured project looks like this:
+
+```
+Project name [sam-app]: scrape-and-sniff
+Cloning from https://github.com/aws/aws-sam-cli-app-templates (process may take a moment)
+
+    -----------------------
+    Generating application:
+    -----------------------
+    Name: scrape-and-sniff
+    Runtime: nodejs20.x
+    Architectures: x86_64
+    Dependency Manager: npm
+    Application Template: quick-start-web
+    Output Directory: .
+    Configuration file: scrape-and-sniff/samconfig.toml
+    Next steps can be found in the README file at scrape-and-sniff/README.md
+
+Commands you can use next
+=========================
+[*] Create pipeline: cd scrape-and-sniff && sam pipeline init --bootstrap
+[*] Validate SAM template: cd scrape-and-sniff && sam validate
+[*] Test Function in the Cloud: cd scrape-and-sniff && sam sync --stack-name {stack-name} --watch
+```
+
+The `scrape-and-sniff` folder lives inside your local repo’s project folder. Your next step is to `cd` into it so you can add your Lambda function logic to `app.js`. A snippet of this logic looks like this:
+
+```javascript
+const axios = require('axios');
+
+async function getBlueskyToken() {
+    const blueskyAuthUrl = "https://bsky.social/xrpc/com.atproto.server.createSession";
+
+    const response = await axios.post(blueskyAuthUrl, {
+        identifier: process.env.BSKY_USERNAME,
+        password: process.env.BSKY_PASSWORD,
+    });
+
+    return response.data.accessJwt;
+}
+```
+
+After updating `template.yaml` with your function name, the names of the temporary variables you use for Bluesky authentication, the names of your S3 buckets, and other required information, you install [Axios](https://www.npmjs.com/package/axios) and the [AWS SDK for JavaScript](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/welcome.html) via `npm`.
+
+For deployment, you’ll create a `package.json` in which both are defined.
+
+You’re all set up! Now you’re ready to build and test locally.
+
+
+## Running and debugging your Lambda function
+
+Flox almost always drops right into your existing workflow. This means you build, test, and deploy your Floxified Lambda function just like you’d build, test, and deploy _any_ Lambda function.
+
+If anything, this goes even faster because with Flox, everything Just Works.
+
+```
+sam build
+Starting Build use cache
+Manifest file is changed (new hash: 034dd9d287d8b04d2d2681a98a82af3a) or dependency folder (.aws-sam/deps/5521b962-495a-4aa1-a9b0-0fbf659934be) is missing for
+(getAllItemsFunction, getByIdFunction, putItemFunction), downloading dependencies and copying/building source
+Building codeuri: /home/daedalus/dev/1pass/scrape-and-sniff runtime: nodejs20.x metadata: {} architecture: x86_64 functions: getAllItemsFunction, getByIdFunction,
+putItemFunction
+ Running NodejsNpmBuilder:NpmPack
+ Running NodejsNpmBuilder:CopyNpmrcAndLockfile
+ Running NodejsNpmBuilder:CopySource
+ Running NodejsNpmBuilder:NpmInstall
+ Running NodejsNpmBuilder:CleanUp
+ Running NodejsNpmBuilder:CopyDependencies
+ Running NodejsNpmBuilder:CleanUpNpmrc
+ Running NodejsNpmBuilder:LockfileCleanUp
+ Running NodejsNpmBuilder:LockfileCleanUp
+
+Build Succeeded
+```
+
+That’s (a snippet of) the output you expect to see. All looks good. Now it’s time to build and test:
+
+```
+sam local start-api
+No current session found, using default AWS::AccountId
+Initializing the lambda functions containers.
+Local image was not found.
+Removing rapid images for repo public.ecr.aws/sam/emulation-nodejs20.x
+Building image.....Local image was not found.
+Removing rapid images for repo public.ecr.aws/sam/emulation-nodejs20.x
+Building image.....Local image was not found.
+Removing rapid images for repo public.ecr.aws/sam/emulation-nodejs20.x
+Building image..................................................................................................................................................................
+...........................................................................................................................
+Using local image: public.ecr.aws/lambda/nodejs:20-rapid-x86_64.
+Mounting /home/daedalus/dev/1pass/scrape-and-sniff/.aws-sam/build/getByIdFunction as /var/task:ro,delegated, inside runtime container
+.....
+Using local image: public.ecr.aws/lambda/nodejs:20-rapid-x86_64.
+Mounting /home/daedalus/dev/1pass/scrape-and-sniff/.aws-sam/build/getAllItemsFunction as /var/task:ro,delegated, inside runtime container
+.....
+Using local image: public.ecr.aws/lambda/nodejs:20-rapid-x86_64.
+Mounting /home/daedalus/dev/1pass/scrape-and-sniff/.aws-sam/build/putItemFunction as /var/task:ro,delegated, inside runtime container
+Containers Initialization is done.
+Mounting getAllItemsFunction at http://127.0.0.1:3000/ [GET]
+Mounting putItemFunction at http://127.0.0.1:3000/ [POST]
+Mounting getByIdFunction at http://127.0.0.1:3000/{id} [GET]
+You can now browse to the above endpoints to invoke your functions. You do not need to restart/reload SAM CLI while working on your functions, changes will be reflected
+instantly/automatically. If you used sam build before running local commands, you will need to re-run sam build for the changes to be picked up. You only need to restart SAM
+CLI if you update your AWS SAM template
+2024-12-01 14:16:32 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:3000
+2024-12-01 14:16:32 Press CTRL+C to quit
+```
+
+Working locally with Flox and SAM, you’re able to go much faster than you otherwise could.
+
+You iteratively debug your Lambda function, fixing issues as you identify them. Occasionally you need to update `template.yaml`, which entails re-running `sam build`. Before long, you’ve got your function to the point where it seems to run reliably in your local SAM Lamba instance. Thanks to Flox and SAM, you’re also able to quickly create and run unit tests, along with local smoke tests, basic integration tests, and even soak tests.
+
+Now you're ready to containerize your Lambda function and Flox runtime.
+
+
+## Containerize, push to ECR, and deploy in Lambda
+
+This is the easiest part! You just run
+
+```
+flox containerize -d ./ --runtime=podman --tag bluesky-scrape-and-sniff
+```
+
+This does the following:
+
+-  `-d ./` specifies the current directory, which contains the .flox directory;
+-  `--runtime=podman` tells Flox to use load the image into Podman;
+-  `--tag bluesky-scrape-and-sniff` tags the container image.
+
+
+Now it's time to push your Floxified container runtime to [AWS ECR](https://aws.amazon.com/ecr/), your container registry. To do this, you would run your own variation of the commands below, adjusted to suit your circumstances.
+
+In this walk-through's scenario, you’ll first authenticate Podman (or Docker) with ECR...
+
+```
+aws ecr get-login-password --region us-east-1 | podman login --username AWS --password-stdin 314159265358.dkr.ecr.us-east-1.amazonaws.com
+```
+
+… then tag the image
+
+```
+podman tag bluesky-scrape-and-sniff:latest 314159265358.dkr.ecr.us-east-1.amazonaws.com/bluesky-scrape-and-sniff:latest
+```
+
+… then push the image to your ECR repo
+
+```
+podman push 314159265358.dkr.ecr.us-east-1.amazonaws.com/bluesky-scrape-and-sniff:latest
+```
+
+… and, finally, verify what you’ve done:
+
+```
+aws ecr list-images --repository-name bluesky-scrape-and-sniff --region us-east-1
+```
+
+From there, you can pull your container image from ECR and deploy it to AWS Lambda, whether to a `test`, `stage` or `prod` alias. The environment in this walk-through was built on an x86 laptop running Linux. It's designed to be deployed to AWS Lambda on x86-64. But you could also containerize the same environment, [_with optimized software packages_](https://flox.dev/docs/tutorials/multi-arch-environments/), for Lambda on Amazon’s AWS Graviton (i.e., 64-bit ARM) vCPUs.
+
+
+## Re:Inventing local dev for AWS
+
+AWS Lambda simplifies deployment, but it still poses challenges when it comes to ensuring that the artifacts you build locally and test in CI environments _outside of Lambda_ run predictably and behave as expected when deployed to AWS Lambda itself. With Flox, you can easily build and test locally, containerize what you’ve built, push the resulting image to your container registry, test it in CI, then deploy it to Lambda.
+
+The same environment Just Works everywhere.
+
+Curious about what you’ve read? Why not [Download Flox](https://flox.dev/docs/get) and put it to the test? You can get started in [less than five minutes](https://flox.dev/docs/install-flox/)!

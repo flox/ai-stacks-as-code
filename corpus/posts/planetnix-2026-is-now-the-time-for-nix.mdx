@@ -1,0 +1,117 @@
+---
+title: 'PlanetNix 2026: Is Now the Time for Nix?'
+altTitle: 'PlanetNix 2026: Is Now the Time for Nix?'
+description: 'A look at the Planet Nix 2026 agenda and what Flox is bringing to the conversation around AI, reproducibility, and the evolving SDLC'
+metaDescription: 'A look at the Planet Nix 2026 agenda and what Flox is bringing to the conversation around AI, reproducibility, and the evolving SDLC'
+isPublished: true
+category: guides
+author: Flox Team
+publishedDate: 03 March 2026
+thumbnail: '/images/blog/planet-nix-2026.png'
+orderBy: 20260303
+---
+
+[PlanetNix](https://planetnix.com/) returns to Pasadena on March 5–6, co-located with [SCaLE 23x](https://www.socallinuxexpo.org/scale/23x), for two full days dedicated to people building real systems with [Nix](https://nixos.org/)! We couldn't be more excited to host it with the help of amazing Planetary Partners: [PDT Partners](https://pdtpartners.com/), [Express VPN](https://www.expressvpn.com/), [Southern California Nix User Group](https://socal-nug.com/), [Anthropic](https://www.anthropic.com), and [Numtide](https://numtide.com/). This edition is revolving around reproducibility, modern software workflows and AI. We're bringing [25+ talks and workshops](https://planetnix.com/agenda) across two tracks, so if you haven't registered yet, you can get in with an Expo Pass or a [full SCaLE pass](https://register.socallinuxexpo.org/reg23/?_gl=1*12lgz9n*_ga*NDk4Nzc0MzE1LjE3NzI1NjYxODc.*_ga_FPM4BHDCS5*czE3NzI1NjYxODYkbzEkZzAkdDE3NzI1NjYxODYkajYwJGwwJGgw)!
+
+## Flox at PlanetNix 2026: AI, Security, and the Deterministic SDLC
+
+At PlanetNix 2026, we're highlighting how Flox supports secure, reproducible systems across the AI software lifecycle.
+
+### Reproducibility Meets Governance: Built-In SBOMs
+
+As teams scale, dependency complexity increases. Security reviews, audits, and operational stability require precise visibility into what's actually running. At Planet Nix, we're highlighting how Flox integrates that visibility directly into the development workflow.
+
+Tl:dr: FloxHub generates SBOMs at two levels, available now:
+
+**Flox Catalog SBOMs**. Get SBOMs for every package tracked by the Flox Catalog: more than 190,000 distinct Nixpkgs packages spanning _millions_ of historical package-version combinations. Free for all users.
+
+**Environment SBOMs**. SBOMs scoped to Flox environments, showing exactly which versions of which dependencies are present in each specific generation environment. Available to Flox commercial users.
+
+[Reach out](http://www.flox.dev/secure-software-by-construction) to learn about forthcoming features, like PURL (Package URL), CPE (Common Platform Enumeration), and checksum enrichment or come by our booth!
+
+### CUDA for Nix: Now Generally Available
+
+We'll also discuss what CUDA general availability in the Flox Catalog enables for Nix users.
+
+In partnership with the Nix Foundation and NVIDIA, Flox is shipping prebuilt CUDA-accelerated packages, including the NVIDIA CUDA Toolkit, PyTorch, NVIDIA TensorRT, and more. Flox and Nix users can pull ready-to-run CUDA packages from Flox's binary cache in seconds or minutes, rather than hours. Works automatically with Flox CLI; Nix users add **`https://cache.flox.dev`** as a substituter.
+
+### Live at the Flox Booth
+
+#### CUDA Environments in Action
+
+Stop by the Flox booth to try ready-to-activate AI environments running on CUDA hardware:
+
+-  ComfyUI with CUDA, Metal/MPS, or CPU acceleration
+-  vLLM for single-node, multi-GPU model serving
+-  Ollama with Next.js or Open WebUI frontends
+-  llama.cpp serving environments
+-  Live model quantization — requantize foundation models on the fly in a CI-ready environment
+-  And more
+
+Every environment is declarative, reproducible, and runs in user space: no containers, no VMs, no changes to the host system. Come see how simple Flox makes it to go from zero to a working CUDA runtime.
+
+#### Inside Flox: Structured Agentic Engineering
+
+We'll also walk through how we run structured agentic engineering at Flox through Forge, layering on our own workflow conventions. Markdown-defined guardrails and quality rules defined in `forge.yaml` ensure that agents follow team norms. We also structure work as repeatable workflows (i.e., bounded "efforts" and "slices") using Forge to run workflows with repo-aware context, so agents stay grounded in the actual codebase. When they need to go outside the codebase, we connect external tools via Forge's MCP support for end-to-end multi-agent workflows.
+
+We'll walk through how we author guardrails, organize context, and define workflows while keeping quality high.
+
+### The Broader Conversations at PlanetNix 2026: A Closer Look at the Agenda
+
+Beyond Flox updates, [the agenda at Planet Nix 2026](https://planetnix.com/agenda) centers on the intersection of Nix, AI, and the evolving software development lifecycle.
+
+### Nix, AI, and the SDLC
+
+The conference opens with **Is Now the Time for Nix?** by Ron Efroni Rotman and Kelsey Hightower.
+
+Their discussion centers on Nix, AI, and the present and future of the SDLC. AI amplifies an already high-complexity status quo, with agents refactoring code, running builds, and managing production. Nix brings reproducibility, determinism, declarative environments, and atomic rollbacks across OSes, architectures, and infrastructure. Thus the question: is now the time for Nix? Are we heading toward a future where Nix provides the deterministic foundation for agentic automation at scale?
+
+AI appears again in **Nix and AI, Are We There Yet?** by Michael Stahnke. AI stacks look like the perfect use-case for Nix: massively multiplying dependency matrices, double-digit-GB OCI images, and Sisyphean build → push → pull → test loops. In ML/AI dev, "It runs" literally means "It runs … on this machine." The talk asks why more ML teams aren't using Nix, whether Nix fits the conveyor belt teams already ship on, or whether ML teams must adopt a new way to build, ship, and deploy software.
+
+### Containers, Kubernetes, and Runtime Tradeoffs
+
+Containerization and Kubernetes are once again central themes, but this year's talks go deep into the runtime plumbing, exploring how container root filesystems get assembled; how runtimes enforce isolation; and how Nix-based tooling fits into OCI image workflows.
+
+In **From Unsustainable to Efficient: Runtime Package Layering Breaks the Container Bloat Cycle**, Priya Ananthasankar addresses the problem of unsustainable container bloat in managed services. Traditional "shift-left" approaches aim for reproducible, locked-down production behavior by baking all tools and dependencies into OCI images. But workload needs vary, so this forces a tradeoff: do you ship one bloated catch-all image … or manage a fragmented fleet of specialized images? Runtime package layering resolves this by using a minimal, security-scanned base image for isolation while Flox pulls in pinned versions of packages at runtime. Flox environments keep tools fresh without adding bloat to base images. Stability and runtime reproducibility come from pinning; freshness comes via Nix/Flox.
+
+Morgan Helton's **From Nix to Kubernetes: No Image Layover** explores how to deploy workloads on Kubernetes using Nix without going through conventional OCI image builds. By examining how containerd actually creates a container—interpreting metadata, preparing a rootfs, assembling a runtime spec—Morgan's talk shows that methods beyond unpacking image layers are possible: e.g., a rootfs can be assembled directly from Nix store paths, or a materialized Nix closure can be mounted as a volume.
+
+### Scaling Builds and Monorepos
+
+As Nix adoption matures, distributed builds and large codebases become unavoidable topics.
+
+In **The Missing Part of Nix (And Where to Find It)**, Bernardo Meurer Costa from Anthropic argues that Nix gives you nearly all the primitives needed for robust and scalable builds, _except_ the actual build distribution piece. The talk examines what Nix does right for distributed builds, what options exist today to implement build distribution, and how the community might close this gap.
+
+Burke Libbey's **Tectonix: The bedrock of Shopify's Monorepo** offers a rare look inside Shopify's Nix-based build system for its "World" monorepo, assembling git sparse-checkouts, the NixOS module system, and supplemental tooling into a production-grade Nix monorepo build system.
+
+### Reproducibility, Governance, and the Ecosystem
+
+PlanetNix 2026 also addresses the bigger ecosystem questions that come with growth.
+
+In **Reproducibility as a Social Contract**, Stormy Peters and James Bayer explore reproducibility as the shared expectation that lets teams and communities collaborate without re-litigating environments or "works on my machine." As automation produces more of what we ship, they ask whether reproducibility is now non-negotiable.
+
+Ron Efroni Rotman's **A Secure Nix State of the Union** dives into how to ensure the secure sustainability of the Nix ecosystem, covering milestones in infrastructure and governance and examining what it takes to create and maintain a robust environment for years to come.
+
+The governance panel, **Steering the Future of NixOS: Governance, Growth, and Community**, brings together Nix Foundation and Nix Steering Committee leaders to discuss sustainability, scaling collaboration, and the future of security in NixOS.
+
+### Testing, Hardware, and the Edge
+
+Several sessions dig into the lower layers of the stack.
+
+Jacek Galowicz's sessions on the **NixOS Integration Test Driver** explore architectural changes that separate the test frontend from the virtualization backend, enabling lightweight container testing and GPU/CUDA testing inside sandboxes, as well as reducing CI overhead.
+
+Yuning Liang and Tristan Ross's **NixOS' No-Turning-Back Journey on RISC-V: Vision, Porting Progress, and the Road Ahead** traces the effort to bring NixOS to RISC-V as that architecture becomes first-class for Linux.
+
+Eelco Dolstra's **builtins.wasm: Nix Meets WebAssembly** addresses a persistent pain point: Nix users often need non-trivial computation at evaluation time (when parsing YAML, for example), but the Nix language is slow and memory-hungry for such tasks. Common workarounds like adding specialized builtins or using import-from-derivation each introduce problems of their own. Eelco's talk proposes a single new function, `builtins.wasm`, that lets users execute WebAssembly during Nix evaluation. Because WASM can be used as a pure language, it fits naturally within Nix's evaluation model. The talk also explores a bigger possibility: a `wasm` system type that would enable _platform-independent_ derivations.
+
+### Community Tables and After Hours
+
+Beyond the formal talks, PlanetNix keeps space for builders.
+
+A limited number of free Community Tables are available for teams and individuals who want to demo tools, workflows, and live projects. And when the sessions wrap, the PlanetNix Afterparty keeps the conversations going!
+
+PlanetNix 2026 is only possible because of the speakers, partners, and the broader Nix community who continue to push the ecosystem forward.
+
+Thank you to everyone sharing their work, supporting the event, and building real systems with Nix!
+
+We're excited to bring you all together in Pasadena.

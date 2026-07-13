@@ -1,0 +1,106 @@
+---
+title: 'Create Colorful Stylish Splashy Terminal Apps with gum and Flox'
+altTitle: 'Create Colorful Stylish Splashy Terminal Apps with gum and Flox'
+description: 'If you author shell scripts or create software that runs in a terminal, gum should probably be in your toolkit, especially if you’re building stuff for other people. You want what you build to look and feel good, right?'
+metaDescription: 'If you author shell scripts or create software that runs in a terminal, gum should probably be in your toolkit, especially if you’re building stuff for other people. You want what you build to look and feel good, right?'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: gum
+author: Steve Swoyer
+publishedDate: 28 February 2025
+thumbnail: '/images/blog/gum-machine.webp'
+orderBy: 20250228
+---
+
+This featured package is especially near and dear to our hearts. It’s something we happy few in Flox marketing use every. single. day.
+
+It’s [gum](https://github.com/charmbracelet/gum), a beauty of a utility from the redoubtable folks at [Charm](https://github.com/charmbracelet). Gum makes it a cinch to add interactive UI elements—like selection menus, input prompts, and progress indicators—to your terminal apps.
+
+If you author shell scripts or create software that runs in a terminal, gum should probably be in your toolkit, especially if you’re building stuff for other people. You want what you build to look and feel good, right?
+
+It gives you a simple, flexible way to add style and splash—what its creators call “glam”—to scripts and apps.
+
+Let’s explore how it can fit into your workflow.
+
+![](/images/blog/gum1.png)
+
+## Long-lasting, sugar-free TUI sweetness
+
+Gum is more than just a tool for titivating a terminal user interface (TUI)!
+
+You can use gum to:
+
+- **Filter text**. The `gum filter` command supports a fuzzy search capability so users can search interactively through a list of pre-defined options. Think [fzf](https://flox.dev/blog/get-warm-and-fuzzy-search-in-your-shell-with-fzf-and-flox/), but with more flexibility when used with or called from other programs.
+
+- **Select items**. `gum choose` gives you a way to add interactive selection menus to TUI shell scripts.
+
+- **Prompts**. Commands like `gum input` and `gum confirm` prompt users for input, from free-text responses to simple yes/no confirmations.
+
+- **Progress indicators**. Flox’s own Ross Turk loves gum for this one especially! Use `gum spin` and `gum progress` do display animated spinners or progress bars in your shell scripts.
+
+- **Timers**. Need to add a countdown to a TUI script? Use `gum timer`!
+
+Along with `gum spin`, Flox’s example environments use `gum style` and `gum format` to add text formatting, colors, and borders. Because gum reads from `stdin` and writes to `stdout`, you can use it with binaries, too.
+
+One pattern is using `gum choose` or `gum input` to collect input from users before passing it to a binary.
+
+Try it for yourself. Speaking of which...
+
+## Getting It
+
+Let’s go about fetchin’ and usin’ it. Already got Flox? Great. You’re good to go.
+
+You can get our `gum` package by initializing a Flox environment and installing it from the Flox Catalog.
+
+This is literally as simple as typing:
+
+```
+mkdir bubbalicious && cd bubbalicious
+flox init && flox install gum
+flox activate
+```
+
+## Using It
+
+You got a taste for what gum can do in the screenshot above. If you visit my [FloxHub](https://hub.flox.dev/barstoolbluz), you’ll discover I’ve made a gum-driven UI + UX a kind of standard feature of the environments I build, especially when I know they’re going to be used by others.
+
+The following is from a [Neo4j](https://github.com/neo4j/neo4j) Flox environment I built for a friend:
+
+![](/images/blog/gum2.png)
+
+Selecting “Yes” takes the user through a configuration process that completely bootstraps a custom Neo4j setup. It captures free-form text input and (as shown above) surfaces prompts.
+
+Once in a Flox subshell, it shows this familiar message:
+
+![](/images/blog/gum3.png)
+
+Here’s the same informational message in a script I created for another friend:
+
+![](/images/blog/gum4.png)
+
+Later in this script’s flow, it showcases `gum input`, surfacing a selecting menu from which a user can select and install PostgreSQL extensions. Below I’ve selected several extensions that aren’t yet installed:
+
+![](/images/blog/gum5.png)
+
+My script uses gum to prompt the user to confirm their selections, then uses other gum commands (`gum progress`, `gum style`, `gum format`) to display informational text updating the user as to its progress:
+
+![](/images/blog/gum6.png)
+
+(**Note**: This might be and probably is an anti-pattern. It’s easy to use imperative commands to install PostgreSQL extensions from the command line. It’s even easier to edit Flox’s environment manifest to add them declaratively.)
+
+Ross Turk introduced me to gum and uses it in many of the things he builds. Check out his [FloxHub](https://hub.flox.dev/rossturk) if you’re curious about the many and varied uses he finds for it. Here `gum choose` powers a menu in his `dosgames` env so users can select + play productivity-improving games.
+
+![](/images/blog/gum7.png)
+
+One final screenshot: it’s from a Flox environment I built some time ago to bootstrap 1Password and the `awscli2` for [working with AWS](https://flox.dev/blog/flox-and-aws-taking-the-chaos-out-of-secrets-management/) web services. (Like all Flox environments, it still Just Works … 8 months later.)
+
+![](/images/blog/gum8.png)
+
+## Summary
+
+So that’s gum. It’s one of several gems from the magnificent, the thaumaturgical folks o’er at [Charm](https://charm.sh/). Wanna build TUI tools incorporating gum-like features? Check out Charm’s [bubble tea](https://github.com/charmbracelet/bubbletea) framework. Or how about pretty / powerful SSH apps? As you [wish](https://github.com/charmbracelet/wish): Charm’s got a framework for that, too. They're also the madcap geniuses behind [vhs](https://github.com/charmbracelet/vhs), a tool that records and renders your terminal sessions as GIFs or videos.
+
+Having chewed … not the fat but (`echo $GROAN`) the gum with you, I now give you … The Weekend.
+
+Happy Hacking!

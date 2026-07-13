@@ -1,0 +1,19 @@
+# --- Flox ---
+# COMMIT the reproducible spec in every environment:
+#   .flox/env/manifest.toml, .flox/env/manifest.lock, .flox/env.json
+# The env will not resolve without env.json / the lock, so nothing under
+# .flox/env/ (and no *.json) is ignored. Only per-activation runtime state is:
+**/.flox/run/
+**/.flox/cache/
+
+# --- Generated pipeline outputs ---
+work/
+reports/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+
+# --- OS / editor cruft ---
+.DS_Store
+*.swp

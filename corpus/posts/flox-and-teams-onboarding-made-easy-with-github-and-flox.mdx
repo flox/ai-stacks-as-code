@@ -1,0 +1,194 @@
+---
+title: 'Flox and Teams: Onboarding Made Easy with GitHub and Flox'
+altTitle: 'Flox and Teams: Onboarding Made Easy with GitHub and Flox'
+description: 'Onboarding onto something new is radically different when you use Flox to create and manage your dev environments.'
+metaDescription: 'Onboarding onto something new is radically different when you use Flox to create and manage your dev environments.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 07 November 2024
+thumbnail: '/images/blog/coffee-on-desk.webp'
+orderBy: 20241107
+---
+
+Onboarding into a new role, team, or project offers a strange mix of conflicting feelings.
+
+On the one hand, there’s the natural excitement of starting something new, doing something that compels you, activates you, challenges and engages you. That’s one of the best feelings in the world!
+
+On the other, you rarely _start_ with the compelling, activating, engaging bits of a new role or project. _First_ you have to set up your development environment, which takes time and usually involves a few missteps. It isn’t exactly boring, and it’s sometimes challenging, just not in an “activating” way.
+
+Onboarding onto something new is radically different when you use Flox to create and manage your dev environments! Think of Flox as enabling faster time-to-activation—in every sense of the term.
+
+Read on to get a sense of how Flox can transform your team’s onboarding experience!
+
+
+
+## Joining a New Team in a New Role
+
+It’s 8:30 AM and you’re already sitting at your desk. Past experience has taught you that it’s a good idea to get an early start when you’re onboarding into a new company or role.
+
+Gripping a quad-shot latte in one hand and a fresh [cronut](https://en.wikipedia.org/wiki/Cronut) in the other, you start going through your onboarding email, which explains how to set up SSO with your org’s identity provider, use it to authenticate with GitHub, create a temporary GitHub token, etc. 
+
+All of this is boilerplate, right down to the next step, which has you `git clone`-ing an onboarding repo to your system. _That’s_ when things take a turn for the weird. “After cloning the repository,” the email explains
+
+```
+… go to the ‘onboarding’ directory and run ‘bootstrap.sh’
+to install Flox and configure your local system. 
+```
+
+“Flox?” you think, “What's a Flox?”
+
+You run `bootstrap.sh`, which downloads and installs Flox. You see a message informing you that Flox is
+
+```
+Installing packages to environment 'default'
+```
+
+Interesting. So Flox is some kind of build or package manager? Good to know. Figuring this will take awhile, you decide to cut out for a brief bio break. Your inner cynic tells you there’s really no need to check back until after lunch.
+
+Returning a few minutes later, you reach for your quad-shot latte, reflexively take a sip, and howl in pain: Ouch! Still way, way too hot! That’s when you glance at your screen and do a double-take:
+
+```
+Setup complete. Refer to your onboarding email for
+detailed instructions on starting your projects.
+
+Press any key to exit.
+```
+
+What? Finished? While your latte is still hot enough to scorch the roof of your mouth?
+
+And about that last part: You aren’t actually ready to start working on projects … are you?
+
+
+## Diving In
+
+You bet you are. The next step in the onboarding workflow has you connecting to your org’s project management service and jumping right into your assigned tasks. Your first task is to navigate to a GitHub repo called `docs` that lives in `$HOME/dev`, where you’re told to run `flox activate` again. The task includes the following action item:
+
+```
+This starts a local instance of Hugo, which provides up-to-date
+documentation.
+
+You also use this to contribute updates, with changes immediately
+updating in the local preview.
+```
+
+When you change into `~/dev/docs` and run `flox activate`, you see a variation on the earlier message (this time it says “Preparing environment ‘docs’”), along with status messages indicating that Hugo, Node.js, a specific version of Go (v1.22.5), ImageMagick, and a few other packages have been successfully installed.
+
+In less than a minute, Safari pops up again, this time displaying your org’s internal documentation homepage. Curious about something, you press `⌘ + TAB`, switching back to your terminal. There you see a message informing you:
+
+```
+You can start the docs server at any time by navigating to this directory
+and typing ‘flox activate’.
+
+Alternatively, you can run the `docs` alias in your terminal to start
+this instance directly.
+```
+
+Neat. Flox got you going, but you still aren’t certain _how_. What is it? What's it doing? Is it running Hugo in a VM or container? You `grep` the process table for VMs … and are startled to see that neither `hyperkit` nor `qemu` is running. 
+
+```
+ps aux | grep -E 'hyperkit|qemu'
+
+Yamada.Hanako    37173  0.0  0.1   5424   680 pts/0    S+   00:00
+0:00 grep -E hyperkit|qemu
+```
+
+Huh. So Flox _isn’t_ spinning up a VM or multi-container runtime.  What _is_ it doing then?
+
+You shrug. That’s a mystery to be solved at a later time.
+
+Glancing at your latte, you shake your head: nope, probably still too hot. You take another bite of your cronut, munch for a bit, and turn to your next assigned task: “activating” the GitHub repos you’ll use for local development, whatever that means. “Activating?” Do they mean “initializing,” like with `git init`?
+
+
+
+## Working in Projects
+
+No, they do not: Apparently, they want you to navigate to each local repo’s directory and run `flox activate`. By now, you understand that Flox is involved in this _somehow_. But how? When you navigate to the first repo, `~/dev/o11y-frontend`, and type `ls -al`, part of the mystery clears up.
+
+In addition to `.git`, `.github`, and `.ci` directories, there’s a directory called `.flox`. Intriguing!
+
+Getting on with it, you type `flox activate` and are treated to the now-familiar message: “Preparing environment ‘o11y-frontend’."
+
+According to your org's documentation, this process happens just once—the first time you activate an environment. Among other software, you see that Flox installed several React-related packages, along with Node.js, nginx, OpenTelemetry (OTel), and other stuff. You briefly glimpse a console message informing you that Node.js, nginx, and Otel collector “[services](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox)” are running, then Safari pops up and you’re looking at … a mirror of your org’s production o11y dashboard—running on your local system.
+
+Already knowing the answer, you `⌘ + TAB` back to your terminal, typing:
+
+```
+ps aux | grep -E 'hyperkit|qemu'
+
+Yamada.Hanako    181491  0.0  0.1   5424   680 pts/0    S+   00:00
+0:00 grep -E hyperkit|qemu
+```
+
+_Still_ no VMs or containers? How is this possible? You `⌘ + TAB` to the o11y dashboard, chewing on the last bite of your cronut and reaching, tentatively, for your latte. Sensing that the cup feels a little cooler, you take a cautious sip. Still hot, but not scorchingly so. Sipping and swallowing, you navigate to
+
+```
+~/dev/foo_enterprises/o11y-search
+~/dev/foo_enterprises/o11y-shared
+~/dev/foo_enterprises/o11y-tests 
+~/dev/foo_enterprises/o11y-aws
+~/dev/foo_enterprises/o11y-redshift
+```
+
+… activating each repo sequentially. Each time, Flox installs required packages and puts you into a subshell that usually displays an informational message about how to use the environment. Some environments also provide helpful hints, such as aliases you can use to start them without running `flox activate`.
+
+You sip your latte, being careful to spare the roof of your mouth, while brushing cronut crumbs from your fingers, hands, and chin. Scowling, you click on—wow!—the _last_ of your onboarding tasks:
+
+```
+
+Log into Jira to review and start working on backlog tickets relevant to your
+projects and responsibilities. Pair with your mentor or teammates as needed.
+
+
+```
+Wait: start working on Jira tickets _today_? Like, _now_? At—you check your phone—8:55 AM?
+
+
+
+## Lifting the Curtain on Flox
+
+How is this possible?
+
+Scrolling through your local docs server, you learn that Flox is based on [Nix](https://github.com/NixOS/nix), the open source environment and package manager. Nix, huh? You ask ChatGPT to explain how Flox is different from Nix:
+
+```
+Flox builds on Nix’s approach to dependency management and environment
+isolation, enabling declarative, reproducible developer environments
+that run directly on the host system, using native binaries and libraries
+optimized for each OS. By enhancing Nix with user-friendly, intuitive tooling,
+Flox makes it easier to use.
+```
+
+Reading your org’s docs, you learn that you can create your own Flox environments just by typing `flox init` in a directory and using the `flox install <package_name>` command to add packages to it. 
+
+You pick up a few other tips along the way, too, such as:
+
+-  You can share Flox environments using GitHub _or_ [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/); like `git push`, FloxHub uses a similar `flox push` command;
+-  You can lock Flox environments to specific software versions, environment variables, services, etc.;
+-  FloxHub gives you a way to _centrally manage_ Flox environments for teams, projects, or use cases;
+-  The command `flox activate -r` lets you activate FloxHub environments in any project repo on your local system;
+-  With `flox activate -r`, teams get the same version of a FloxHub environment (run `flox pull -r` to update to the latest version).
+
+You also discover that your teammates have created pre-built FloxHub “toolkits” for AWS, GitHub, and other services that you can activate remotely, [layering](https://flox.dev/blog/a-very-short-introduction-to-layering-in-flox/) them on top of existing projects. This gives you the capabilities of an orchestrated multi-container runtime without the complexity—or the inconvenience. 
+
+The coolest thing is that Flox does this without VMs or containers. As you knock down Jira tickets in your Flox-activated GitHub project environments, it all comes into focus: you’re able to _transparently_ access local resources on your MacBook! You don’t have to define container-specific networks and port-forwarding rules, create storage mounts, or inject variables and secrets! Everything just works.
+
+It’s kind of like having a one-way mirror through which you can both look and _reach into_ your local system.
+
+
+
+## Reproducible Development Made Simple
+
+With Flox, the onboarding experience is completely different, whether you’re starting in a new org, shifting to a new role within the same org, joining a new team, or kicking off a new project. Flox environments are declarative, portable, and reproducible. Unlike VM- or container-based setups, they run on your native system, using OS- and CPU-optimized versions of binaries, libraries, and other dependencies. The Flox environments you use to build locally Just Work when shared with teammates, pushed to CI, or deployed in prod.
+
+Onboarding with Flox gets you working productively faster, whether you’re doing problem analysis, collaborating with teammates, squashing bugs, and writing new code-or you’re just knocking down tickets.
+
+Try it yourself. [Download](https://flox.dev/docs/install-flox/) Flox and pull one of our [example environments](https://flox.dev/environments/) from FloxHub. Running a local, container-less instance of PostgreSQL is as simple as typing:
+
+```
+flox activate -r flox/postgres
+```
+
+Intrigued? [Check out our quick start guide](https://flox.dev/docs/) to learn how Flox fits into your workflow! 
+

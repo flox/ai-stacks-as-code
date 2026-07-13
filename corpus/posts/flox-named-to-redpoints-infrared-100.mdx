@@ -1,0 +1,54 @@
+---
+title: 'Flox Named to Redpoint’s InfraRed 100'
+metaTitle: 'Flox Named to Redpoint’s InfraRed 100'
+description: 'When a list as influential as the InfraRed 100 includes a company like Flox, we take it as validation of our founding belief: that reproducible runtimes and deterministic builds form the bedrock of scalable, reliable infrastructure—locally, in the cloud, wherever … and whenever.'
+metaDescription: 'When a list as influential as the InfraRed 100 includes a company like Flox, we take it as validation of our founding belief: that reproducible runtimes and deterministic builds form the bedrock of scalable, reliable infrastructure—locally, in the cloud, wherever … and whenever.'
+isPublished: true
+publishedDate: 10 Jun 2025
+author: Ron Efroni
+authorKey: ron-efroni
+thumbnail: /images/blog/right-on-target.webp
+orderBy: 20250610
+---
+
+This week, Flox made its debut on Redpoint Ventures' annual [InfraRed 100 list!](https://www.redpoint.com/infrared/report/)
+
+This is a round-up of 100 visionary companies building the next layer of cloud infrastructure.
+
+Award-seeking isn't part of our cultural DNA at Flox. We're always in execution mode, working toward the biggest, most ambitious goal we can think of: changing how everyone everywhere builds, delivers, and maintains software. We're living the present participle, so to speak: always be coding, building, doing.
+
+![](/images/blog/flox-infrared-100.jpg)
+
+But even though we don't _seek_ recognition, we're stoked when when we get it.
+
+## Open Source Wins
+
+Being listed on the InfraRed 100 feels a lot like proof of work: first, of the design and engineering work we've done to-date; second, of what we're doing right now; third, of what we have still to do.
+
+It also reinforces an irrefragable truth: open source isn't just an infrastructure thing, a cool-tool thing, or a hobbyist's weekend project ... it’s the motor powering almost all of the most impactful engineering efforts of our time. More than this, it’s a _proven sociotechnical paradigm_ in which technology, practices, and community continuously co-evolve: together.
+
+Flox is proof of this. We’re building on top of open source Nix to solve the emergent problems of the present and future … not just for Flox or the Nix community, but for cloud infrastructure as a whole.
+
+Because before there were CI systems, containers, or build systems like Bazel and Buck, there was open source Nix: a way to make software builds repeatable and deterministic … and make the environments they run in portable and reproducible. It's one of the best-kept secrets in the industry, 22 years in the making.
+
+## The Genius of Nix
+
+Flox was inspired by (and built upon) [Nix](https://nixos.org), and we're driven by the belief that runtime environments, build systems, and the infrastructure hosting them should be reproducible, portable, and deterministic by default.
+
+Without these properties, software cannot be reliably built, tested, or deployed across different system contexts. Yet most of the tools and methods we use to build software today don't support or enable these properties by default! They tick some of the boxes, perhaps most of them. But not all of them.
+
+Nix gives you a way to get these properties, all of them, anywhere and at any time—whether you're building on your local desktop today … or inside a CI runner five years from now. But Nix's steep learning curve and unfamiliarity combine to make it too heavy a lift for many people.
+
+## Flox Brings Nix to Work
+
+That's where Flox comes in. It abstracts Nix's declarative model—along with its custom language and unique evaluation semantics—behind [easy-to-understand TOML definitions](https://flox.dev/docs/concepts/manifest/). On the one hand, this means teams can leverage Flox to define reproducible, portable development and runtime environments. But because Flox builds on Nix, it also provides a hermetic build system where inputs are fully declared and pinned, outputs are byte-for-byte reproducible, and the same build definitions run across dissimilar platforms and architectures.
+
+That's the bet we made: that reproducibility, portability, and determinism—at both build time _and_ runtime—aren't niche concerns. Rather, they're prerequisites for designing systems we can actually observe, validate, and trust—especially when you're deploying AI workloads across architectures and time zones. When your models are probabilistic and your outputs vary, the last thing you need is variability in the environment itself.
+
+Reproducible infrastructure gives you a stable point of control: something you can rebuild anytime or anywhere, and always get identical results. When the model is probabilistic, the infra running it can't be.
+
+## Thanks, Redpoint!
+
+That foundation—something no one sees but which everyone relies on—is what we think the next layer of cloud infrastructure is built on. So when a list as influential as the InfraRed 100 includes a company like Flox, we take it as validation of our founding belief: that reproducible runtimes and deterministic builds form the bedrock of scalable, reliable infrastructure—locally, in the cloud, wherever … and whenever.
+
+Thanks to [Redpoint](http://www.redpoint.com/) for the nod. And congrats to the other builders on the list. Let's keep going!

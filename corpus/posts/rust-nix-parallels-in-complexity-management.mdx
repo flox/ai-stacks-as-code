@@ -1,0 +1,56 @@
+---
+title: 'Rust & Nix: Parallels in Complexity Management'
+description: 'If Rust seeks to solve the problem of memory management at the program level, Nix seeks to solve dependency management at the build level, for any language. The solutions go hand in hand.'
+metaDescription: 'The analogue for Rust’s safety guarantees is Nix’s determinism guarantees.'
+isPublished: true
+category: guides
+publishedDate: 16 May 2023
+thumbnail: /images/blog/rust-nix.webp
+orderBy: 14
+---
+
+The Rust language was first publicly released in 2012, created by Mozilla to power their next-gen Firefox browser and provide safety guarantees they were not receiving with C++ without sacrificing speed. The language was designed to address some of the common issues faced by systems-level programmers, such as memory safety, concurrency, and performance.
+
+One of the main reasons Rust is gaining popularity is due to the safety made possible by a feature called the [borrow checker](https://doc.rust-lang.org/1.8.0/book/ownership.html), which helps prevent common programming bugs such as null pointer dereferences and buffer overflows. Microsoft has [highlighted](https://thenewstack.io/microsoft-rust-is-the-industrys-best-chance-at-safe-systems-programming/) that 70% of CVEs are memory safety issues that would be prevented by an approach like Rust’s borrow checker, hence their stated move away from languages such as C or C++ towards memory safe languages like Rust.
+
+The growing need for this safety is a byproduct of the increasing complexity of our systems, and the sheer number of things humans are expected to keep track of. This is not scalable. Nix aims to tackle an analogous problem: enforcing rules around building and sharing software that limit the likelihood of bugs due to mutable dependencies? If Rust seeks to solve this question at the program level, Nix seeks to solve it at the build level for any language. The wonderful guarantees a developer has around their Rust program are reflected in the guarantees a Nix build provides. Let’s explore how.
+
+### Move Fast and Build Things
+
+As systems grow more complex, they also introduce more vulnerability and “attack surface”. Rust addresses this exact problem. Rust as a language imposes much greater discipline at the onset, making its learning curve and barrier to entry higher, in order to gain greater benefits in the long term, namely: speed, reliability, productivity.
+
+While this can feel like it's slowing you down at first, once you have gotten past the initial learning curve, you come to appreciate the power and peace of mind associated with this approach. By taking care of the complex things that humans aren’t wired to keep track of, the fear of introducing breakage or vulnerabilities decreases. [Nix](https://nixos.org/) is notoriously confusing to learn, and has a similar discipline you need to get accustomed to when building software, not just writing it.
+
+This is the essential tradeoff technologies like Rust and Nix present to the developer: do the hard work up front in order to save yourself (and others) hours of headaches in the future. Nix requires that the user deal with build specifications, preventing uncertainty about the output of the build. The creator of Nix made an explicit analogy between memory management and deployment practices in an early [presentation](https://edolstra.github.io/talks/immdsd-icse-2004.pdf) from 2004:
+
+The analogue for Rust’s safety guarantees is Nix’s determinism guarantees.
+
+A Nix build is deterministic, meaning you can repeatedly create the same compiled artifact from the same inputs. This build specification is expressed as a function of inputs (dependencies) to outputs (build artifacts). By creating a fixed build recipe for a package, you ensure that the output that anybody runs in the future will be close to identical to what you’d expect. Much as you have guarantees around what your Rust program will do, you have guarantees regarding how your Nix build will occur and what its output will be–up to the possibility of bit-for-bit reproducibility in some cases. It prevents developers from running into an entire category of bugs due to indeterminacy in the build process.
+
+In fact, one could say Nix imposes pointer discipline on the file system, such that the dependency graph of a program allows for garbage collection. This is crucial for managing the curation of the software on our systems, but also to be able to confidently observe the state of our builds and deployed software and its dependencies. It’s also a significant source of deployment issues, which many projects and companies have tried to solve by introducing a service or a product. Nix suggests that the problem should be solved at a more fundamental layer.
+
+Rust and Nix achieve similar goals in different realms. You get speed and safety (the two core pieces in [DORA metrics](https://cloud.google.com/blog/products/devops-sre/using-the-four-keys-to-measure-your-devops-performance)) as well as security.
+
+These guarantees allow developers to focus on higher order concepts instead of nitty gritty details of memory management in a concurrent application. With Nix, trying to access the internet at build time, trying to access resources from your local directory, or trying to access something in a global mutable location will throw errors, so that your build environment is well-specified and your program ultimately runs properly when deployed to production.
+
+### Fearless Transformation with Rust and Nix
+
+It’s important not to lose sight of the point of all this up-front work which Rust and Nix require. The goal is to be able to use this software while making as few assumptions as possible about where or how that program will run. This means that it also makes it less risky to change. If a Rust program’s interface is well defined, it becomes easy to extend or modify without introducing unexpected bugs in another part of the codebase. Similarly, with Nix, changing a dependency completely changes the program you’ve output–as far as Nix is concerned, it is a completely different program. A developer won’t have their program change out from under them, nor will they be unsure about the contents of any given build.
+
+This also means with Nix you can now safely transform packages into different kinds of artifacts and run them in a VM or container or anywhere really, because your system is keeping track of everything under the hood. This is why there are far less reliability issues in both Rust and Nix based-code, as it is far harder for someone to change libraries from underneath you. So the tradeoff is that while you have less flexibility, you have greater reassurance and stability on a longer timescale. Fewer "works on my machine, but not on yours" problems mean easier collaboration and development speed for complex projects.
+
+In Rust, the reliability is due to the stringent pointer discipline (among other languages), and in Nix it’s the reference and dependency discipline.
+
+### Why Does This Matter?
+
+Software engineering is growing in complexity, demanding expertise in more domains than in the past. If historically you just needed to write some code, now you need to have some level of understanding in operations and security.
+
+By having your tools impose built-in guardrails to offload some of this cognitive load, you then derive much more freedom on the software engineering side, and aren’t bogged down by details you shouldn’t have to keep track of in the first place. As our systems get larger, with many microservices, across many environments and languages, we want to be able to manage, share, collaborate on, and modify our code safely without impacting velocity due to safety concerns. We can move fast without breaking things!
+
+### Going Forward
+
+We believe that Nix provides a strong foundation to bring these values of reliability and confidence into the software development lifecycle (SDLC) and are building the [flox ecosystem](https://flox.dev/docs/) to make this easier. There are a common set of problems that enterprises encounter and flox aims to address them. Check out our future posts where we will go into these issues and solutions.
+
+<i>About the author:</i>
+
+Tom Bereknyei, Director of Engineering

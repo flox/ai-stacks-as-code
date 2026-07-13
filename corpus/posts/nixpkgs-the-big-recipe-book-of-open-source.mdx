@@ -1,0 +1,83 @@
+---
+title: 'Nixpkgs: The Big Recipe Book of Open Source'
+description: >-
+  A clear guide to Nixpkgs, the world’s largest open-source package collection. Learn how its recipes enable cross-platform builds and community curation.
+metaDescription: 'A clear guide to Nixpkgs, the world’s largest open-source package collection. Learn how its recipes enable cross-platform builds and community curation.'
+isPublished: true
+category: guides
+publishedDate: 3 January 2026
+thumbnail: /images/blog/nixpkgs-purple-galaxy.webp
+orderBy: 11
+---
+
+Nixpkgs is just that: the big fat recipe book of all open source. Anybody can view it, fork it, patch it, and use Nix to inspect the largest set of free software recipes in the world.
+
+People sometimes focus on Nix the language or Nix the package manager, but it's the Nixpkgs package collection that is core to the success of Nix.
+But it's more than that: we can also understand Nixpkgs as a powerful tool to ensure the continued growth, transparency, and resilience of open source software,
+mainly because it democratizes the process of curating this software and its build instructions.
+It is the living library of the efforts of thousands of contributors, who both stand on the shoulders of giants (the software they're packaging) and provide the ladder for others to climb further.
+
+**TL;DR**
+- Nixpkgs is a massive repository with over 120,000 open-source software recipes.
+- Nixpkgs supports cross-platform and cross-architecture builds by using unique hashes to ensure precise software dependency management.
+- Nixpkgs maintains more packages with fewer maintainers by leveraging a common reviewable packaging language.
+- Flox sources from Nixpkgs, adding semantic versioning and branch tracking for flexible package management.
+
+
+## Nixpkgs: Packaging universally across architectures
+
+Today we package software for independent islands, each with their own formats, rules, languages and, until Nix, we had not found a way to build packages across the runtimes of our software archipelago.
+Nix allowed for packages being available on more platforms, which drew more developers in, which resulted in Nixpkgs becoming more complete, and so on in a positive feedback loop.
+
+<b>[Nix is a cross-platform](https://flox.dev/blog/hassle-free-cross-platform-dev-with-flox/), cross-architecture package manager.</b> If we had to
+design the next-generation package manager, this would probably be at the top of
+the requirements list, yet few package managers enable this today. Each of the
+teams at RedHat or Debian maintains their own packaging format and package
+cache, and has a fixed team of vetted contributors to keep packages secure and
+up to date. This results in few who effectively contribute to packaging open
+source projects, and do so for one of many platforms.
+
+## How the Nixpkgs community scales code review
+
+An open book of package recipes written in a common language results in another surprising effect: Nixpkgs maintains more packages than anybody with an order of magnitude fewer maintainers ([1](https://www.reddit.com/r/NixOS/comments/zp95a2/so_according_to_repology_nix_has_an_insane_lead/)). It makes sense: since it’s a common language, people can review the packaging code for packages they don’t necessarily know intimately, which [in turn leads to contributors and reviewers](https://flox.dev/blog/contributing-to-nixpkgs/) cycling through updates faster and providing more up-to-date packages, which reinforces the previous feedback loop from earlier.
+
+Even if the rest of the Nix ecosystem stalled out, we’d still have this incredible resource in Nixpkgs to curate and share open source software. Flox sources its packages exclusively from Nixpkgs for this (and many other) reasons. As of February 2023, there were around 6,000 contributors on the Nixpkgs repository and growing.
+
+![repology](https://repology.org/graph/map_repo_size_fresh.svg)
+via [repology.org](https://repology.org/repositories/graphs)
+
+## How Flox uses Nixpkgs
+
+[Flox](https://flox.dev/docs) serves packages from the [Nixpkgs-flox](https://github.com/flox/nixpkgs-flox) repository,
+which tracks [Nixpkgs](https://github.com/nixOS/nixpkgs) branches directly.
+We added some functionality we wanted to see and thought others would want:
+semantic versioning for packages, and custom tracking of unstable, stable, and staging branches, for example.
+
+Anybody can take the Nixpkgs collection and suit it to their needs via the Nix language, something that would be far more complex to achieve with other package managers. This ability to have total control over the packages one employs, even across different contexts, provides a flexibility and power that is hard to achieve with traditional package management methods.
+
+## How does the Nix cache work?
+
+What happens in practice when I download a package from the Nix cache? When you query for a package, the CLI creates the specification (we call it a _derivation_) of the package to be built. This derivation [includes a hash](https://flox.dev/blog/hash-collision/): the summary identifier of all source code, patches, build flags, and hashes of the dependencies themselves.
+
+With that output hash in hand, Nix the package manager just asks whether that path exists in its cache. If it does, Nix fetches the contents of the package you asked for; if it doesn't, Nix will build the package locally. We call this move _substitution_: creating a derivation from a Nixpkgs expression gives you all the information you need about the output of the build, so the cache can substitute a binary with that output hash if it has it. Of course, if you end up having to build the package locally, it will result in the expected output hash anyway.
+
+## The future of cross-platform package management with Flox and Nixpkgs
+
+Nixpkgs embodies a new model for package management, and one that opens it up to more people to contribute. Providing cross-platform and cross-language packages is uniquely attractive, but it's the accessibility, flexibility, and transparency that make it a pillar of open source moving forward. Because Nixpkgs unifies a broader swath of software, and makes it easy for anybody to contribute new packages and fix existing ones, it continues to grow and serve the open source community: a positive feedback loop propelling the existence of a more free and open world of software.
+
+Ready to experience Nixpkgs for yourself? Download [Flox](https://flox.dev/docs) today!
+
+## FAQs about Nixpkgs and Flox 
+
+### What is Nixpkgs and how does it relate to the Nix package manager?
+
+Nixpkgs stands for the Nix Packages collection, which serves as a vast repository containing over 120,000 software packages and build instructions. While Nix is the package manager and language used to perform operations, Nixpkgs provides the actual "recipes" or derivations that describe how to build libraries and applications from source. Together, they enable reproducible builds and declarative configuration management across different operating systems.
+
+### How does Nixpkgs handle cross-platform packaging?
+
+Unlike traditional package managers that isolate software into platform-specific formats, Nixpkgs is designed to be a cross-platform and cross-architecture solution. It utilizes a unified language to define packages, allowing developers to build and deploy software across various runtimes and architectures without needing separate packaging systems for each. This universality encourages a positive feedback loop where improvements on one platform often benefit the entire ecosystem.
+
+### What is the concept of "substitution" in the Nix build process?
+
+When a user requests a package, the system calculates a unique hash based on the package's complete build specification, including source code, dependencies, and configuration flags. Nix checks if a pre-built binary with this specific hash exists in a binary cache. If found, it downloads (substitutes) this binary instead of compiling it locally. This mechanism ensures that users get the exact software described by the recipe while significantly reducing installation time.
+

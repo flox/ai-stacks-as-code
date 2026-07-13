@@ -1,0 +1,233 @@
+---
+title: 'Step into Christmases Past with Flox and Random Access Memories'
+altTitle: 'Step into Christmases Past with Flox and Random Access Memories'
+description: 'What does console emulation have to do with building, testing, and shipping software? The trick lies in creating a partially turn-key emulation environment that Just Works across OSs and CPU architectures. For Flox, this is its superpower!'
+metaDescription: 'What does console emulation have to do with building, testing, and shipping software? The trick lies in creating a partially turn-key emulation environment that Just Works across OSs and CPU architectures. For Flox, this is its superpower!'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: retroarch
+author: Steve Swoyer
+publishedDate: 19 December 2024
+thumbnail: '/images/blog/festive-controller.webp'
+orderBy: 20241219
+---
+
+Did you ever wake up on Christmas morning hours before the winter sun's ignited … just so you could play video games? Flox remembers.
+
+That's why we created a turn-key Flox example environment for re-playing all of your favorite Nintendo (NES), Super Nintendo (SNES), Gameboy, Sega Genesis, TurboGrafx-16, and PlayStation 1 games.
+
+Just run `flox activate` and step into Christmases, Hannukahs, Festivuses, and Saturnalias past!
+
+
+
+## Random access memories
+
+Deep beneath the surface of the planet Zebes, you feel your skin crawling, your long, luxurious, golden-blonde hair standing on end. Your [Samus](https://en.wikipedia.org/wiki/Samus_Aran)-sense is tingling. It’s telling you you’re close.
+
+At times your journey has felt like one of those side-scrolling visual-interactive epics, called “games,” you read about in your Ancient Aliens classes long ago. Relics of a mysterious species called “human beings.” Like the hero in one of those human epics, you’ve met and vanquished not one but _two_ powerful jefes in [Kraid](https://en.wikipedia.org/wiki/Characters_of_the_Metroid_series#Kraid) and [Ridley](https://en.wikipedia.org/wiki/Ridley_(Metroid)). Both inflicted grievous wounds, but you prevailed—and healed miraculously. Now you’ve got to vanquish the being that birthed this nightmare: Mother Brain.
+
+“Relax,” you tell yourself. “I got this.”
+
+OK, maybe _Metroid_ wasn’t your jam. And maybe the gaming experiences you imagined weren’t quite so … vivid. But whether it was _The Legend of Zelda_, _Super Mario World_, _Sonic the Hedgehog_, _Final Fantasy VII_, _Mario Kart_, or something else, you’ve probably frittered away part of a Christmas, Hannukah, Festivus, or Saturnalia morning caught up in a side-scrolling visual-interactive epic of some kind.
+
+
+
+## Hot TUI time machine
+
+If you’ve still got the original ROM versions or CDs of those games, you’re in luck! [Just extract their contents](https://www.retrogameboards.com/t/the-ripping-thread-how-to-build-your-own-legit-retro-rom-library/98) and fire up Flox’s Step Into Xmas Past emulator to start playing them.
+
+Even if you don’t, we got you covered. Our example environment includes logic that fetches a collection of [homebrew, public domain ROMs](https://github.com/retrobrews/snes-games/) from the [retrobrews](https://github.com/retrobrews/) GitHub repo. [_Super Boss Gaiden_](https://www.youtube.com/watch?app=desktop&v=xRTXf5LPL3I&t=0s) isn’t quite _Double Dragon_, but it’s kind of close?
+
+Getting it is simple because you can test drive it as a FloxHub environment:
+
+```
+flox activate -r flox/mednafen
+```
+
+This activates the FloxHub environment `mednafen` (with the -r switch) and puts you in a Flox subshell. When you type `exit` to quit (or press `CTRL + D`), the session ends (but the local copy of the environment remains cached for next time).
+
+**Note**: “[Mednafen](https://mednafen.github.io/)” is the the emulator used in the environment. See **Housekeeping Notes** below.
+
+
+
+## Getting started
+
+When you first `flox activate` the environment, you’re prompted with a question:
+
+```
+✅ You are now using the environment 'mednafen'.
+To stop using this environment, type 'exit'
+
+┃  Download homebrew SNES collection into cwd?                                                                                                                                                 
+┃                                                                                                                                                                                              
+┃                 Yes        No                                                                                                                                                                
+                                                                                                                                                                                               
+←/→ toggle • enter submit • y Yes • n No
+```
+
+If you don’t have any legally acquired ROMs of your own, this’ll at least give you something to play with.
+
+We automatically run [broot](https://flox.dev/blog/totally-transform-your-terminal-workflow-with-broot-and-flox/), which gives you a way to find and play your games. Use the cursor keys to navigate to where your games live, highlight the game you want to play, and press `:` followed by `m`, then hit `Enter`. broot supports custom “verbs” (i.e., actions), and this Flox environment defines several verbs for playing and editing ROM images. You can modify these with `flox edit` to customize the value after “shortcut”:
+
+```
+[[verbs]]
+invocation = "mednafen"
+execution = "mednafen {file}"
+shortcut = "m"
+apply_to = "file"
+
+[[verbs]]
+invocation = "edit"
+execution = "nvim {file}"
+shortcut = "e"
+apply_to = "file"
+
+[[verbs]]
+invocation = "open"
+execution = "xdg-open {file}"
+shortcut = "o"
+apply_to = "file"
+```
+
+**Note**: If you opted to download the homebrew SNES games, they’re installed into `snes-games` in your project directory.
+
+In the screenshot below, I’ve highlighted _Super Boss Gaiden_, and I’m ready to press `:m` + `Enter`. This will launch the game in a scaled 3:4-aspect-ratio window. From there, I can configure my “controller” settings.
+
+![](/images/blog/broot.png)
+
+**Note**: to exit `broot`, type `:q` and press `Enter`. When you quit a game, this puts you back into your Flox subshell. Just run `broot` to start over again.
+
+
+
+## Making it your own
+
+The first time you run a game, you’re going to want to press `SHIFT + ALT + 1`  to create custom keymappings for Player 1. If you have a gamepad, you _should_ be able to configure it during this step, too. The installed [sdl2](https://www.libsdl.org/) package provides APIs for audio, video, and human-interactive devices. One of us picked up a couple of USB-retrofitted NES controllers and they work just fine. They work so well, in fact, that they contributed to this article being finished later than promised.
+
+Below is a screenshot from the aforementioned _Super Boss Gaiden_ homebrew game. The unnamed fictional CEO in this custom-built masterpiece is vexed because a canceled product prototype, the [SNES CD-ROM add-on](https://en.wikipedia.org/wiki/Super_NES_CD-ROM), has somehow gotten into the wild. I won’t say they’re responding appropriately, but their frustration _does_ seem understandable.
+
+![](/images/blog/super-boss-gaiden.png)
+
+The quality on the homebrew games is generally quite good, the game play comparable to the best games from the SNES era. From the [retrobrews repo](https://github.com/retrobrews?tab=repositories), you can also grab homebrew games for Atari, NES, Commodore 64, and other platforms.
+
+
+
+## Reliving Christmas in Hollis
+
+But, like me, you probably also have a few legally extracted ROM images at your disposal, too. Games you _really did_ wake up frightfully early to play on a Christmas (or Hannukah, or Saturnalia) morning.
+
+Games like _Metroid_:
+
+![](/images/blog/metroid.png)
+
+Or _Zelda_, my great/awesome friend Dana G-C’s go-to- jam bitd:
+
+![](/images/blog/zelda.png)
+
+Or _Tecmo Super Bowl_. The Patriots’ 10 points are courtesy of my onside-kicking on every kickoff:
+
+![](/images/blog/tsb.png)
+
+And, of course, Super Mario Bros.:
+
+![](/images/blog/super-mario-bros.png)
+
+Ross fancies the SNES, while I’m kind of a die-hard NES-head. The good news is that Mednafen can emulate more than a dozen consoles, handhelds, and legacy computer systems, including:
+
+-  Nintendo Entertainment System (NES) / Famicom
+-  Super Nintendo Entertainment System (SNES)
+-  Game Boy / Game Boy Color
+-  Game Boy Advance
+-  Sega Master System
+-  Sega Genesis / Mega Drive
+-  Sega Game Gear
+-  PC Engine / TurboGrafx-16 / SuperGrafx
+-  Sony PlayStation (PS1)
+-  Neo Geo Pocket / Neo Geo Pocket Color
+-  Atari Lynx
+-  PC-FX
+-  Virtual Boy
+
+If you’ve got old Playstation games lying around, you could easily rip those using a tool like [Imgburn](https://www.imgburn.com/) and play them with our environment. The Flox Catalog also has emulators for Playstation 2 (`pcsx2`) and Playstation 3 (`rpcs3`), along with `dolphin` for emulating Nintendo Gamecube, Wii, and other consoles. These do tend to be OS- and CPU-specific, however.
+
+This last point raises the question as to why we made the decisions we did in creating this environment.
+
+So let’s talk about that.
+
+
+
+## Housekeeping Notes
+
+Console emulation is a good demonstration of what you can and can’t accomplish with a Flox environment. The upshot is that building an emulation environment that works across Linux, macOS, and Windows/WSL2 on [both x86 _and_ ARM]((https://flox.dev/docs/tutorials/multi-arch-environments/?h=multi)) is … well, as Han Solo aptly puts it: It ain’t like dusting crops. 
+
+For one thing, we need an emulator that both works across platforms _and_ is available in the Flox Catalog. Our catalog uses [Nixpkgs](https://github.com/NixOS/nixpkgs) as its upstream source, which gives it access to 120,000 different packages (with millions of software package-version combinations), but vanishingly few of these are emulators.
+
+We selected Mednafen because it’s (**1**) in the Flox Catalog and (**2**) gives us the best combination of cross-platform compatibility and breadth of support for emulating different types/eras of consoles.
+
+Another challenge is that emulating even _40-year-old_ console hardware involves trade-offs, especially if your aim is to create an environment that runs and behaves the same way across dissimilar OSs and CPU architectures, with or without support for graphics APIs like DirectX, OpenGL, or Metal, or audio APIs like WASAPI, PulseAudio, or CoreAudio. We need an emulator that either Just Works on a given platform or that we can bootstrap and Get Working as easily as possible.
+
+Mednafen Just Worked out-of-the-box on macOS, but needed a _wee_ bit of conditional logic to work with [PipeWire](https://github.com/PipeWire/pipewire) on Linux. First, we had to install the `sdl2` package—but only for Linux systems. Then we had to define hardware settings specific to Linux.
+
+Here’s what this looks like in our Flox environment’s `manifest.toml`. First, the `[install]` section, which is basically the [SBOM](https://en.wikipedia.org/wiki/Software_supply_chain) defining which versions of which software packages get used in the environment. The `SDL2.systems` definition below tells Flox to make the `SDL2` package available _only_ on x86-64 and ARM Linux systems. On macOS platforms, this package is neither installed nor available.
+
+```
+[install]
+mednafen.pkg-path = "mednafen"
+mednafen.pkg-group = "mednafen"
+broot.pkg-path = "broot"
+unzip.pkg-path = "unzip"
+gum.pkg-path = "gum"
+SDL2.pkg-path = "SDL2"
+SDL2.systems = [
+  "aarch64-linux",
+  "x86_64-linux",
+]
+```
+
+Next, we created logic that defines which audio API or audio-processing library gets used in Linux and WSL2. This lives in the [[hook] section](https://flox.dev/docs/tutorials/customizing-environments/?h=hook#customize-the-environments-shell-hook):
+
+```
+write_mednafen_cfg() {
+    local mednafen_cfg_file="$FLOX_ENV_CACHE/mednafen.cfg"
+
+    if [[ -f "$mednafen_cfg_file" ]]; then
+        return
+    fi
+
+    cat > "$mednafen_cfg_file" <<EOL
+; Mednafen Configuration File
+
+; Specify the sound driver (default: pulse)
+sound.driver sdl
+
+; Specify the video driver (default: default unless overridden)
+video.driver ${VIDEO_DRIVER:-default}
+EOL
+}
+```
+
+Finally, this function gets called _only_ if the platform is Linux:
+
+```
+if [[ "$(uname)" == "Linux" ]]; then
+    write_mednafen_cfg
+fi
+```
+
+The final caveat is that while this environment “works” on Windows/WSL2, it doesn’t work with all games. I’m going to blame our tight publishing schedule for this: our priority was to get this article finished before we (i.e., Flox’s marketing department _in toto_) depart for well-deserved holiday PTO. With a few days to play around with Mednafen we would probably have sniffed out and fixed whatever issue it is that causes _Contra_ to freeze during its intro on WSL2. This tends to happen _just_ before one of us can finish keying the [legendary Konami Code](https://en.wikipedia.org/wiki/Konami_Code): `Up` + `Up` + `Down` + `Down` + `Left` + `Right` + `Left` + `Right` + `B` + `A` + `Start` sequence.
+
+
+
+## Christmas Wrapping-up
+
+What does console emulation have to do with building, testing, and shipping software? The trick lies in creating a partially turn-key emulation environment that Just Works across OSs and CPU architectures. 
+
+The **Housekeeping Section**, above, explored why this is a little more challenging than you’d think.
+
+But the takeaway is that Flox isn’t just a **package manager** par excellence, with access to millions of software package-version combinations, but also a cross-language **virtual environment manager**.
+
+You can create cross-platform Flox environments that perform actions, start services, or expose functions only on specific platforms or combinations of platforms. You can make certain software packages available only on specific platforms. You can pin software packages to specific versions on specific platforms. You can use software built in radically different eras in the same Flox environment … [without conflicts](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/).
+
+Basically, Flox gives you a tremendous amount of flexibility to define stuff once and run it anywhere. And once you define a Flox environment, it Just Works across time, too: if you were to `flox activate -r flox/mednafen` on December 25th, 2025 using your brand-new M5 MacBook Pro, this would Just Work.
+
+[Download Flox](https://flox.dev/docs/install-flox/) and give it a try. Step simultaneously into Christmases past … and the future of software engineering!

@@ -1,0 +1,150 @@
+---
+title: 'Level Up Your Nix Experience with This Trio of Tasty Tools'
+altTitle: 'Level Up Your Nix Experience with This Trio of Tasty Tools'
+description: 'Whether you are using Nix or Flox, tools like nix-du, nix-tree, and nix-top are so useful that you’re probably going to want to have them close at hand.'
+metaDescription: 'Whether you are using Nix or Flox, tools like nix-du, nix-tree, and nix-top are so useful that you’re probably going to want to have them close at hand.'
+isPublished: true
+isPopularPackage: true
+packageCategory: system-admin
+packageName: nix-du
+author: Steve Swoyer
+publishedDate: 07 March 2025
+thumbnail: '/images/blog/what-is-it-its-it.webp'
+orderBy: 20250307
+---
+
+If you work with Nix, you might already have tools like [nix-du](https://github.com/symphorien/nix-du) and [nix-tree](https://github.com/utdemir/nix-tree) in your toolkit. If you detect a theme with the names of both of these, you aren’t wrong: they’re Nix-specific implementations of existing Unix or Linux tools. nix-du is a reimagining of [du](<https://en.wikipedia.org/wiki/Du_(Unix)>), nix-tree of [tree](<https://en.wikipedia.org/wiki/Tree_(command)>).
+
+The final selection, [nix-top](https://github.com/amarshall/nix-top)
+is directly in this lineage, too. Like the venerable [top](<https://en.wikipedia.org/wiki/Top_(software)>)—grandsire to tools like [htop](https://en.wikipedia.org/wiki/Htop) and [btop](https://github.com/aristocratos/btop)—it provides a no-nonsense overview of Nix derivations as they’re being built on a system, giving you a way to monitor progress, resource usage, and bottlenecks.
+
+Let’s explore how each of these tools fits into your workflow!
+
+## Getting them
+
+Getting these packages is slightly easier with Flox than with Nix. With Nix, you’d do something like:
+
+```
+nix profile install --profile ~/dev/bag-o-nix nixpkgs#nix-du nixpkgs#nix-tree nixpkgs#nix-top
+export PATH="$HOME/dev/bag-o-nix/bin:$PATH" # activate the nix shell
+```
+
+And with Flox, you’d run:
+
+```
+flox init -d ./bag-o-nix # initializes the new flox env in directory `bag-o-nix`
+flox install -d ./bag-o-nix nix-du nix-tree nix-top graphviz # installs dependencies in `bag-o-nix`
+flox activate -d ./bag-o-nix # activates
+```
+
+These are _imperative_ installation methods. But both Nix and Flox support _declarative_ methods, too. For example, to define these packages in a Nix dev shell, you’d create the following `shell.nix`:
+
+```
+# shell.nix example
+{ pkgs ? import <nixpkgs> {} }:
+
+pkgs.mkShell {
+  buildInputs = with pkgs; [
+    nix-du
+    nix-tree
+    nix-top
+    graphviz # used to generate .svg files with nix-du and nix-tree
+  ];
+}
+```
+
+In Flox, you can do this either by directly editing [manifest.toml](https://flox.dev/docs/reference/command-reference/manifest.toml/?h=manifest.toml) (the Flox environment’s declarative configuration artifact) or by running **`flox edit`**, Flox’s built-in editing facility. Here’s what this looks like:
+
+```
+[install]
+nix-du.pkg-path = "nix-du"
+nix-tree.pkg-path = "nix-tree"
+nix-top.pkg-path = "nix-top"
+graphviz.pkg-path = “graph-viz” # used to generate .svg files with nix-du and nix-tree
+```
+
+_However_ you opt to get these packages, once you’ve got them installed, you’re ready to use ‘em.
+
+So let’s do that.
+
+## Using them
+
+One frequent question I hear from Flox users who aren’t Nix experts is: how do I determine how much space Flox (and, by extension, the `/nix/store`) are using? Thankfully there’s an app for that!
+
+```
+nix-du -s 1MB | dot -Tsvg > /tmp/nix-store-usage.svg
+```
+
+This uses `nix-du` to analyze the Nix store's dependency graph, filter out paths under 1MB, optimize the graph, and generates an SVG visualization of the store usage at `/tmp/nix-store-usage.svg`.
+
+![](/images/blog/nix-du-1.png)
+
+And this command shows the 20 largest nodes in `/nix/store`:
+
+```
+nix-du -n 20 | dot -Tsvg > /tmp/top20.svg
+```
+
+![](/images/blog/nix-du-2.png)
+
+One final one: let’s visualize all of the dependencies associated with Nix’s `postgresql_16` package:
+
+```
+nix-du -r /home/daedalus/dev/postgres-metabase/.flox/run/x86_64-linux.postgres.dev/bin/psql -s 10MB | dot -Tsvg > /tmp/postgresql-flox-deps.svg
+```
+
+![](/images/blog/nix-du-3.png)
+
+Kind of useful, no? Next, let’s check out the `nix-tree` package. What can one do with this?
+
+Some truly neat things, as it turns out:
+
+```
+nix-tree /home/daedalus/dev/postgres-metabase/.flox/run/x86_64-linux.postgres.dev/bin/psql
+```
+
+This command provides a terminal user-interface (TUI) representation of the dependency graph for `postgresql_16`. The screenshot below displays its output in all of its TUI-fied glory.
+
+![](/images/blog/nix-tree-1.png)
+
+I love this next one! It’s another visualization of dependencies, again with the `postgresql_16` packages.
+
+```
+nix-tree --dot /home/daedalus/dev/postgres-metabase/.flox/run/x86_64-linux.postgres.dev/bin/psql > ~/psql-deps.dot
+dot -Tsvg ~/psql-deps.dot > ~/psql-deps.svg
+```
+
+![](/images/blog/nix-tree-2.png)
+
+Finally, let’s look at nix-top, which I first discovered when I was playing with my colleague Ross Turk’s [flaim](https://flox.dev/blog/ml-modeling-with-flaim-and-hugging-face-diffusers/) environment. `flaim` uses Nix to build PyTorch from scratch, which (if you know anything about PyTorch) is quite a time-consuming task. Flox provides feedback on the progress of this task, but nix-top gives you real-time insight to which derivations are being built.
+
+These days, I tend to fire up `nix-top` whenever builds take a long time. Just out of curiosity.
+
+In the example below, I’m using a `flake.nix` to build [gpt4all](https://github.com/polygon/gpt4all-nix).
+
+![](/images/blog/nix-top-1.png)
+
+nix-top’s aesthetic is very much like that of the original top, providing a no-nonsense overview of Nix derivations as they’re being built on a system. Here’s another screenshot of `gpt4all` building:
+
+![](/images/blog/nix-top-2.png)
+
+And in the screenshot below, I’m using it to monitor a long-running task started via a flake.
+
+![](/images/blog/nix-top-3.png)
+
+It isn’t pretty, but it’s informative. If you frequently use Nix for builds, nix-top is quite useful.
+
+## Nix Tools For All
+
+Nix is an obscenely powerful **world-builder**. What else can you call software that combines
+
+- A platform- and hardware-agnostic package manager;
+- A cross-platform solution for creating portable, reproducible environments;
+- A store-based isolation model for eliminating dependency conflicts;
+- A cross-platform, cross-architecture build system for supporting deterministic builds;
+
+And Flox gives you everything that Nix gives you—albeit in an easier-to-use UX, a streamlined build system, and managed private catalog services. Whether you’re using Nix _or_ Flox, tools like `nix-du`, `nix-tree`, and `nix-top` are extremely useful—you’re probably going to want to have them close at hand.
+
+No problem! You can get all three packages, along with more than 150,000 others (and literally millions of historical package-version combinations) in Nixpkgs or the Flox Catalog.
+
+Check Nix out! Yes, it has a reputation for being intimidating, but _getting started with it_—e.g., installing packages, creating Nix shells, and other tasks—is pretty straightforward. (Also: LLMs are quite good at bootstrapping your Nix experience. If in the 1990s, you could learn a lot [from a dummy](https://www.youtube.com/watch?v=uYQR5ktq7W0), in the 2020s, you can learn a lot from an LLM. Some of it true!) And if you want the benefits of Nix in an easier-to-use UX, [check out](https://flox.dev/get) Flox!

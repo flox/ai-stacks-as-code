@@ -1,0 +1,191 @@
+---
+title: 'Install and Run Jupyter Notebooks Instantly with Flox'
+altTitle: 'Install and Run Jupyter Notebooks Instantly with Flox'
+description: 'Run Jupyter Notebooks instantly with FloxHub environments—no installs, no cleanup, just lightweight, temporary tools for quick experimentation.'
+metaDescription: 'Run Jupyter Notebooks instantly with FloxHub  environments—no installs, no cleanup, just lightweight, temporary tools for quick experimentation.'
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: jupyter
+author: Ross Turk
+publishedDate: 5 April 2024
+thumbnail: '/images/blog/notebook-galaxy.webp'
+orderBy: 20240405
+---
+
+Sometimes you just need to use a tool for a moment. You don’t want to install it, you don’t want to deploy it, you don’t want to maintain it. You really would rather not configure it, and you certainly don’t want to ship it to the world alongside your project.
+
+**You just need to use it for a second, and then you want it to go away.**
+
+Maybe you need to read an ancient data format, but just long enough to extract what you need. Or maybe you want to lint some code you wrote in a language you almost never use, and only has a place in a small corner of your life. Or maybe it’s a tool that is intensely useful while you’re in one phase of your development process, but not another.
+
+Since the release of Flox 1.0 and FloxHub, there's a new way to use tools quickly: FloxHub environments.
+
+**TL;DR**
+- Flox enables temporary Jupyter environments without installation.
+- Exiting removes the environment, leaving no trace.
+- Extra packages are supported via requirements.txt.
+- Preloaded tools like pandas and matplotlib are available.
+
+## Flox: an alternative to Conda
+
+Conda environments are great for developing a full project, but what about that stage before development? When you’re exploring ideas, testing potential tools, and experimenting with code architectures? 
+
+Committing to a full environment just for testing is cumbersome, especially if the tools for your project are resource-intensive, like a language model.
+
+Flox offers a lightweight alternative with its FloxHub environments. You can spin up a Python environment to test your ideas, see how things work, and then dismiss the session when your testing is done (the environment stays cached for next time). This workflow is especially useful for working with Jupyter notebooks.
+
+
+## Running a Jupyter Notebook *without* installing anything
+
+Frequently while in the research phase of a project I encounter an intriguing `ipynb` file that seems likely to contain something I am looking for. In those times, I want to be able to open that notebook and run what is inside...but I don't necessarily need to include a notebook server in my everyday stack.
+
+Environments can be activated from FloxHub directly, overlaying new tools into the context you’re already in. We can use this to start a notebook server **without installing anything globally**.
+
+Let’s say we are in a directory with a few interesting notebooks:
+
+```
+~ % cd notebooks
+notebooks % ls
+barcode_demo.ipynb    tricontour_demo.ipynb
+notebooks %
+```
+
+Using a FloxHub environment called [`flox/nb`](https://hub.flox.dev/flox/nb), we can add Jupyter tools into our current shell session. By passing `-r` to `flox activate`, we can specify the name of a FloxHub environment that Flox will activate.
+
+```
+notebooks % flox activate -r flox/nb
+✅ You are now using the environment 'flox/nb' (remote).
+To stop using this environment, type 'exit'
+
+Jupyter environment ready - start notebook with 'nb'.
+flox [flox/nb] notebooks %
+```
+
+We are now using a Flox environment whose definition lives on FloxHub.
+
+This Flox environment contains all of the [necessary Python components](https://flox.dev/docs/languages/python) to support a Jupyter notebook server, which have now been downloaded from the Flox Catalog and made available in our path. It also sets an alias that can help us start the notebook server. We didn't have to install anything, which means we won't have to _uninstall_ anything later.
+
+Let's start it now:
+
+```
+flox [flox/nb] notebooks % nb
+[...]
+    To access the server, open this file in a browser:
+        file:///Users/me/Library/Jupyter/runtime/jpserver-64073-open.html
+    Or copy and paste one of these URLs:
+        http://mylaptop.local:8888/tree?token=b5df059c9d323bbca1chb9407049a4695aa64081afbb632aa
+        http://127.0.0.1:8888/tree?token=b5df059c9d323bbca1cb9407049a4695aab64081afbb632aa
+[...]
+```
+
+When we open our browser window by clicking on either of those links, we can see our notebook server running with the contents of our directory.
+
+![](/images/blog/notebook-in-flox.webp)
+
+Here I want to point out a few important things:
+
+- We didn't have to mount any volumes in order to access our local files from this notebook server because it is running in the same user space where we are **already working**
+- We also didn't have to forward any ports to gain access to this new service because it's running on the same host - again, where we are **already working**.
+- This isn't running inside a container or a virtual machine. Even though it's ephemeral, it's still running on **bare metal** on **your machine**.
+
+When we are done, we can exit the Flox environment the same way we'd exit any other subshell. Outside of the FloxHub environment, our notebook server is unavailable and hasn't left anything behind.
+
+```
+flox [flox/nb] notebooks % exit
+notebooks % nb
+zsh: command not found: nb
+notebooks % ls
+barcode_demo.ipynb    tricontour_demo.ipynb
+notebooks %
+```
+
+## How does this Jupyter Notebook environment work in Flox?
+
+So what's inside this environment? If you read [part 2 of our Intro to Flox series](/blog/intro-to-the-flox-cli-part-two-aliases-vars-and-hooks), you know that you can use the `flox list` command with `-c` to print an environment's manifest. This also works with FloxHub environments if you add `-r` (for "reference") followed by the environment reference. To see the latest upstream state on FloxHub (rather than your local cache), add `--upstream`.
+
+Let’s run `flox list -c -r flox/nb` and look at this environment's manifest one section at a time.
+
+```toml
+[install]
+jupyter.pkg-path = "jupyter-all"
+pandas.pkg-path = "python311Packages.pandas"
+matplotlib.pkg-path = "python311Packages.matplotlib"
+numpy.pkg-path = "python311Packages.numpy"
+pyarrow.pkg-path = "python311Packages.pyarrow"
+sympy.pkg-path = "python311Packages.sympy"
+pydot.pkg-path = "python311Packages.pydot"
+plotly.pkg-path = "python311Packages.plotly"
+```
+
+This section defines packages to be included in our environment. The first one, `jupyter-all`, is a special package that contains a core set of Jupyter Notebook components. By adding it, we get the ability to start Jupyter servers and connect them with kernels.
+
+That is a good baseline for running notebooks, but we have found that most notebooks we run also need a few other things. That’s why this environment also contains a collection of other tools:
+
+- `pandas`, `numpy`, and `pyarrow` for working with special data types,
+- `matplotlib` and `plotly` for charting output, and
+- `sympy` for algebraic functions.
+
+In the next two sections, we see a variable and profile script that automates a few useful tasks whenever it encounters a `requirements.txt`:
+
+```toml
+[vars]
+virtualEnv='./nb-venv/'
+
+[profile]
+common = """
+  if [[ -d $virtualEnv ]]; then
+    echo; echo -n "⚡️ Activating existing venv in $virtualEnv..."
+    . $virtualEnv/bin/activate
+    echo "done."
+  fi
+
+  if [[ -f requirements.txt ]]; then
+    echo -n "🐍 Processing requirements.txt..."
+    [ ! -d $virtualEnv ] && python -m venv $virtualEnv
+    . $virtualEnv/bin/activate
+    pip3 -qq install -r requirements.txt
+    echo "done."
+  fi
+
+  alias nb="jupyter notebook --ip 0.0.0.0"
+  echo; echo "Jupyter environment ready - start notebook with 'nb'."
+"""
+```
+
+In the `[vars]` section, we find a variable containing the location for a Python virtual environment, which is currently set to `./nb-venv`. This will make sure that a virtual environment is created (if needed) in the directory where the environment is remotely activated.
+
+The `[profile]` contains a script that looks for the existence of that virtual environment and, if it finds it, activates it. If it sees a `requirements.txt`, it will create a new virtual environment and install the packages listed within it.
+
+This is useful in the case where a notebook requires more than the set of packages provided by this environment. It allows you to create a `requirements.txt` before remotely activating `flox/nb`. When the environment activates, it will create a virtual environment. This is the only thing that this Flox environment leaves behind, and only if you ask for it.
+
+The last two lines of the shell profile script create the `nb` alias we used earlier, which starts the server across all available network interfaces.
+
+The final section of the manifest contains information about the supported platforms.
+
+```toml
+[options]
+systems = ["x86_64-linux", "aarch64-darwin", "aarch64-linux", "x86_64-darwin"]
+```
+
+This environment has been validated for use across Linux and Mac, ARM and x86.
+
+Flox is easy to try. Install it and run `flox search` to find your new favorite stuff.
+
+## FAQs about Jupyter Notebooks and Flox
+
+### How does Flox simplify the Jupyter Notebook environment setup?
+
+Flox provides FloxHub environments that allow users to activate Jupyter tools without global installation, deployment, or maintenance. In doing so users can avoid configuring and uninstalling tools. It's a temporary session with a lightweight, cached solution for running notebooks. You can overlay new tools into their existing shell context, streamlining the process significantly.
+
+### Can I use custom Python packages with Jupyter Notebooks in a Flox environment?
+
+Yes, Flox environments support custom Python package dependencies by leveraging a requirements.txt file. When the Flox environment is activated, it can create a dedicated virtual environment if a requirements.txt is present. It will then install the listed packages. This ensures that any specific libraries required by a notebook are available within the session.
+
+### Does a Flox-managed Jupyter Notebook run inside a container or virtual machine?
+
+No, a Jupyter Notebook activated through Flox does not run inside a container or a virtual machine. Flox environments operate directly on bare metal on your machine, providing an ephemeral yet native experience. This allows for direct access to local files and avoids the need for volume mounting or port forwarding.
+
+### What happens to the Jupyter Notebook environment when I finish using Flox?
+
+When you exit a Flox environment, the Jupyter Notebook server becomes unavailable, and the environment effectively disappears (although a local copy of the environment is cached). If a virtual environment was created for custom requirements.txt dependencies, that directory might persist. No global installations are made so your system remains clean after use.

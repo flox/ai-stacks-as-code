@@ -1,0 +1,311 @@
+---
+title: 'Using Flox to Create Portable, Reproducible Go Environments'
+altTitle: 'Using Flox to Create Portable, Reproducible Go Environments'
+description: 'Flox’s superpower is reproducibility, so the Go dev environments you create on your Linux laptop will just work ... everywhere'
+metaDescription: 'Flox’s superpower is reproducibility, so the Go dev environments you create on your Linux laptop will just work ... everywhere'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 10 October 2024
+thumbnail: '/images/blog/gopher-on-desk.webp'
+orderBy: 20241010
+---
+
+Flox makes it easy to create portable, reproducible Golang (Go) dev environments that run the same way on Linux, macOS, and Windows (with WSL2), across both ARM and x86 architectures.
+
+And if you've got an existing Go project with a `go.mod` file, it's just as easy to use it with Flox. You won’t even have to do much lifting, because Flox automatically installs Go for you!
+
+This article provides a quick-start overview of how to create [Flox environments](https://flox.dev/docs/concepts/environments/) for new Go projects, and showcases how Flox integrates with existing Go projects, too. It also explores the benefits of using Flox to create, share, and manage your Go dev environments.
+
+Beyond portability and reproducibility, Flox supports all languages and toolchains, which makes Flox dev environments ideal for Go projects involving C libraries, JavaScript runtimes, Python, and other languages. And unlike containers, Flox environments give you transparent access to all your local resources—including aliases, environment variables, tools, and editors—in addition to strict deterministic safeguards, so your Go builds work consistently over time.
+
+Sound intriguing? Let’s get started!
+
+
+## Kickstarting a New Go Project with Flox
+
+So you're kicking off a new Go project and you want to use Flox.
+
+Smart choice! Flox’s superpower is reproducibility, so the Go dev environments you create on your Linux laptop will Just Work on the macOS and Windows (with WSL2) laptops your teammates use to build locally. And these same Flox environments will also Just Work when you (or your teammates) push them to CI and production.
+
+Best of all, getting started with Flox is super simple! First, just create and/or cd into your project directory and type **`flox init`** to [initialize a new Flox dev environment](https://flox.dev/docs/tutorials/creating-environments/).
+
+```
+daedalus@askesis:~/dev$ mkdir geomys && cd geomys && flox init
+✨ Created environment 'geomys' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+```
+
+This _is_ a Go project, so you need to get Go. No problem! You can just grab it from the Flox Catalog:
+
+```
+daedalus@askesis:~/dev/geomys$ flox search go
+go    Go Programming language
+...
+```
+
+The cool thing about Go is that it’s generally backward-compatible from version to version, so you could _probably_ just **`flox install`** the latest. But for argument’s sake, let’s say you need a specific version of Go: v1.21.7. Does the Flox Catalog have that? Let’s find out!
+
+You can use **`flox show`** to see which `go` packages you can get from the Flox Catalog:
+
+```
+daedalus@askesis:~/dev/geomys$ flox show go
+go - Go Programming language
+    go@1.22.7
+    go@1.22.6
+    go@1.22.5
+    go@1.22.3
+    go@1.22.2
+    go@1.22.1
+    go@1.21.7
+    go@1.21.6
+    go@1.21.5
+    go@1.21.4
+    go@1.21.3
+```
+
+The list above is truncated because the Flox Catalog has more than 40 versions of the `go` package, stretching back to v1.15.6 (released almost four years ago). But let’s just go ahead and **`flox install`** v1.21.7:
+
+```
+daedalus@askesis:~/dev/geomys$ flox install go@1.21.7
+✅ 'go' installed to environment 'geomys'
+```
+
+Another great thing about Go is that it’s mostly self-contained. Once you `go mod init` to kick off a project, you can get much of what you need from Go’s standard library, and use `go mod tidy` to grab the rest.
+
+But if you’re like most Go programmers, you’re probably going to want to pre-build some basic Go tooling into your dev environment, perhaps even pinning these to specific versions to ensure reproducibility and determinism.
+
+You know, stuff like [golangci-lint](https://github.com/golangci/golangci-lint), [air](https://github.com/air-verse/air), [goreleaser](https://github.com/goreleaser/goreleaser), or maybe even [gox](https://github.com/mitchellh/gox). 
+
+Guess what? You can get all this stuff from the Flox Catalog, too!
+
+```
+daedalus@askesis:~/dev/geomys$ flox install air gox golangci-lint goreleaser 
+✅ 'air' installed to environment 'geomys'
+✅ 'gox' installed to environment 'geomys'
+✅ 'golangci-lint' installed to environment 'geomys'
+✅ 'goreleaser' installed to environment 'geomys'
+```
+
+You can run **`flox list`** to see which versions of these packages Flox installed in the environment...
+
+```
+daedalus@askesis:~/dev/geomys$ flox list
+air: air (1.49.0)
+go: go (1.21.7)
+golangci-lint: golangci-lint (1.56.2)
+goreleaser: goreleaser (1.24.0)
+gox: gox (1.0.1)
+```
+
+...and run **`flox edit`** to view or modify the contents of [manifest.toml](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/), the declarative manifest that defines software package versions, environment variables, services, automation logic, and anything else that’s exposed via a Flox environment. This file lives inside the `.flox` directory nested inside every environment. (You can also modify it using your preferred editor.)
+
+Here’s the `[install]` section of this Flox environment’s `manifest.toml`:
+
+```
+[install]
+air.pkg-path = “air”
+go.pkg-path = "go"
+go.version = "1.21.7"
+gox.pkg-path = "gox"
+golangci-lint.pkg-path = "golangci-lint"
+goreleaser.pkg-path = "goreleaser"
+```
+
+You can use the `<package_name>.version =` syntax to pin specific package versions, like v1.21.7 of the `go` package. For instance, if you want to pin `goreleaser` to v1.24.0, you would just add the following line in the manifest's `[install]` section:
+
+```
+goreleaser.version = “1.24.0”
+```
+
+That’s it! Flox is also a genius at [resolving package dependencies](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/), and gives you [simple, declarative methods](https://flox.dev/blog/hassle-free-cross-platform-dev-with-flox/) for installing _just_ the right packages.
+
+Now that you’ve got your environment squared away, it’s time to fire it up with **`flox activate`**:
+
+```
+daedalus@askesis:~/dev/geomys$ flox activate
+✅ You are now using the environment 'geomys'.
+To stop using this environment, type 'exit'
+
+flox [geomys] daedalus@askesis:~/dev/geomys$ go version
+go version go1.21.7 linux/amd64
+```
+
+Simple, right?
+
+Flox isn’t a replacement for your preferred Go workflow, or for configuration artifacts like `go.mod` files, which `go mod init` creates to define your project’s path and dependencies. Instead, it simplifies, complements, and accelerates your Go dev workflow.
+
+You can use Flox to create a portable, reproducible Go dev environment that runs anywhere. An environment your team can use to build locally—with standard, built-in versions of essential Go tools, starting with the Go compiler and toolchain—push to CI, and deploy in prod. Flox also gives you a simple, declarative way to define environment variables, settings, services, and overrides for your Go dev environment, which makes it easy to customize environments for each project. Finally, Flox is a slam-dunk for enabling hybrid projects that depend on tools and libraries from _outside_ Go’s ecosystem.
+
+
+## Integrating Flox with Existing Go Projects
+
+But what if you want to use Flox with an _existing_ Go project—like a GitHub repo that defines its package dependencies using a `go.mod` file? No problem! Whether you're just starting from scratch or you need to integrate with an existing project, Flox is _the_ first-class solution for creating portable, reproducible, declarative Go dev environments that Just Work … anywhere.
+
+Further reading: [Floxifying a Project Repo](https://flox.dev/blog/floxifying-a-project-repo-part-1/) 
+
+Let’s use [etcd](https://github.com/etcd-io/etcd), the [Cloud Native Computing Foundation’s](https://www.cncf.io/) distributed key-value store, as an example project.
+
+You can [clone etcd](https://etcd.io/docs/v3.5/install/) from GitHub and build it in a Flox environment without breaking a sweat.
+
+So let’s do that! First, we’ll clone the repo:
+
+```
+daedalus@askesis:~/dev$ git clone -b v3.5.16 https://github.com/etcd-io/etcd.git && cd etcd
+```
+
+Then we’ll initialize a new Flox environment in the project directory:
+
+```
+daedalus@askesis:~/dev/etcd$ flox init
+Flox detected a go.mod file in the current directory.
+
+Go projects typically need:
+* Go
+* A shell hook to apply environment variables
+
+
+! Would you like Flox to apply the standard Go environment?
+You can always revisit the environment's declaration with 'flox edit'  
+  Yes
+  No
+> Show environment manifest
+[Use '--auto-setup' to apply Flox recommendations in the future.]
+```
+
+Interesting! Flox detected a `go.mod` file, so it automatically prompted us to “apply the standard Go environment." The first thing to note is that you can Just Say "No" to this prompt, if you prefer to `go mod init` and bootstrap your Go dev environment yourself.
+
+The second thing is that you can select “Show environment manifest” to see what, exactly, Flox proposes to do:
+
+```
+[install]
+go.pkg-path = "go"
+go.version = "^1.22"
+
+[hook]
+on-activate = '''
+  # Point GOENV to Flox environment cache
+  export GOENV="$FLOX_ENV_CACHE/goenv"
+
+  # Install Go dependencies
+  go get .
+'''
+```
+The text above shows the pending contents of our Floxified etcd environment’s `manifest.toml`.
+
+In this case, Flox parsed the `go.mod` file in the etcd project directory, identified the required `go` package, and automatically added it to Flox’s software manifest. The caret (`^`) means Flox will install any version of Go _equal to or greater than_ v1.22 but _less than_ v2.0 (which doesn’t yet actually exist). This is basic [SemVer notation](https://semver.org/), using SemVer's caret range operator, or `^`. You can use other SemVer operators, too.
+
+Separately, the `[hook]` section defines activation hooks that run whenever you **`flox activate`** the environment, setting the required variables and installing dependencies defined in the project's `go.mod` file.
+
+You can click "Yes" to accept these changes, or "No" if you prefer to implement some or all of this stuff yourself.
+
+That’s basically it. We’ve got everything we need to build and run our portable, reproducible etcd dev environment. So let's run **`flox activate`** and do that!
+
+```
+daedalus@askesis:~/dev/etcd$ flox activate                                                                                                                                                     
+✅ You are now using the environment 'etcd'.                                                                                                                 
+To stop using this environment, type 'exit'
+
+go: downloading github.com/json-iterator/go v1.1.11                                                                                                           ...
+```
+
+The first time we activate this environment, the logic in `[hook]` runs `go get .` to fetch etcd's 50+ required dependencies. The code block above shows a truncated version of this output. This happens only once, unless we add fresh dependencies to etcd's `go.mod` file.
+
+OK. Now that we’ve activated the Flox environment and installed all our required dependencies, we’re ready to build etcd.
+
+```
+flox [etcd] daedalus@askesis:~/dev/etcd$ ./build.sh 
+% (cd server && 'env' 'CGO_ENABLED=0' 'GO_BUILD_FLAGS=' 'GOOS=linux' 'GOARCH=amd64' 'go' 'build' '-trimpath' '-installsuffix=cgo' '-ldflags=-X=go.etcd.io/etcd/api/v3/version.GitSHA=f20bbadd4' '-o=../bin/etcd' '.')
+% (cd etcdutl && 'env' 'GO_BUILD_FLAGS=' 'CGO_ENABLED=0' 'GO_BUILD_FLAGS=' 'GOOS=linux' 'GOARCH=amd64' 'go' 'build' '-trimpath' '-installsuffix=cgo' '-ldflags=-X=go.etcd.io/etcd/api/v3/version.GitSHA=f20bbadd4' '-o=../bin/etcdutl' '.')
+% (cd etcdctl && 'env' 'GO_BUILD_FLAGS=' 'CGO_ENABLED=0' 'GO_BUILD_FLAGS=' 'GOOS=linux' 'GOARCH=amd64' 'go' 'build' '-trimpath' '-installsuffix=cgo' '-ldflags=-X=go.etcd.io/etcd/api/v3/version.GitSHA=f20bbadd4' '-o=../bin/etcdctl' '.')
+```
+
+Excellent. The etcd build completed successfully! But let's not start celebrating just yet: we still have some set up work to do.
+
+For one thing, we need to set a `PATH` env var for etcd to work properly. The project docs tell us to just export this via the command line, or to add it to `.bashrc`, `.zshrc`, etc., but we can do better than this! Let’s define it as part of our Flox environment; that way it’s preconfigured for _anyone_ we share it with. Ordinarily, we’d define this in the `[vars]` section of `manifest.toml`, but let’s put it in `[hook]`, along with our existing Go vars. (Note: `[vars]` doesn’t support having one variable referencing another; `[hook]` does.)
+
+The `[hook]` section in our etcd environment’s `manifest.toml` now looks like this:
+
+```
+[hook]
+on-activate = '''
+  # Autogenerated by Flox
+  export PATH="$PATH:`pwd`/bin" 
+  # Point GOENV to Flox environment cache
+  export GOENV="$FLOX_ENV_CACHE/goenv"
+
+  # Install Go dependencies
+  go get .
+
+  # End autogenerated by Flox
+```
+
+The next thing we need to do is to configure etcd to run as a service. Flox's [service management](https://flox.dev/blog/flox-1.3-simplified-service-management-with-flox) capabilities make this simple!
+
+```
+[services.etcd]
+command = "etcd --name etcd-node --data-dir ./etcd-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://127.0.0.1:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-advertise-peer-urls http://127.0.0.1:2380 --initial-cluster etcd-node=http://127.0.0.1:2380 --initial-cluster-state new"
+```
+
+We use `[services.<name>]` to define each service, using the `command =` syntax to configure a start-up command and any required parameters. We _could_ start the `etcd` bin with `command = “etcd”`, but it probably makes sense to define a custom persistence directory (`--data-dir ./etcd-data`), as well as specify other user-customizable parameters, like listening and advertising addresses. This done, we can either run `etcd` manually, type **`flox services start`**, or exit our environment and re-start it using **`flox activate -s`**. Let’s exit and restart:
+
+```
+daedalus@askesis:~/dev/etcd$ flox activate -s
+✅ You are now using the environment 'etcd'.
+To stop using this environment, type 'exit'
+
+flox [etcd] daedalus@askesis:~/dev/etcd$ 
+```
+
+It sure looks like etcd started up. But let’s confirm:
+
+```
+flox [etcd] daedalus@askesis:~/dev/etcd$ flox services status
+NAME       STATUS            PID
+etcd       Running        476940
+```
+
+Success!
+
+The Flox Catalog has millions of software package and version combinations, which comes in handy when you’re working on a project and need just the right tool. For example, if you were building an etcd container for deployment on Kubernetes (K8s), you could **`flox install`** [ko](https://github.com/ko-build/ko), [kind](https://github.com/kubernetes-sigs/kind), and [kubectl](https://github.com/kubernetes/kubectl) to run and  test your container on [a local K8s cluster](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/). Once done, you’d push it to your container registry, where it could be pulled by your Kubernetes clusters in CI and prod.
+
+With Flox, you could easily bake this workflow into a reproducible dev environment that can be used by your whole team!
+
+
+## Flox Lets You Pass Go Faster
+
+Flox makes it trivially easy to create and share portable, reproducible Go development environments.
+
+When teams integrate Flox into their workflows, they accelerate the rate at which they build and ship software. Flox and the Flox Catalog give them just one place to get what they need, along with powerful declarative tools for configuring and managing their Go environments.
+
+Plus, Flox environments run _in the local system context_, so teams get transparent access to the files, tools, and settings on their machines. Best of all, a Flox Go environment created using an ARM-based MacBook Pro runs without a hiccup on the Windows (with WSL2) and Linux laptops used by others on the team. Even better, this environment runs the same when you push it to CI or deploy it to prod! 
+
+It's simple to get started using Flox. In [less than five minutes](https://flox.dev/docs/), you can set up a Go dev environment on your laptop. To share your environment, just run **`git push`** or **`flox push`** (to push to [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/)).
+
+That's all it takes! Your teammates can **`git clone`** or **`flox pull`** your Go environment to run it locally.
+
+[Download](https://flox.dev/docs/install-flox/) Flox today and transform your Go workflow!
+
+## Flox & Go FAQs
+
+**How does Flox ensure the reproducibility of Go environments across different platforms?**
+
+Flox ensures reproducibility by utilizing Nix under the hood, creating declarative and immutable development environments. It captures all dependencies, package versions, and configurations in a single manifest file, guaranteeing that your Go environment functions identically on Linux, macOS, and Windows with WSL2, regardless of architecture. This consistent setup supports reliable Go builds from initial development through to CI/CD pipelines.
+
+**What advantages does Flox offer for Go development compared to traditional container-based workflows?**
+
+Unlike container solutions, Flox environments provide transparent access to your local system's resources, including aliases, environment variables, and preferred editors, without imposing isolation overhead. Flox also optimizes for faster iteration by allowing incremental additions of new packages rather than requiring complete rebuilds of layers.
+
+**How does Flox facilitate sharing Go development environments within a team?**
+
+Flox environments are designed for portability, making them easy to share across development teams through methods like git push or flox push to FloxHub. Team members can then git clone or flox pull the environment, ensuring everyone works with an identical Go toolchain and set of dependencies. This capability significantly simplifies new developer onboarding and maintains consistency across geographically dispersed or large development teams.
+
+**Can Flox manage specific Go versions and integrate with existing Go project dependency files?**
+
+Yes, Flox offers robust support for managing specific Go versions, allowing developers to precisely pin desired versions from its comprehensive catalog. For existing Go projects, Flox automatically detects go.mod files upon initialization and can automatically configure a standard Go environment, including activation hooks to manage project-specific dependencies. This flexibility ensures seamless integration with diverse Go project requirements and established workflows.

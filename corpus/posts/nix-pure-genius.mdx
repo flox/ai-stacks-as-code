@@ -1,0 +1,144 @@
+---
+title: "Nix: Pure Genius"
+altTitle: "Nix: Pure Genius"
+description: "I absolutely love it when hard problems are solved by challenging convention, peeling back layer after layer until pinpointing the core assumption that led us down the wrong path in the first place."
+metaDescription: "I love when hard problems are solved by challenging convention."
+isPublished: true
+category: guides
+author: Michael Brantley
+authorKey: michael-brantley
+isNixInTheWild: false
+publishedDate: 12 June 2022
+thumbnail: /images/blog/mobile_bay_wide.webp
+orderBy: 1
+---
+
+I absolutely love it when hard problems are solved by challenging
+convention, peeling back layer after layer until pinpointing the
+core assumption that led us down the wrong path in the first place.
+
+That is precisely what [Nix](https://nixos.org/) manages
+to do, unwinding the epoch-old practice of upgrading/replacing files
+<em>in situ</em> and in the process unlocking the solution to countless problems
+in the Linux software development lifecycle.
+
+### Ultimate portability
+
+Hundreds of articles have been written about Nix, each approaching
+the topic from a unique angle and highlighting a subtly different
+value prop. All of them serve to drive home a powerful advantage but
+it’s rare to see one highlight what may be its most unique feature:<em>
+&nbsp;software packaged with Nix runs the same on any Linux distro and in any
+context</em>.
+
+But how can that be? It essentially boils to these two properties of
+software packaged with Nix:
+
+<ul>
+  <li>
+    <em>Side-by-side</em>. Nix
+    packages are installed to unique paths with locations determined by the
+    cryptographic checksum of their inputs and build instructions, avoiding
+    conflicts with existing installations and facilitating easy version
+    comparison, atomic upgrades and rollbacks.
+  </li>
+  <li>
+    <em>Entirely self-contained</em>. Nix packages are built with an explicit
+    knowledge of their direct dependencies at unique paths as described above,
+    each of which will have been similarly built to understand their own
+    dependencies. The result is a DAG “closure” of packages which provides
+    everything that application requires all the way down to and{" "}
+    <em>including libc</em>.
+  </li>
+</ul>
+
+This ability to run anywhere is perhaps why Nix has been described
+as “containers without containers”, providing portability benefits
+without imposing extra and often unnecessary/unwanted Linux
+namespace boundaries between invocations and their surrounding
+environment.
+
+### So what?
+
+It wasn’t immediately obvious to me either when first starting out
+with Nix, but several significant advantages have become apparent
+along the way:
+
+<ul>
+  <li>
+    <em>Coexist with other packaging methods</em>. The fact that Nix packages
+    are built to be installed side-by-side carries with it the happy coincidence
+    that they can be similarly installed alongside legacy packaging
+    methodologies, making it possible to safely dip a toe into the Nix waters
+    without having to change current Linux distro and management disciplines.
+  </li>
+  <li>
+    <em>Run the same bits everywhere</em>. Nix packages use nothing from the
+    base operating system (apart from the kernel and system configuration) so
+    they run the same on any Linux distro, in or out of a container.
+  </li>
+  <li>
+    <em>Bring software curation into the public domain</em>. Long considered the
+    exclusive domain of Linux distribution providers, Nix provides a platform
+    upon which to curate build and packaging instructions as code, making it
+    possible to keep up with the
+    O(<em>n</em>) growth of public domain software with the O(<em>m</em>) resources
+    provided by an ever-growing Nix community. This set of open-source build instructions
+    is maintained as the Nixpkgs collection and provides users with access to the
+    most complete and freshest set of curated build instructions for public domain
+    software available anywhere.
+  </li>
+  <li>
+    <em>Declare Linux distro independence</em>. There will always be a
+    requirement for a Linux distribution responsible for bootstrapping hardware
+    and starting up the kernel, but with Nixpkgs we no longer have to depend on
+    it as the sole provider of packages available for use on the system. Select
+    the distro that works best for you, your company and your budget, but don’t
+    be held hostage by the limited selection and (often older) versions of
+    software that it provides.
+  </li>
+</ul>
+
+### Show Me
+
+The following demonstration uses the following commands to show that
+applications built with Nix can simply be copied and invoked on
+other Linux distributions:
+
+<ul>
+  <li>
+    Confirm empty <code>/nix/store</code> on alpinehost: <code>ssh alpinehost ls /nix/store</code>
+  </li>
+  <li>
+    Packages required by <code>figlet</code> at runtime: <code>nix-store -qR $(which figlet)</code>
+  </li>
+  <li>
+    (quietly) Copy those paths to alpinehost: <code>scp -qr $(!!) alpinehost:/nix/store</code>
+  </li>
+</ul>
+
+... after which we can `ssh alpinehost` and invoke `/nix/store/*/bin/figlet`.
+
+<AsciinemaPlayer
+  src="/casts/2022-02-02-pure-genius/portable.cast"
+  options={{ autoplay: false, loop: false, rows: 10 }}
+/>
+
+While this example is simple, the approach extends to the use of
+much more complex applications and on other Linux distributions, in
+or out of a container.
+
+### What next?
+
+Having spent this article extolling the advantages of running
+Nix-packaged software in various contexts and Linux distros, it’s
+only appropriate for the next post to highlight those instances
+where it falls short. Stay tuned to hear an account of the sorts of
+problems encountered when running Nix-packaged software at scale on
+a global grid running RedHat Enterprise Linux.
+
+<hr />
+
+<i>About the author:</i>
+
+Michael Brantley is co-founder and CTO of [flox](https://flox.dev), a company dedicated to bringing Nix to work.

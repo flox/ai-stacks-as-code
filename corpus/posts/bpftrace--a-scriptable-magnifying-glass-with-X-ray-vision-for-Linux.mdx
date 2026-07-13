@@ -1,0 +1,302 @@
+---
+title: 'bpftrace: A Scriptable Magnifying Glass with X-ray Vision for Linux'
+altTitle: 'bpftrace: A Scriptable Magnifying Glass with X-ray Vision for Linux'
+description: "bpftrace hooks into the eBPF runtime built into the Linux kernel to give you unparalleled insight into what's happening on your machine."
+metaDescription: "bpftrace hooks into the eBPF runtime built into the Linux kernel to give you unparalleled insight into what's happening on your machine."
+isPublished: true
+isPopularPackage: true
+packageCategory: system-admin
+packageName: bpftrace
+author: Zach Mitchell
+publishedDate: 22 November 2024
+thumbnail: '/images/blog/wiry-workbench.webp'
+orderBy: 20241122
+---
+
+
+It's inevitable that your machine behaves in an unexpected way.
+If software always did what you expected, sure, you'd have fewer gray hairs,
+but writing software would be much less interesting.
+
+Depending on the context you may run your program under a debugger,
+open the dev tools in your browser,
+or you may run `perf` to see where your program is spending its execution time.
+
+Allow me to add another tool to your toolbox: [`bpftrace`][bpftrace_repo].
+
+## eBPF
+
+[eBPF][ebpf] is a technology that lets you dynamically instrument and program
+the Linux kernel.
+A core piece of eBPF is a small bytecode interpreter embedded in the Linux
+kernel.
+Programs written and compiled for eBPF can be triggered by events in the Linux
+kernel,
+such as a process exiting, memory being allocated, a file being read,
+or a packet arriving from the network.
+
+Some programs use eBPF (which stands for "extended Berkeley Packet Filter")
+to inspect and route every incoming network packet.
+As you can imagine, this bytecode interpreter needs to run pretty quickly to
+not affect network performance too much!
+
+## bpftrace
+
+`bpftrace` leverages eBPF to allow you to see deep inside your system and ask
+arbitrary questions about what's happening under the hood.
+
+Let's start out by installing `bpftrace` from the Flox Catalog.
+If you're on macOS, you're out of luck since `bpftrace` uses features built
+into the Linux kernel.
+Follow along anyway, `bpftrace` is pretty cool.
+
+Create a new directory `bpftrace_fun` so we can create a Flox environment and
+install `bpftrace`.
+```
+$ mkdir bpftrace_fun && cd bpftrace_fun
+$ flox init
+✨ Created environment 'bpftrace_fun' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+
+$ flox install bpftrace
+⚠️  Installing 'bpftrace' for the following systems: ["aarch64-linux", "x86_64-linux"]
+✅ 'bpftrace' installed to environment 'bpftrace_fun'
+```
+
+You see a warning here because Flox environments are cross-platform by default,
+but Flox knows that `bpftrace` is only available on Linux and helpfully installs
+it only for Linux systems.
+
+Let's activate the environment so we can use `bpftrace`:
+```
+$ flox activate
+✅ You are now using the environment 'bpftrace_fun'.
+To stop using this environment, type 'exit'
+
+flox [bpftrace_fun] $ # ready to go!
+```
+
+## Getting familiar with bpftrace
+
+`bpftrace` lets you write scripts in an `awk`-inspired language to decide which
+kernel events (called "probes") you want to respond to,
+at which point you can extract information from those events or the system
+state, and print formatted output.
+
+`bpftrace` _also_ comes with a collection of useful scripts already written for
+you,
+so let's run one of those.
+We'll start with `cpuwalk.bt`,
+which samples which CPUs are executing processes and provides you with a
+histogram of execution per CPU.
+This program runs until you press `Ctrl-C`,
+and displays the histogram on exit.
+Note that `bpftrace` and its bundled scripts require superuser permissions
+to run.
+
+```
+flox [bpftrace_fun] $ sudo cpuwalk.bt
+Attaching 2 probes...
+Sampling CPU at 99hz... Hit Ctrl-C to end.
+^C
+
+@cpu:
+[0, 1)                 6 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1, 2)                 0 |                                                    |
+[2, 3)                 1 |@@@@@@@@                                            |
+[3, 4)                 0 |                                                    |
+[4, 5)                 4 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                  |
+[5, 6)                 3 |@@@@@@@@@@@@@@@@@@@@@@@@@@                          |
+[6, 7)                 1 |@@@@@@@@                                            |
+[7, 8)                 1 |@@@@@@@@                                            |
+[8, 9)                 1 |@@@@@@@@                                            |
+[9, 10)                0 |                                                    |
+[10, 11)               0 |                                                    |
+[11, 12)               1 |@@@@@@@@                                            |
+[12, 13)               6 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[13, 14)               0 |                                                    |
+[14, 15)               1 |@@@@@@@@                                            |
+[15, 16)               0 |                                                    |
+[16, 17)               2 |@@@@@@@@@@@@@@@@@                                   |
+[17, 18)               0 |                                                    |
+[18, 19)               1 |@@@@@@@@                                            |
+[19, 20)               0 |                                                    |
+[20, 21)               1 |@@@@@@@@                                            |
+[21, 22)               2 |@@@@@@@@@@@@@@@@@                                   |
+[22, 23)               0 |                                                    |
+[23, 24)               0 |                                                    |
+[24, 25)               3 |@@@@@@@@@@@@@@@@@@@@@@@@@@                          |
+[25, 26)               0 |                                                    |
+[26, 27)               4 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                  |
+[27, 28)               0 |                                                    |
+[28, 29)               0 |                                                    |
+[29, 30)               1 |@@@@@@@@                                            |
+[30, 31)               0 |                                                    |
+[31, 32)               2 |@@@@@@@@@@@@@@@@@                                   |   
+```
+
+That's pretty nifty!
+Let's try another one.
+The `undump.bt` script dumps the contents of messages being sent across Unix
+Domain Sockets on your system (again, press `Ctrl-C` to quit it):
+
+```
+flox [bpftrace_fun] $ sudo undump.bt
+Attaching 3 probes...
+Dump UNIX socket packages RX. Ctrl-C to end
+TIME     COMM             PID      SIZE     DATA
+...(output trimmed)
+17:49:02 nsncd            4041     66       {"error":"io.systemd.UserDatabase.NoRecordFound","parameters":{}
+17:49:02 nsncd            4041     66       {"error":"io.systemd.UserDatabase.NoRecordFound","parameters":{}
+17:49:02 systemd          1        135      {"method":"io.systemd.UserDatabase.GetMemberships","parameters":
+17:49:02 systemd-machine  2291     131      {"method":"io.systemd.UserDatabase.GetMemberships","parameters":
+17:49:02 nsncd            4041     66       {"error":"io.systemd.UserDatabase.NoRecordFound","parameters":{}
+17:49:02 nsncd            4041     66       {"error":"io.systemd.UserDatabase.NoRecordFound","parameters":{}
+...(output trimmed)
+^C 
+```
+
+Looks like `systemd` is unhappy about something on my system!
+Who knew?
+
+Ok, one more.
+The `tcpconnect.bt` script will list all new TCP connections on your machine.
+Run the script and open a new page in your browser,
+it should show up in the output:
+
+```
+flox [bpftrace_fun] $ sudo tcpconnect.bt
+Attaching 2 probes...
+Tracing tcp connections. Hit Ctrl-C to end.
+TIME     PID      COMM             SADDR                                   SPORT  DADDR                                   DPORT
+17:53:56 2683     .NET ThreadPool  10.0.0.234                              56910  62.182.84.85                            80
+17:54:21 155511   Socket Thread    10.0.0.234                              40406  34.107.243.93                           443
+17:54:21 155511   Socket Thread    10.0.0.234                              40420  34.107.243.93                           443
+17:54:21 155511   Socket Thread    10.0.0.234                              45928  34.149.100.209                          443
+^C
+```
+
+There's a whole collection of useful scripts bundled with `bpftrace`,
+and it's crazy that one tool can do so many _different_ things.
+
+## Writing your own scripts
+
+While these scripts are useful,
+at some point you'll have your own ideas about what to instrument.
+Say, for instance, [you want to track all of the fork and exec system calls
+that originate from a command][proctrace_post].
+
+In order to customize your instrumentation you'll need to write a `bpftrace`
+script.
+Refer to the [bpftrace documentation][bpftrace_docs] for the exact syntax,
+but it looks pretty similar to `awk` or DTrace if you've used either of those
+tools before.
+
+Here's what the `execsnoop.bt` script looks like:
+
+```awk
+BEGIN
+{
+	printf("%-15s %-7s %-7s %s\n", "TIME", "PID", "PPID", "ARGS");
+}
+
+tracepoint:syscalls:sys_enter_exec*
+{
+	$task = (struct task_struct *)curtask;
+	printf("%15s %-7d %-7d ", strftime("%H:%M:%S.%f", nsecs), pid, $task->real_parent->pid);
+	join(args.argv);
+}
+```
+
+This script is triggering on the `tracepoint:syscalls:sys_enter_exec*` family
+of probes to print some information every time a process calls one of the
+`exec` system calls.
+
+To see which probes are available you can run the `bpftrace -l` command.
+Probes have three components to their names, and you can use an asterisk as a
+wildcard character.
+In addition, there are separate probes for the start and end of a system call:
+`tracepoint:syscalls:sys_enter_*` and `tracepoint:syscalls:sys_exit_*`.
+
+Let's see which probes exist for the `read` system call:
+
+```
+flox [bpftrace_fun] $ sudo bpftrace -l 'tracepoint:syscalls:sys_*_read*'
+tracepoint:syscalls:sys_enter_process_vm_readv
+tracepoint:syscalls:sys_enter_read
+tracepoint:syscalls:sys_enter_readahead
+tracepoint:syscalls:sys_enter_readlink
+tracepoint:syscalls:sys_enter_readlinkat
+tracepoint:syscalls:sys_enter_readv
+tracepoint:syscalls:sys_exit_process_vm_readv
+tracepoint:syscalls:sys_exit_read
+tracepoint:syscalls:sys_exit_readahead
+tracepoint:syscalls:sys_exit_readlink
+tracepoint:syscalls:sys_exit_readlinkat
+tracepoint:syscalls:sys_exit_readv
+```
+
+Let's dig in to the `read` system call and see what information it makes
+available:
+```
+flox [bpftrace_fun] $ sudo bpftrace -lv 'tracepoint:syscalls:sys_enter_read'
+tracepoint:syscalls:sys_enter_read
+    int __syscall_nr
+    unsigned int fd
+    char * buf
+    size_t count
+```
+
+From this output you can see that we get access to the file descriptor,
+a pointer to the buffer that will be read into,
+and the number of bytes that were requested to be read.
+
+Let's make a script called `bigreadsnoop.bt` that reports reads larger than
+100,000 bytes on this machine:
+
+```awk
+BEGIN
+{
+	printf("%-15s %-7s %-8s\n", "TIME", "PID", "READSIZE");
+}
+
+tracepoint:syscalls:sys_enter_read
+{
+	if (args.count > 100000 ) {
+		printf("%15s %-7d %-7d\n", strftime("%H:%M:%S.%f", nsecs), pid, args.count);
+	}
+}
+```
+
+Running `bpftrace` with this script on my machine gives the following output:
+```
+flox [bpftrace_fun] $ sudo bpftrace bigreadsnoop.bt
+Attaching 2 probes...
+TIME            PID     RREQ
+18:22:23.401705 1169831 262144
+18:22:23.423740 1169831 262144
+18:22:23.445129 1169831 262144
+18:22:23.466403 1169831 262144
+18:22:23.489340 1169831 262144
+...
+```
+
+I'm not sure what this process is doing,
+but it seems to be reading quite a lot!
+It's trying to read 262kB every ~20ms!
+
+## Summary
+
+Everyone has packages that they love,
+and `bpftrace` is one of mine.
+What are yours?
+
+[bpftrace_repo]: https://github.com/bpftrace/bpftrace
+[ebpf]: https://ebpf.io/
+[proctrace_post]: https://flox.dev/blog/a-real-world-rust-project-with-flox/
+[bpftrace_docs]: https://github.com/bpftrace/bpftrace/blob/master/man/adoc/bpftrace.adoc

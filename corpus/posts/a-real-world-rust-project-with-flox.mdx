@@ -1,0 +1,380 @@
+---
+title: 'A Real World Rust Project with Flox'
+altTitle: 'A Real World Rust Project with Flox'
+description: 'See how Flox makes it easy it is to set up a real-world Rust project, complete with external tools and dependencies, using a simple manifest that works everywhere you do.'
+metaDescription: 'See how Flox makes it easy it is to set up a real-world Rust project, complete with external tools and dependencies, using a simple manifest that works everywhere you do.'
+isPublished: true
+category: guides
+author: Zach Mitchell
+publishedDate: 09 September 2024
+thumbnail: '/images/blog/crabs-on-a-bench.webp'
+orderBy: 20240909
+---
+
+One of the things that Rust is famous for is having very nice
+batteries-included tooling such as `rustup` and `cargo`.
+However, even the most ardent members of the Rust Evangelism Strike Force would
+admit that a pure-Rust world is not on the horizon.
+At some point you need to integrate with other languages,
+link to system libraries,
+or simply use other tools during the course of development.
+`cargo` is not designed to make this easier (or possible, in some cases)
+for you.
+This is where Flox comes in.
+
+Today we're going to look at a real-world Rust project that works across
+different platforms and language ecosystems.
+
+## `proctrace`
+
+The project we're going to look at is called [`proctrace`][proctrace-github],
+and it's a high-level profiler I wrote specifically to debug and inspect Flox.
+Flox works hard to manage your shell configuration and orchestrate the
+processes involved in providing services to your Flox environment.
+Sometimes things go wrong and you need to peek under the hood.
+I wasn't satisfied with the tooling available
+(e.g. `strace` can be too low level),
+so I scratched my own itch and made some tooling.
+
+`proctrace` records process lifecycle events (`fork`, `exec`, `setpgid`, etc)
+for the process tree of a user-provided command and renders those events in
+a number of ways.
+The most interesting rendering method is as a Gantt chart via Mermaid:
+![A Gantt chart of a process execution, including forks and execs](/images/blog/process-trace.webp)
+
+If you'd like to learn more about the internals of `proctrace`,
+the challenges involved in developing it,
+and where it's heading next,
+you can read more about that [here][proctrace-blog].
+
+## Dependencies
+
+Here we're going to fill out the `[install]` section of the manifest by
+going through each of the dependencies.
+
+### Rust
+`proctrace` is written in Rust and runs (processing and rendering events)
+on either Linux or macOS,
+but it only takes recordings on Linux because it uses [bpftrace][bpftrace] to
+collect process lifecycle events.
+We'll discuss `bpftrace` in more detail later.
+
+Setting up a reproducible Rust environment in Flox is a breeze:
+```toml
+# Rust toolchain
+cargo.pkg-path = "cargo"
+cargo.pkg-group = "rust-toolchain"
+rustc.pkg-path = "rustc"
+rustc.pkg-group = "rust-toolchain"
+clippy.pkg-path = "clippy"
+clippy.pkg-group = "rust-toolchain"
+rustfmt.pkg-path = "rustfmt"
+rustfmt.pkg-group = "rust-toolchain"
+rust-lib-src.pkg-path = "rustPlatform.rustLibSrc"
+rust-lib-src.pkg-group = "rust-toolchain"
+libiconv.pkg-path = "libiconv"
+libiconv.pkg-group = "libiconv"
+libiconv.systems = ["aarch64-darwin"]
+
+# rust-analyzer goes in its own group because it's updated
+# on a different cadence from the compiler and doesn't need
+# to match versions
+rust-analyzer.pkg-path = "rust-analyzer"
+rust-analyzer.pkg-group = "rust-analyzer"
+```
+
+The `rust-lib-src` package installs the source code for the Rust standard
+library so that `rust-analyzer` can use it for diagnostics.
+As of Flox [v1.3.1][flox-rust-analyzer], `rust-analyzer` will automatically
+detect the standard library source if both are installed in your environment.
+
+The `libiconv` package is actually a dependency you probably didn't know you
+had,
+but if you've compiled Rust on macOS you probably linked against it.
+Here Flox is helping you make your environment more reproducible by forcing
+you to handle the fact that you have a hidden dependency.
+Also, as you can see, adding system-specific dependency is straightforward,
+you simply list which systems you want the package to be available on.
+
+Finally, we put all of the Rust tools from a single compiler release in a
+package group called `rust-toolchain`.
+This ensures that those packages share the same exact versions of their
+dependencies (down to the commit hash),
+which reduces download size for the environment and ensures maximum
+compatibility between the packages in the group.
+
+```toml
+# Linker
+gcc.pkg-path = "gcc"
+gcc.systems = ["aarch64-linux", "x86_64-linux"]
+clang.pkg-path = "clang"
+clang.systems = ["aarch64-darwin"]
+```
+
+We also install linkers since some of our transitive dependencies may have
+`build.rs` build scripts that call linkers directly.
+Again, note how Flox makes setting up platform-specific dependencies trivial.
+
+### bpftrace
+`bpftrace` is only available on Linux,
+so we'll only install it for Linux systems.
+
+```toml
+bpftrace.pkg-path = "bpftrace"
+bpftrace.systems = ["aarch64-linux", "x86_64-linux"]
+```
+
+This is actually deceptively simple.
+`bpftrace` makes use of [eBPF][bpf] to instrument the Linux kernel,
+but subtle differences in its own dependencies (`libbpf` and `bcc`)
+can cause errors.
+Packages in the Flox Catalog are built reproducibly,
+so these two lines in your manifest hide the complexity of the build process
+while ensuring that two colleagues get the same binary built the same way.
+This is an important debugging aid if, for example,
+`bpftrace` has trouble locating type information for kernel data structures.
+
+### manpages
+
+I use the [`clap`][clap] crate for argument parsing,
+and it provides a helper library called `clap_mangen` to generate manpages
+from the argument definitions.
+Since it's early days for `proctrace` there's not an installer that will install
+these manpages to your system,
+but it allows me to generate pages that I can include in the documentation
+site.
+The output of `clap_mangen` isn't markdown,
+so I use [`pandoc`][pandoc] to convert the manpages to markdown that can be
+included in the documentation site.
+
+```toml
+pandoc.pkg-path = "pandoc"
+```
+
+I use a [cargo-xtask][xtask] to [generate and convert][my-xtask] the manpages.
+
+### Documentation site
+
+The documentation site uses a framework called [Starlight][starlight],
+written in Typescript.
+Starlight isn't packaged for the Flox Catalog yet,
+so instead we use Flox to install Node.js and lean on the Starlight developers
+to provide instructions (`npm install`, `npm run dev`, etc).
+
+```toml
+nodejs.pkg-path = "nodejs"
+```
+
+The documentation site can be found at [proctrace.xyz][proctrace-docs].
+
+## Services
+
+Flox [recently added][services-version] support for running services as part of
+your environment.
+For this project I don't need services running all the time,
+but when I'm working on documentation it would be nice to have the development
+version of the documentation site running and live reloading based on my
+changes.
+That's also trivial with Flox.
+
+```toml
+[services.docs]
+command = "cd docs; npm run dev"
+```
+
+Now I `flox activate` to work on `proctrace` as usual,
+and when I need to work on the documentation I simply `flox services start`
+and open my browser.
+
+## Shell hook
+
+When `cargo` compiles your code it places the compiled binary in a `target`
+directory.
+I found myself wanting to interactively test `proctrace`,
+but writing out `target/debug/proctrace` every time was tedious.
+I added a small quality of life improvement to the environment by adding the
+`target/debug` directory to `PATH` so that I could call `proctrace` without
+the `target/debug` prefix.
+
+I also added a bit of code to automatically install the Node.js dependencies
+for the documentation site the first time you activate the environment.
+
+```toml
+[hook]
+on-activate = '''
+	export PATH="$PWD/target/debug:$PATH"	
+	if [ ! -d $PWD/docs/node_modules ]; then
+	  echo "Installing node packages..." >&2
+	  pushd docs >/dev/null
+	  npm install
+	  popd >/dev/null
+	fi
+'''
+```
+
+This is a very small example of how you can use shell hooks in your manifest
+to reduce the friction of your development process.
+
+## Run it!
+
+Ok, we have an environment, let's put it through its paces.
+If you have Flox installed,
+with a few simple commands you can download the project,
+build it, and run it for yourself using a process recording stored in the
+repository:
+
+```
+$ git clone https://github.com/zmitchell/proctrace
+$ cd proctrace
+$ flox activate
+flox [proctrace] $ cargo build
+flox [proctrace] $ proctrace render -i demo_script_ingested.log -d mermaid
+gantt
+    title Process Trace
+    dateFormat x
+    axisFormat %S.%L
+    todayMarker off
+
+    section 310331 execs
+    [310331] /usr/bin/env bash ./demo_script.sh :active, 0, 1ms
+    [310331] /usr/bin/env bash ./demo_script.sh :active, 1, 1ms
+    [310331] /usr/bin/env bash ./demo_script.sh :active, 1, 1ms
+    [310331] bash ./demo_script.sh :active, 1, 1ms
+    [310331] bash ./demo_script.sh :active, 1, 1ms
+    [310331] bash ./demo_script.sh :active, 1, 1ms
+    [310331] bash ./demo_script.sh :active, 1, 1ms
+    [310331] bash ./demo_script.sh :active, 1, 1ms
+    [310331] bash ./demo_script.sh :active, 1, 327ms
+    section other
+    [310332] <fork> :active, 2, 1ms
+    [310333] sleep 0.25 :active, 3, 251ms
+    [310334] curl -s -X GET example.com -o /dev/null -w %{http_code} :active, 255, 72ms
+    [310336] <fork> :active, 328, 1ms	
+```
+
+You don't need to understand that output,
+just copy and paste it into the [Mermaid Live Editor][mermaid-editor].
+You should see something like this:
+![A process trace as a Gantt chart](/images/blog/demo-process-trace.webp)
+
+What this is showing is the execution of the following script
+(`demo_script.sh` in the `proctrace` repository):
+```bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+"$(command -v printf)" "Hello, World!\n"
+sleep 0.25
+curl_status="$(curl -s -X GET "example.com" -o /dev/null -w "%{http_code}")"
+"$(command -v printf)" "example.com status: %s\n" "$curl_status"
+```
+
+The numbers in square brackets are the PIDs of the processes,
+and the text near the PID is the command that was run by that process.
+Time proceeds from left to right,
+and each bar represents a process executing.
+Each new row represents a process `fork`ing to create a new process,
+or a process calling `exec` to execute a new program while reusing the same
+PID.
+
+There are some duplicate entries due to [known issues][known-issues] with either
+`bpftrace` itself or the `bpftrace` script used to collect events.
+
+Again, it's early days for `proctrace`, but think about what you just did!
+You downloaded a project you know basically nothing about,
+entered a development environment that was completely taken care of for you,
+built the project without knowing any details,
+then ran the tool!
+
+## Conclusion
+
+So there you have it.
+This is a real project that has system-dependent requirements,
+integrates multiple language ecosystems,
+and includes development-time services.
+This was pretty simple to put together,
+but what's even nicer about this is that the process of iterating on it is
+ergonomic as well.
+Adding a package doesn't mean rebuilding the universe.
+It feels like how things are supposed to work, and you only realize that your
+current workflow has papercuts once you've tried something better.
+
+All said and done, the `manifest.toml` looks like this:
+
+```toml
+version = 1
+
+[install]
+# Rust toolchain
+cargo.pkg-path = "cargo"
+cargo.pkg-group = "rust-toolchain"
+rustc.pkg-path = "rustc"
+rustc.pkg-group = "rust-toolchain"
+clippy.pkg-path = "clippy"
+clippy.pkg-group = "rust-toolchain"
+rustfmt.pkg-path = "rustfmt"
+rustfmt.pkg-group = "rust-toolchain"
+rust-lib-src.pkg-path = "rustPlatform.rustLibSrc"
+rust-lib-src.pkg-group = "rust-toolchain"
+libiconv.pkg-path = "libiconv"
+libiconv.systems = ["aarch64-darwin"]
+
+# rust-analyzer goes in its own group because it's updated
+# on a different cadence from the compiler and doesn't need
+# to match versions
+rust-analyzer.pkg-path = "rust-analyzer"
+rust-analyzer.pkg-group = "rust-analyzer"
+
+# Linker
+gcc.pkg-path = "gcc"
+gcc.systems = ["aarch64-linux", "x86_64-linux"]
+clang.pkg-path = "clang"
+clang.systems = ["aarch64-darwin"]
+
+# Runtime dependencies
+bpftrace.pkg-path = "bpftrace"
+bpftrace.systems = ["aarch64-linux", "x86_64-linux"]
+
+# Extra tools
+cargo-nextest.pkg-path = "cargo-nextest"
+nodejs.pkg-path = "nodejs"
+pandoc.pkg-path = "pandoc"
+
+[hook]
+on-activate = '''
+  # Add target directory to path so we can call `proctrace`
+  export PATH="$PWD/target/debug:$PATH"
+  if [ ! -d $PWD/docs/node_modules ]; then
+    echo "Installing node packages..." >&2
+    pushd docs >/dev/null
+    npm install
+    popd >/dev/null
+  fi
+'''
+
+[options]
+systems = ["aarch64-darwin", "aarch64-linux", "x86_64-linux"]
+
+[services.docs]
+command = "cd docs; npm run dev"
+```
+
+If this sounds interesting to you,
+[install Flox](https://flox.dev/docs/install-flox/) and try it out for yourself.
+We would love to hear your feedback and how we could make Flox work for you.
+
+[proctrace-github]: https://github.com/zmitchell/proctrace
+[proctrace-docs]: https://proctrace.xyz
+[bpftrace]: https://github.com/bpftrace/bpftrace
+[clap]: https://github.com/clap-rs/clap
+[xtask]: https://github.com/matklad/cargo-xtask
+[my-xtask]: https://github.com/zmitchell/proctrace/blob/a65e35054d2fb46785062f3621d2a824338254ae/xtask/src/main.rs#L35
+[pandoc]: https://pandoc.org/
+[starlight]: https://starlight.astro.build/
+[flox-rust-analyzer]: https://github.com/flox/flox/releases/tag/v1.3.1
+[services-version]: https://github.com/flox/flox/releases/tag/v1.3.0
+[bpf]: https://en.wikipedia.org/wiki/EBPF
+[mermaid-editor]: https://mermaid.live
+[known-issues]: https://proctrace.xyz/guides/known-issues/
+[proctrace-blog]: https://tinkering.xyz/proctrace

@@ -1,0 +1,270 @@
+---
+title: 'Auto Environment Activation with Direnv + Flox'
+altTitle: 'Auto Environment Activation with Direnv + Flox'
+description: "With Flox, the set of packages you're using can change depending on the directory you are working in. Using direnv and Flox, environments can autoactivate so you can effortlessly navigate the different parts of your stack."
+metaDescription: "With Flox, the set of packages you're using can change depending on the directory you are working in. Using direnv and Flox, environments can autoactivate so you can effortlessly navigate the different parts of your stack."
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: direnv
+author: Ross Turk
+publishedDate: 5 Jul 2024
+thumbnail: '/images/blog/lily-pads.webp'
+orderBy: 20240705
+---
+
+Flox allows you to create different environments for each of your projects. When you `cd` into your project, a quick `flox activate` ensures you’re working with the right stack.
+
+The shell extension `direnv` gives me a neat way to automate the calling of that `flox activate`.
+
+When I `cd` into a Flox project directory, `direnv` reads an `.envrc` that tells it to run `flox activate` and apply the results to my Flox environment. When I `cd` out of that directory, `direnv` reverses that process, returning my environment to its previous state. Essentially, `direnv` gives me turn-key `flox activate`-ion!
+
+## Mind the Gap
+
+It’s not the actual typing of `flox activate` that is a problem for me; I have an alias for it, and I actually enjoy watching it run. It’s forgetting to type it that is the problem.
+
+Countless times after `cd`-ing into an environment, I’ve forgotten to `flox activate`. Usually, the result is that whatever I’m trying to do just doesn’t work. But there are situations where this could cause something to work differently in a ... bad way.
+
+Say I have a build script for Node v22 in my Flox environment, but Node v20 installed on my system. If I forget to `flox activate`, my build script could run with the wrong version. This could end up being a big deal.
+
+With `direnv` I no longer even have to worry (or even think) about this.
+
+It’s so useful that we built it into a utility environment on FloxHub.
+
+## Option 1: Using a FloxHub Environment
+
+If you want to enable direnv in your current shell without doing anything permanent, you can do so with the following command:
+
+```
+% flox activate -r flox/direnv
+```
+
+Flox downloads some packages in the background and — presto! — you are inside an environment created using a manifest stored on FloxHub.
+
+```
+✅ You are now using the environment flox/direnv (remote)'.
+To stop using this environment, type 'exit'
+
+✅ Extension installed in ~/.config/direnv/lib/
+🤖 direnv enabled
+flox [flox/direnv (remote)] %
+```
+
+It has installed the `flox-direnv` extension (more on that later), enabled `direnv` in a new shell session, and created a `floxit()` alias that can help you set up auto-activation across our Flox environments.
+
+![](/images/blog/floxit.webp 'The floxit() alias running, showing a prompt that asks whether to continue.')
+
+FloxHub environments are a great way to test-drive this before installing it permanently into your dotfiles. When you're done with it, you exit its subshell and it just ... disappears.
+
+## Option 2: Using a Default Environment
+
+If you always want `direnv` in your stack, you can easily add it to your default Flox environment.
+
+If you don’t have a default environment, create one:
+
+```
+% flox init -d $HOME
+✨ Created environment 'default' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+
+% flox activate
+✅ You are now using the environment 'default'.
+To stop using this environment, type 'exit'
+
+flox [default] %
+```
+
+You can use Flox’s `edit` option to configure your `default` Flox environment for `direnv`:
+
+```
+flox edit -d $HOME
+```
+
+This opens up Flox’s `manifest.toml` in `vi`. By editing this file, you can declaratively add software to your environment, specify environment variables, or create shell hooks that automate commands, as well as setup or teardown operations. If `vi` isn’t your thing, you can override it by setting `$EDITOR`.
+
+Let’s customize our Flox `manifest.toml` to add the following lines into their respective blocks:
+
+```
+[install]
+direnv.pkg-path = "direnv"
+
+[profile]
+zsh = """
+  eval "$(direnv hook zsh)"
+"""
+bash = """
+  eval "$(direnv hook bash)"
+"""
+fish = """
+  direnv hook fish | source
+"""
+tcsh = """
+  eval `direnv hook tcsh`
+"""
+```
+
+To make sure your default environment is activated when you log in, add this to your `~/.profile` for bash or `~/.zprofile` for zsh:
+
+```
+eval "$(flox activate -d $HOME)"
+```
+
+In order to use `direnv` to automatically activate Flox environments, we use a plugin called `flox-direnv`. To install this into your `~/.config` directory, run the following commands:
+
+```
+% mkdir -p "${HOME}/.config/direnv/lib/”
+% curl -o "${HOME}/.config/direnv/lib/flox-direnv.sh" "https://raw.githubusercontent.com/flox/flox-direnv/v1.1.0/direnv.rc"
+```
+
+Optionally, you can ask Flox to suppress mention of your default environment in your shell prompt. Sometimes, especially when layering multiple environments, it’s nice to reclaim that space when you know your default environment will always be loaded. To do this, add the following line to your `~/.profile`:
+
+```
+flox config --set shell_prompt hide-default
+```
+
+Restart your shell.
+
+```
+% source ~/.profile
+```
+
+Voila! Your `default` Flox environment now activates `direnv` whenever you login.
+
+## Preparing a New Environment to Auto-Activate
+
+Let’s take `direnv` for a test drive.
+
+First, we’ll make a new environment and install some stuff into it:
+
+```
+flox [default] % mkdir -p envirotron/env1 && cd envirotron/env1
+flox [default] % flox init
+flox [default] % flox install fortune-kind cowsay
+```
+
+Then we’ll create an `.envrc` that contains the following line:
+
+```
+flox [default] % echo 'use flox' > .envrc
+```
+
+This command adds `use flox` to `./env1`’s `.envrc` file. Since we are in that directory already, this should auto-activate the Flox environment in that directory. Instead, it triggers the following error message:
+
+```
+flox [default] direnv: error /home/rossturk/dev/envirotron/env1/.envrc is blocked. Run `direnv allow` to approve its content
+```
+
+When you create or modify an `.envrc` file, `direnv` blocks it until you explicitly allow it by running the `direnv allow` command. With good reason! This ensures that only `.envrc` configurations you explicitly allow get loaded. We need to add the current directory to the allowlist. So let’s go ahead and do that:
+
+```
+flox [default] % direnv allow
+```
+
+The environment should automatically activate once you do this, and your prompt should change to:
+
+```
+flox [env1 default] %
+```
+
+You’re in a layered Flox environment. Any resources installed in either `env1` and `default` are available to you, along with any binaries, libraries, files, or other artifacts that are accessible to you on your local system. While you’re in the `./env1` directory, you can run `fortune-kind` and `cowsay`.
+
+```
+flox [env1 default] % cowsay That way madness lies
+_______________________
+< That way madness lies >
+ -----------------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+```
+
+```
+flox [env1] % fortune
+
+Harmony
+
+Embracing the Way, you become embraced;
+Breathing gently, you become newborn;
+Clearing your mind, you become clear;
+Nurturing your children, you become impartial;
+Opening your heart, you become accepted;
+Accepting the world, you embrace the Way.
+Bearing and nurturing,
+Creating but not owning,
+Giving without demanding,
+This is harmony.
+                -- Lao Tse, "Tao Te Ching"
+```
+
+As soon as you `cd` out of `./env`, your prompt changes to `flox [default] %`
+
+And cutting capers with `cowsay` no longer works:
+
+```
+flox [default] % cowsay That way madness lies
+Command 'cowsay' not found, but can be installed with:
+sudo apt install cowsay
+```
+
+Excellent. The `direnv` extension is doing its job: `cd`-ing out of the directory deactivates the environment.
+
+When you’re using the `flox/direnv` FloxHub environment to enable direnv, a `floxit()` alias is available to perform the above `.envrc` and `direnv allow` steps.
+
+## Preparing an Existing Environment to Auto-Activate
+
+You can do this with any or all of your Flox environments. The sole required step is to create and populate an `.envrc` file in each directory. Let’s automate an existing `jupyter` notebook environment we use a lot.
+
+```
+flox [default] % cd ~/dev/jupyter
+flox [default] % echo ‘use flox’ > .envrc
+direnv: error /home/rossturk/dev/jupyter/.envrc is blocked. Run `direnv allow` to approve its content
+```
+
+So let’s fix that:
+
+```
+flox [default] % direnv allow
+
+Jupyter environment ready - start notebook with alias 'nb'.
+flox [jupyter] %
+```
+
+## Some Housekeeping Notes
+
+(1) To get around the `direnv allow` error message triggered by the procedure described above, chain the `echo` and `direnv allow` commands, as below. You could easily create an alias for this, too.
+
+```
+echo 'use flox' > .envrc && direnv allow
+```
+
+Rinse and repeat for any other Flox environments you want to automate with `direnv`.
+
+(2) By default, `direnv`’s prints verbose logging output to your terminal. (The gif in the next section shows you examples of this.) You can disable this, as the `flox/direnv` environment does, by setting the following environment variable in `~/.profile`:
+
+```
+export DIRENV_LOG_FORMAT=''
+```
+
+(3) If you’re using `direnv` in a layered Flox stack, your prompt only changes to reflect the most recently activated environment. For instance, before I `cd`-ed into `~/dev/jupyter`, my prompt was `flox [default] %`; once my Jupyter environment activated, it should have been `flox [jupyter default] %`
+
+This happens because the `PS1` shell variable is blacklisted in `direnv`. Fear not, all of the Flox environments in your layered stack are still active and available, and you can access anything in them.
+
+If you’d like to fix the prompt while using `direnv`, you can add `${FLOX_PROMPT_ENVIRONMENTS_activate}` to your global `$PS1` in your shell rc files and disable the auto-prompt feature with `flox config --set shell_prompt hide-all`.
+
+(4) `direnv` can’t set shell aliases and functions, but `flox activate` normally can. Wrapping Flox with `direnv` means any aliases or shell functions from the Flox manifest.toml won’t be present. We still use update your `PATH` to provide access to all of your environment’s packages, so using Flox this way is still very useful! This is a trade-off for now, but it’s possible to make this better in the future 🙂
+
+## What It’s All About
+
+Flox is all about reducing or eliminating the snags and friction points that frustrate you as a developer, and this `direnv` integration is a simple, obvious example of this.
+
+But the best way to get a sense of how Flox works, what it can do, and how it can fit into (and hopefully transform) your projects and workflows is by putting Flox through its paces yourself.
+
+Flox is free to [download](https://flox.dev/docs/install-flox/). It’s easy to use - it has just a few commands to master.
+
+It’s all about eliminating obstacles between you and building software. Check it out!

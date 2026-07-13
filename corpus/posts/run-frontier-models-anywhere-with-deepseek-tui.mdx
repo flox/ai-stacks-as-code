@@ -1,0 +1,331 @@
+---
+title: 'Run Frontier Models Anywhere with DeepSeek TUI'
+altTitle: 'Run Frontier Models Anywhere with DeepSeek TUI, Nix, and Flox'
+description: "CLIs like DeepSeek TUI gives users a fast, terminal-native harness for running local and cloud models on NVIDIA CUDA and Apple Silicon. This article explores how Nix and Flox make it straightforward to run, build, and share the stacks we use to run models locally: model servers, CLI harnesses, and frontier checkpoint models like Qwen 3.6."
+metaDescription: "CLIs like DeepSeek TUI gives users a fast, terminal-native harness for running local and cloud models on NVIDIA CUDA and Apple Silicon. This article explores how Nix and Flox make it straightforward to run, build, and share the stacks we use to run models locally: model servers, CLI harnesses, and frontier checkpoint models like Qwen 3.6."
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 21 May 2026
+thumbnail: '/images/blog/worlds-in-worlds.webp'
+orderBy: 20260521
+---
+
+DeepSeek TUI rocketed to almost [33,000 stars on GitHub](https://github.com/Hmbown/DeepSeek-TUI) within two weeks of launching. [Its creator](https://github.com/Hmbown) describes it as a terminal user interface (TUI) harness for [DeepSeek](https://www.deepseek.com/en/)’s local and cloud models, much as Claude Code is for Anthropic’s and Codex is for OpenAI’s models. But like these harnesses, DeepSeek TUI can run against **other** providers—including local models. With a local Ollama or oMLX model server, you can run DeepSeek TUI against Qwen v3.6 and other cutting-edge local frontier models.
+
+This article shows two simple patterns for installing and running models locally using DeepSeek TUI as a harness. It showcases how to use CLI coding harnesses DeepSeek TUI against local Qwen 3.6 models optimized for CUDA and MLX, Apple’s open-source machine-learning array framework for Apple Silicon.
+
+The first pattern has two variations:
+
+-  Run DeepSeek TUI using a pre-packaged, pre-configured Flox **runtime environment**;
+-  Run DeepSeek TUI as a Nix flake against the remote GitHub repo.
+
+The second pattern, attached as an **Appendix**, shows software engineers how Flox and Nix drop right into their workflows. It uses Flox and Nix **standardized development environments** to reproducibly build and run DeepSeek TUI from source on Linux, macOS, and Windows/WSL2. It's a proof of concept for using Flox or Nix dev environments to work with Rust and other projects. 
+
+In both patterns, the same declarative environment can run reproducibly in local dev, CI, or production. No containers required. 
+
+
+### Running DeepSeek TUI Against Local Models
+
+This pattern has two distinct variations. The first uses a Flox environment, the second a Nix flake.
+
+#### 1. With Flox
+
+The Flox variation of this pattern uses a pre-built **`deepseek-tui`** package. Flox itself tracks the upstream DeepSeek TUI project, rebuilding from source and republishing the **`deepseek-tui`** package as new releases ship. It's an example of a Flox runtime environment, bundling DeepSeek TUI and its dependencies, along with a custom-built package that provides setup automation and wrapper helper functions. 
+
+**Note**: This environment composes modular, platform-specific Flox environments for [Ollama](https://github.com/ollama/ollama) and [oMLX](https://github.com/jundot/omlx). If either is already installed on your system, run the command below **without** the `-s` switch, which is used to start services.
+
+You can view the [manifest for this environment](https://hub.flox.dev/flox-labs/deepseek-tui/manifest) on FloxHub.
+
+To run Deepseek TUI on Flox, first do:
+
+```bash
+flox activate -s -r floxlabs/deepseek-tui	## the -s starts the defined ollama or omlx services
+``` 
+
+This environment ships with handy prebuilt wrapper functions. So on macOS or Linux, running
+
+```bash
+deepseek --model <model_name>
+```
+
+...starts DeepSeek TUI with the requested model using Ollama on Linux, oMLX on macOS. If the requested model doesn’t already exist on the local system, the wrapper transparently pulls it from the correct upstream provider (Ollama on Linux, HuggingFace on macOS) before starting the TUI. On macOS, the wrapper also (1) prompts the user for their HuggingFace token if not already set and (2) transparently restarts the oMLX model server so that it picks up the new model. This changes the workflow from...
+
+```bash
+## 1. Pull the model
+hf download mlx-community/Qwen3.6-35B-A3B-4bit \
+    --local-dir "$OMLX_MODEL_DIR/mlx-community/Qwen3.6-35B-A3B-4bit"
+
+## 2. Restart the oMLX model server
+flox services restart
+
+## 3. Run deepseek with extra command-line options
+deepseek --provider openai --model Qwen3.6-35B-A3B-4bit
+```
+
+...to:
+
+```bash
+deepseek --model Qwen3.6-35B-A3B-4bit
+```
+
+It’s an effective demonstration of the types of user-friendly affordances you can build into Flox environments.
+
+Optionally, you can skip the separate activation step and run:
+
+```bash
+flox activate -s -r floxlabs/deepseek-tui -- deepseek --model <model_name>
+```
+
+This activates and runs DeepSeek TUI from FloxHub without putting the user “in” to the Flox environment.
+
+To run the latest Qwen3.6 on Linux, just run:
+
+```bash
+flox activate -s -r floxlabs/deepseek-tui -- deepseek --model qwen3.6:35b
+```
+
+On macOS run:
+```bash
+flox activate -s -r floxlabs/deepseek-tui -- deepseek --model Qwen3.6-35B-A3B-4bit
+```
+
+#### 2. With Nix
+
+The upstream Nix flake has two tests that fail in the Nix build sandbox; we've [submitted a PR](https://github.com/Hmbown/DeepSeek-TUI/pull/1844) but we’ll need to run against our fork until it merges:
+
+```bash
+nix run github:floxlabs/DeepSeek-TUI/fix/nix-build-spillover-tests
+```
+
+**Note**: The failing tests only affect **`nix run`** and the Nix runtime environment: it’s possible to use the upstream flake as a dev environment to build and run the **`deepseek`** bin with **`cargo`**.
+
+A key difference with the Nix variation on this pattern is that _you’re building DeepSeek TUI from source_ and then running it. The Flox environment ships it as a defined, pre-packaged dependency, so there’s no build step. The Nix pattern must fetch, build, and realize DeepSeek TUI in the Nix store. This takes several minutes on a 32-core/64-thread system, and even longer on a less beefy machine.
+
+That being said, what if you _want_ to build DeepSeek TUI from source? For example, to checkout and build our forked/fixed branch? The **Appendix** walks through doing this with both Flox and Nix.
+
+
+### Standardize Your AI Workflows from Local Dev to Production
+
+Standardized Flox and Nix environments declare all you need to reproducibly build and run projects like DeepSeek TUI. But this same pattern generalizes to _any_ AI workflow that depends on a mix of model servers, CLI harnesses, language runtimes, native libraries, services, and platform-specific acceleration. With Flox and Nix, you can declare, govern, and share AI workloads across local laptops, CI, and production.
+
+The operational payoff is clear:
+
+-  **In local dev** everyone uses the same Flox environment; if something breaks, teams can see what changed and when;
+-  **When it's time to ship code**, the same Flox environments run reproducibly across machines, platforms, and time, at every stage of the SDLC;
+-  **As teams operationalize AI environments**, platform teams can version and legibly govern standardized dev or runtime environments;
+-  **For audits, incident response, and release review**, security and compliance teams can more easily identify where specific package versions are used.
+
+This isn’t magic, and it works a little differently between Flox, which is built on Nix, and Nix by itself. It's worth exploring how Flox and Nix differ ... and why.
+
+For example, the upstream [DeepSeek TUI](https://github.com/Hmbown/DeepSeek-TUI) repo ships with a Nix flake. Comparing its **[flake.lock](https://github.com/Hmbown/DeepSeek-TUI/blob/main/flake.lock)** with Flox’s **[manifest.lock](https://github.com/flox/deepseek-tui/blob/main/.flox/env/manifest.lock)** yields the following:
+
+-  The Nix **`flake.lock`** pins three upstream flake inputs to specific Git revisions and content hashes. You always get the same source trees, but not necessarily the same package versions.
+-  The Flox **`manifest.lock`** for the DeepSeek TUI runtime environment pins every individual package on every target platform (Linux or macOS; x86-64 or ARM) to a specific version, derivation, and set of Nix store paths. In other words, it records the environment’s **complete, resolved dependency graph**.
+
+In the bare Nix model, you can pin **`nixpkgs`**, individual sources, or package overrides, then evaluate the [closure](https://nix.dev/manual/nix/2.25/glossary.html?highlight=closure#gloss-closure) to inventory the resulting package set. In Flox’s model, package names, versions, target platforms, derivations, outputs, and store paths get automatically recorded. Plus with [FloxHub](https://hub.flox.dev) you get the ability to generate authoritative SBOMs for individual packages and runtime environments.
+
+Flox turns a standardizd runtime from something teams can reliably reproduce into something they can also inspect, diff, audit, govern, publish, and query across local dev, CI, and production.
+
+
+### Run, Share, and Govern AI Environments with Flox
+
+As AI environments morph from one-off local experiments into shared platform assets, the operational question changes from “How do I run this?” to “How do I understand, audit, and reproduce exactly what ran?” Flox makes the dev or runtime environment **visible** and **legible**: e.g., you can diff two lockfiles and _see_ that **`openssl`** advanced from v3.6.0 to v3.6.1, rather than only seeing a change (e.g., a new Git commit) to a flake input.
+
+It all starts with [FloxHub](https://hub.flox.dev). Generate authoritative, indexable SBOMs for dev and runtime environments. Reference and run them locally, in your CI pipelines, or your Kubernetes pod specs. Create and share your own managed environments, or activate prebuilt environments like [DeepSeek TUI](https://hub.flox.dev/flox-labs/deepseek-tui/manifest), [Rust dev](https://hub.flox.dev/flox-labs/rust-dev/manifest), [Ollama](https://hub.flox.dev/flox-labs/ollama/manifest), [oMLX](https://hub.flox.dev/flox-labs/omlx/manifest) the same way: remotely, reproducibly, anywhere. 
+
+
+### Appendix: Building and Running DeepSeek TUI from Source
+
+This pattern also has two variations. **One** uses a Flox standardized dev environment for working with Rust. Nothing special; no DeepSeek TUI-specific adaptations. You can use this pattern to work with _any_ Rust project. **Two** uses the **`flake.nix`** that’s included with the repo to build and run the DeepSeek TUI app. If you have Nix (or Flox, which installs Nix by default), you can build and run the flake.
+
+
+#### 1. Building with Flox
+
+Whether using the Flox environment or Nix flake, first clone the upstream repo to your local system:
+
+```bash
+git clone https://github.com/Hmbown/DeepSeek-TUI
+```
+
+Then change into the directory and run:
+
+```bash
+flox activate -r flox-labs/rust-dev`
+```
+
+This runs a remote FloxHub environment (thus the **`-r`** switch) called **`rust-dev`**. 
+
+**Note**: Flox ships a canonical Rust example environment: **`flox/rust`**. This environment includes an essential, common-sense set of Rust dependencies; however, it lacks common cross-language and/or cross-platform dependencies. It’s a canonical example that you can take and customize as your own.
+
+The **`flox-labs/rust-dev`** environment adds platform-specific compilers, a **`python3`** package, and **`dbus`** for Linux. The **`[install]`** section defines all of the packages available in the activated environment:
+
+```toml
+[install]
+## core rust toolchain
+rustc.pkg-path = "rustc"
+cargo.pkg-path = "cargo"
+clippy.pkg-path = "clippy"
+rustfmt.pkg-path = "rustfmt"
+rust-analyzer.pkg-path = "rust-analyzer"
+rust-lib-src.pkg-path = "rustPlatform.rustLibSrc"
+cargo-nextest.pkg-path = "cargo-nextest"
+
+## native build tools
+pkg-config.pkg-path = "pkg-config"
+openssl.pkg-path = "openssl"
+cacert.pkg-path = "cacert"
+git.pkg-path = "git"
+gh.pkg-path = "gh"
+python3.pkg-path = "python3"
+
+## compilers
+clang.pkg-path = "clang"
+clang.systems = ["aarch64-darwin"]
+gcc-unwrapped.pkg-path = "gcc-unwrapped"
+gcc-unwrapped.systems = ["x86_64-linux", "aarch64-linux"]
+
+## darwin-only
+libiconv.pkg-path = "libiconv"
+libiconv.systems = ["aarch64-darwin"]
+
+## linux-only deps for keyring access
+dbus.pkg-path = "dbus"
+dbus.systems = ["x86_64-linux", "aarch64-linux"]
+```
+
+The **`[hook]`** exports **`$FLOX_ENV/lib`** onto **`LD_LIBRARY_PATH`** on Linux so Rust crates that call **`dlopen`** at runtime (like **`openssl`** and **`dbus`**) can find shared libraries. The **`[profile]`** sets **`RUST_SRC_PATH`** to **`$FLOX_ENV`**, where the **`rust-lib-src`** package installs the standard library source. This enables go-to-definition and inline docs in **`rust-analyzer`**.
+
+```toml
+[hook]
+on-activate = '''
+  if [ "$(uname)" = "Linux" ]; then
+    export LD_LIBRARY_PATH="$FLOX_ENV/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  fi
+'''
+
+[profile]
+common = '''
+  export RUST_SRC_PATH="$FLOX_ENV"
+'''
+```
+
+With Flox, you build DeepSeek TUI just like you’d build any other Rust project:
+
+```bash
+cargo build --release
+```
+
+You _could_ combine this with the Flox activation step—**`flox activate -r floxlabs/rust-dev -- cargo build --release`**, or even **`flox activate -r floxlabs/rust-dev -- cargo run –release`**—to run the **`deepseek`** CLI. Before doing this, however, you’ll want to make sure you have a local model server installed: [Ollama](https://github.com/ollama/ollama) on Linux; Ollama _or_ [oMLX](https://github.com/jundot/omlx) on macOS. We show a simple way to do this in **Section 3**, below.
+
+
+#### 2. Building with Nix
+
+The DeepSeek TUI repo includes a Nix flake. If you’re curious about what this flake looks like, you can view it [here](https://github.com/Hmbown/DeepSeek-TUI/blob/main/flake.nix).
+
+Once you’ve cloned the upstream repo, **`cd`** into the directory and run:
+
+```bash
+nix develop
+```
+
+Once Nix evaluates and realizes the environment, run:
+
+```bash
+cargo build --release
+```
+
+This uses **`cargo`** to compile the project in the Nix dev environment. The failing tests defined by the **`flake.nix`** only affect **`nix run`** which builds and tests inside an isolated sandbox. We could also run:
+
+```bash
+cargo run --release -- --provider ollama --model qwen3.6:35b
+```
+
+Note, however, that running DeepSeek TUI directly from the repo...
+
+```bash
+nix run .#deepseek-tui -- --provider ollama --model <name>
+```
+
+...won’t work unless or until DeepSeek TUI’s maintainers fix the broken flake tests.
+
+But before running DeepSeek TUI from its repo, make sure you’re running a local model server, like Ollama on Linux or Ollama / oMLX on macOS. The next section gives you a simple way to do this.
+
+
+#### 3. Getting a local model server
+
+You can run DeepSeek TUI against DeepSeek models in the cloud, but what’s the fun in that?
+
+Local model serving is where it’s at, and model servers like Ollama, oMLX, and [LM Studio](https://github.com/lmstudio-ai) give us powerful options for local inferencing.
+
+We’ve tested DeepSeek TUI against Ollama and oMLX; you can probably run it against LM Studio, too.
+
+If you don’t already have either model-serving platform installed, just run...
+
+```bash
+flox activate -s -r flox/ollama
+```
+
+**or**
+
+```bash
+flox activate -s -r flox/omlx
+```
+
+...within the DeepSeek TUI repo. This runs a remote FloxHub environment on-demand, [layering](https://flox.dev/docs/tutorials/layering-multiple-environments/?h=layering) it on top of the repo. The Flox-managed Ollama or oMLX services are available so long as you’re in this remote environment. (Your prompt will change such that it’s prepended by **`flox [flox/ollama]`** or **`flox [flox/omlx]`**.) Once you quit this environment, Flox automatically shuts down the service(s) it defines.
+
+
+#### 4. Running DeepSeek TUI from the repo
+
+First pull your model of choice. On **Ollama** do:
+
+```bash
+ollama pull qwen3.6:35b-a3b-coding-nvfp4
+```
+
+If you prefer **oMLX**, downloading models is slightly less straightforward. oMLX doesn’t provide its own **`ollama pull`**-like command to fetch them, so you’ll need to pull them from HuggingFace, which means (a) you’ll need to use the HuggingFace CLI, which is bundled with oMLX, and (b) you’ll need a HuggingFace token. Export this token as an env var, then do the following to download your model…
+
+```bash
+hf download mlx-community/Qwen3.6-35B-A3B-4bit \
+    --local-dir "$OMLX_MODEL_DIR/mlx-community/Qwen3.6-35B-A3B-4bit"
+```
+
+… and then restart the Flox **`omlx`** service to pick it up:
+
+```
+**note:** you’re flox layering environments, so flox prompts you:
+
+! Services in which environment?
+  current directory [barstoolbluz/rust-dev]
+> currently active [flox/omlx (local)]
+```
+
+Finally, you’re ready to fire up the **`deepseek`** CLI with the Qwen 3.6 model. For Ollama run:
+
+```bash
+cargo run --release --bin deepseek -- \
+  --provider ollama \
+  --base-url http://127.0.0.1:11434/v1 \
+  --model qwen3.6:35b-a3b-coding-nvfp4
+```
+
+For oMLX, run:
+
+```bash
+cargo run --release --bin deepseek -- \
+  --provider openai \
+  --base-url http://127.0.0.1:18000/v1 \
+  --api-key any \
+  --model Qwen3.5-9B-MLX-4bit
+```
+
+Nix users can build and run from the Nix dev shell:
+
+```bash
+cargo run --release --bin deepseek -- --provider ollama --base-url http://127.0.0.1:11434/v1 --model qwen3.6:35b-a3b-coding-nvfp4
+```
+
+If all of this seems quite a bit more involved in a dev setup, it is. But this is what software engineers do several times daily to build, test, debug, and ship the packages and runtime environments we rely on. 
+
+It all starts with [FloxHub](https://hub.flox.dev). Why not **`flox activate -r`** and take [Rust](https://hub.flox.dev/flox-labs/rust-dev), [C/C++](https://hub.flox.dev/flox-labs/cxx), [Go](https://hub.flox.dev/flox/go), [Python](https://hub.flox.dev/flox-labs/python3), [Ruby](https://hub.flox.dev/flox/ruby), [Zig](https://hub.flox.dev/flox-labs/zig), [JavaScript/Typescript](https://hub.flox.dev/flox-labs/node), [Erlang](https://hub.flox.dev/flox-labs/erlang), or one of our other reproducible dev environments for a test-drive? 

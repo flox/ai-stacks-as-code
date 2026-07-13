@@ -1,0 +1,296 @@
+---
+title: 'Build and Debug AWS Workflows Locally with Flox, LocalStack, and Colima'
+altTitle: 'Build & Debug AWS Workflows Locally with Flox & LocalStack'
+description: 'Do your teams need a reproducible, collaborative way to manage AWS secrets and authenticate with AWS services across disparate systems and environments? Fear not! Flox has got them covered.'
+metaDescription: 'You can use Flox, LocalStack, and Colima to create a shareable, turn-key _local_ environment for developing and testing the workloads and build artifacts you deploy to AWS, as well as configuring the resources required to run them.'
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: localstack
+author: Flox Team
+publishedDate: 02 January 2026
+thumbnail: '/images/blog/cloud-laptop.webp'
+orderBy: 20241211
+---
+
+You can use Flox to create a shareable, turn-key _local_ environment for developing and testing the workloads and build artifacts you deploy to AWS, as well as configuring the resources required to run them.
+
+The magic comes via the [community edition](https://github.com/localstack/localstack) of [LocalStack](https://www.localstack.cloud/), a platform that emulates AWS services by running them in containers, and [Colima](https://github.com/abiosoft/colima), a lightweight Linux VM for macOS and Linux. With Colima, you can spin up LocalStack without installing a separate container runtime. Flox makes it easy to build both packages into a portable environment that Just Works across macOS, Linux, and Windows with WSL2.
+
+If you live inside the AWS CLI, this pattern should drop _right_ into your workflow. You use LocalStack’s `awslocal` wrapper to interact with 35 different LocalStack AWS services, running virtually any command you might with `aws`. This gives you a way to prototype and test locally with `awslocal` before deploying.
+
+Keen to learn more? Let’s get to it!
+
+** TL;DR** 
+- Emulate AWS services locally to reduce costs.
+- Use Flox for reproducible environments anywhere.
+- Debug Lambdas instantly without cloud latency.
+- Configure S3 buckets and IAM roles offline.
+- Test CloudFormation templates before production deployment.
+
+
+## The challenge: Simulating cloud infrastructure locally
+
+Consider a scenario where you need to build a microservice that collects PDFs from various sources, scraping them to extract and analyze raw text and images. You are tasked with building the data ingestion component of this service.
+
+This workflow involves complex interactions between storage, permissions, and compute resources. Traditionally, testing this would require provisioning live cloud resources, leading to slow feedback loops and potential costs. By using Flox, Colima, and LocalStack, you can replicate this infrastructure on your laptop for a seamless development experience.
+
+## Setting up your local dev environment
+
+In previous workflows, you may have used [building and deploying Lambda functions with Flox](https://flox.dev/blog/flox-and-aws-building-testing-and-deploying-lambda-functions-with-flox-and-aws-sam/) and the AWS SAM CLI to develop and debug locally. Setting up your dev environment was as easy as running a single activation command.
+
+This time, your workflow is more complex: not only do you need to author a new Lambda function, but you also need to provision and configure new AWS resources. This is the perfect use case for LocalStack. Start by cloning your project repository and changing into your project directory. Run `flox activate` to enter a virtual environment containing the AWS CLI, AWS SAM CLI, GitHub CLI, [1Password CLI](https://flox.dev/blog/get-your-preferred-secrets-manager-in-a-portable-cross-platform-cli-toolkit/), and other essential tools.
+
+Next, you activate the shared Flox environment your org created for running LocalStack and Colima:
+
+```
+flox activate -s -r fluffirmations/localstack
+```
+
+What you’ve done is “[layered](https://flox.dev/blog/a-very-short-introduction-to-layering-in-flox/)” two Flox environments on top of another, creating the equivalent of a virtual software stack.
+
+The -r switch tells Flox to activate `localstack` as a [FloxHub environment](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/), which is roughly analogous to an isolated, on-demand virtual overlay that you can invoke and run in any project directory. It gives you a dead simple way to spin up a local AWS development environment when you need it, and turn it off when you don’t.
+
+## Verifying available AWS LocalStack services
+
+Before getting started, double check which AWS services are available in your local instance:
+
+```
+localstack status services
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ Service                  ┃ Status      ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ acm                      │ ✔ available │
+│ apigateway               │ ✔ available │
+│ cloudformation           │ ✔ available │
+│ cloudwatch               │ ✔ available │
+│ config                   │ ✔ available │
+│ dynamodb                 │ ✔ available │
+│ dynamodbstreams          │ ✔ available │
+│ ec2                      │ ✔ available │
+│ es                       │ ✔ available │
+│ events                   │ ✔ available │
+│ firehose                 │ ✔ available │
+│ iam                      │ ✔ available │
+│ kinesis                  │ ✔ available │
+│ kms                      │ ✔ available │
+│ lambda                   │ ✔ available │
+│ logs                     │ ✔ available │
+│ opensearch               │ ✔ available │
+│ redshift                 │ ✔ available │
+│ resource-groups          │ ✔ available │
+│ resourcegroupstaggingapi │ ✔ available │
+│ route53                  │ ✔ available │
+│ route53resolver          │ ✔ available │
+│ s3                       │ ✔ available │
+│ s3control                │ ✔ available │
+│ scheduler                │ ✔ available │
+│ secretsmanager           │ ✔ available │
+│ ses                      │ ✔ available │
+│ sns                      │ ✔ available │
+│ sqs                      │ ✔ available │
+│ ssm                      │ ✔ available │
+│ stepfunctions            │ ✔ available │
+│ sts                      │ ✔ available │
+│ support                  │ ✔ available │
+│ swf                      │ ✔ available │
+│ transcribe               │ ✔ available │
+└──────────────────────────┴─────────────┘
+```
+
+Just about everything you need! A few services are missing, like [ECR](https://aws.amazon.com/ecr/), which is a LocalStack Pro option, but there’s still plenty to work with. Run `flox list -c` to see exactly what’s installed in this new environment. Along with some automation logic that (**a**) bootstraps the `colima` and `localstack` services and (**b**) sets up a Python venv, you see the following:
+
+```
+flox list -c -r fluffirmations/localstack
+
+[install]
+colima.pkg-path = "colima"
+docker.pkg-path = "docker-client"
+gum.pkg-path = "gum"
+localstack.pkg-path = "localstack"
+kubectl.pkg-path = "kubectl"
+python311Full.pkg-path = "python311Full"
+pip.pkg-path = "python311Packages.pip"
+boto3.pkg-path = "python311Packages.boto3"
+```
+
+This represents the complete software manifest for your Flox `localstack` environment.
+
+## Creating IAM roles and S3 buckets locally
+
+First, you’ll need to create a new IAM role for running functions in Lambda. Your repo already contains a `trust-policy.json`, so you run `awslocal` with the appropriate sub-command to set this up in LocalStack.
+
+Note: `awslocal` is a Python-based wrapper for `aws`; it seems to do everything the actual command does.
+
+```
+awslocal iam create-role --role-name LambdaS3ExecutionRole --assume-role-policy-document file://./trust-policy.json
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "LambdaS3ExecutionRole",
+        "RoleId": "AROAQAAAAAAANK5Z6DEDJ",
+        "Arn": "arn:aws:iam::3141592653589:role/LambdaS3ExecutionRole",
+        "CreateDate": "2024-12-10T21:57:07.770000+00:00",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "lambda.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+    }
+}
+```
+
+The content in curly braces is the output of the `awslocal iam create-role` command. Next, switch to the task of creating new S3 buckets for your Lambda function’s workflow. You can do this in LocalStack just as you would in the actual AWS environment:
+
+```
+awslocal s3api create-bucket \
+    --bucket peedeeeff-bucket \
+    --region us-east-1
+
+awslocal s3api create-bucket \
+    --bucket lambda-lies-down-on-broadway \
+    --region us-east-1
+
+awslocal s3api create-bucket \
+    --bucket rawtext-bucket \
+    --region us-east-1
+
+awslocal s3api create-bucket \
+    --bucket rawimages-bucket \
+    --region us-east-1
+```
+
+## Deploying with CloudFormation locally
+
+LocalStack _also_ bundles a version of AWS CloudFormation, which you can use instead.
+
+When deploying your function to Lambda, organizations often prefer CloudFormation to define infrastructure as code. This makes it easier to version, share, and replicate resources across deployments. Grab a `cloudformation-template.yaml` file and customize it to suit your needs. You “deploy” this file in LocalStack the same way you would in AWS:
+
+```
+awslocal cloudformation create-stack \
+  --stack-name pdf-processing-stack \
+  --template-body file://cloudformation-template.yaml \
+  --capabilities CAPABILITY_NAMED_IAM
+{
+    "StackId": "arn:aws:cloudformation:us-east-1:3141592653589:stack/pdf-processing-stack/8351048e"
+}
+```
+
+It _looks_ like it worked, but did it? To double check, run:
+
+```
+awslocal cloudformation describe-stacks --stack-name pdf-processing-stack
+{
+    "Stacks": [
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:3141592653589:stack/pdf-processing-stack/8351048e",
+            "StackName": "pdf-processing-stack",
+            "CreationTime": "2024-12-10T23:24:24.079000+00:00",
+            "LastUpdatedTime": "2024-12-10T23:26:12.452000+00:00",
+            "RollbackConfiguration": {},
+            "StackStatus": "CREATE_COMPLETE",
+            "DisableRollback": false,
+            "NotificationARNs": [],
+            "Capabilities": [
+                "CAPABILITY_NAMED_IAM"
+            ],
+            "Tags": [],
+            "EnableTerminationProtection": false,
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+}
+```
+
+You’ve just used CloudFormation to create your S3 buckets. Once you’ve authored and tested your Lambda function, you’ll include that in the `cloudformation-template.yaml`, too. You’ll also define an event-driven S3 trigger that fires each time a new batch of PDFs shows up in the `PeeDeeEff` bucket.
+
+Note: LocalStack’s S3 implementation doesn’t support [S3 event notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventNotifications.html), so during testing, you’ll need to manually run the `awslocal lambda invoke` command, specifying the name of your function. When you deploy your `cloudformation-template.yaml` to your production AWS environment, you'll provision all necessary resources and define their dependencies.
+
+## Deploying Your Lambdas locally
+
+Once you have working code, it is time to deploy it for testing in LocalStack Lambda. Building and testing your Lambdas locally allows you to move much faster. Feedback loops are shorter, and you can iterate quickly without obsessing about getting everything perfect before a cloud deployment.
+
+```
+awslocal lambda create-function     --function-name PDFProcessor     --runtime python3.11     --role arn:aws:iam::3141592653589:role/LambdaS3ExecutionRole     --handler lambda_function.lambda_handler     --zip-file fileb://lambda_function.zip     --timeout 15     --memory-size 128
+{
+    "FunctionName": "PDFProcessor",
+    "FunctionArn": "arn:aws:lambda:us-east-1:3141592653589:function:PDFProcessor",
+    "Runtime": "python3.11",
+    "Role": "arn:aws:iam::3141592653589:role/LambdaS3ExecutionRole",
+    "Handler": "lambda_function.lambda_handler",
+    "CodeSize": 1345,
+    "Description": "",
+    "Timeout": 15,
+    "MemorySize": 128,
+    "LastModified": "2024-12-10T22:52:24.217545+0000",
+    "CodeSha256": "IeisxizNCjWYpBrGRQO4OyQpwKCeAbLvyhyWzmNMTZQ=",
+    "Version": "$LATEST",
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "eae6c278-9c37-4a95-bc2c-2307b1e0e993",
+    "State": "Pending",
+    "StateReason": "The function is being created.",
+    "StateReasonCode": "Creating",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    },
+    "RuntimeVersionConfig": {
+        "RuntimeVersionArn": "arn:aws:lambda:us-east-1::runtime:8eeff65f6809a3ce81507fe733fe09b835899b99481ba22fd75b5a7338290ec1"
+    },
+    "LoggingConfig": {
+        "LogFormat": "Text",
+        "LogGroup": "/aws/lambda/PDFProcessor"
+    }
+}
+```
+
+## Testing and debugging Lambda functions locally
+
+With the function deployed, you can begin iterative testing and debugging. Before long, the function runs reliably in LocalStack Lambda and passes both local smoke tests and basic integration tests.
+
+Once confident, you are ready to push your function to your organization's Lambda CI alias for further validation.
+
+## Bringing it all back home
+
+Whether it is running, testing, and debugging functions in Lambda; creating new S3 buckets; spinning up AMIs; creating and validating Redshift data models; defining CloudFormation IaaC configurations; or performing countless other tasks, working with AWS is much easier if you can prototype and test locally before deploying. Thanks to LocalStack you can work with most AWS services locally.
+
+Flox makes this even sweeter, enabling you to experiment with LocalStack _without_ making destructive changes to your local system. Just [install Flox](https://flox.dev/docs/install-flox/) and run:
+
+```
+flox activate -s -r flox/colima -- flox activate -s -r flox/localstack
+```
+
+Sound too good to be true? Why not [download Flox](https://www.flox.dev/get) and put it to the test? It’s free, [easy to learn](https://flox.dev/docs/).
+
+
+## FAQs about Building and Debugging AWS Workflows Locally
+
+### Why should I build and debug AWS workflows locally instead of in the cloud?
+
+Developing AWS workflows locally significantly accelerates the feedback loop by eliminating the latency associated with cloud deployments and reducing wait times for resource provisioning. This approach also lowers costs by allowing engineers to prototype and test infrastructure-heavy processes without incurring usage fees for live cloud services. By using a portable environment manager, teams can ensure these local workflows are reproducible and consistent across different operating systems.
+
+### How does Flox simplify setting up a local AWS development environment?
+
+Flox streamlines the configuration of local environments by allowing developers to layer necessary tools, such as LocalStack and Colima, into a single, shareable environment. This eliminates the complexity of manually managing container runtimes or resolving dependency conflicts on individual machines. Users can simply activate the specific environment to instantly access a fully configured stack that mirrors production requirements on macOS, Linux, or Windows.
+
+### Is it possible to test Lambda functions locally without deploying to AWS?
+
+You can author, deploy, and debug Lambda functions entirely within your local environment using emulation tools. This setup allows you to invoke functions, trigger events, and view logs immediately, facilitating rapid iteration and troubleshooting. By integrating this with local storage buckets and IAM roles, you can simulate complex serverless architectures and integration tests without leaving your terminal.

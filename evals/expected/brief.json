@@ -1,0 +1,40 @@
+{
+  "backend": "cpu",
+  "chunk_count": 3,
+  "generated_at": "2000-01-01T00:00:00Z",
+  "metadata": {
+    "note": "Golden fixture for the strict semchunk + sentence-transformers + Chroma contract path. ai-eval ignores metadata and generated_at during comparison."
+  },
+  "query": "What should an AI stack as code provide?",
+  "sources": [
+    "doc_12ae710dae68ed04",
+    "doc_de77b15cf401ca29",
+    "doc_fa2e7dc044670786"
+  ],
+  "themes": [
+    {
+      "citations": [
+        "chunk_ca416d34d9d891f9"
+      ],
+      "summary": "AI stack as code An AI stack as code declares runtime tools, parsers, notebooks, and model dependencies in a reproducible environment. The environment gives human developers and coding agents the same command surface while preserving different trust boundaries. A practical local pipeline should ingest source documents, build an index, and generate a brief with citations that point back to real chunks.",
+      "title": "Stack Code Environment"
+    },
+    {
+      "citations": [
+        "chunk_ef8ca2a1d0eb4871"
+      ],
+      "summary": "The brief stage should summarize evidence extractively and cite chunk identifiers that exist in chunks. The index stage embeds chunks and stores chunk hashes so unchanged chunks do not need to be embedded again. The ingest stage scans supported files recursively, normalizes text, records source metadata, and writes deterministic JSONL artifacts.",
+      "title": "Stage Chunks Chunk"
+    },
+    {
+      "citations": [
+        "chunk_2cee78b13b8bedae"
+      ],
+      "summary": "title: Local RAG; claim: The pipeline can retrieve and summarize local evidence without an API key. title: Regression guard; claim: The evaluation command should run against tiny fixtures and fail when citations do not resolve.",
+      "title": "Claim Title Local"
+    }
+  ],
+  "uncertainties": [
+    "The brief is extractive and limited to the supplied sources; it does not infer facts outside the corpus."
+  ]
+}

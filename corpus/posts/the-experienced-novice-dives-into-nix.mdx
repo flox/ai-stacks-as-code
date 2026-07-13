@@ -1,0 +1,99 @@
+---
+title: 'The Experienced Novice Dives into Nix'
+altTitle: 'The Experienced Novice Dives into Nix'
+description: "Every new abstraction we add—containers, microservices, serverless—solves one problem but creates others. This is the story of how I discovered Nix and learned to love a deterministic approach to building software."
+metaDescription: "Every new abstraction we add—containers, microservices, serverless—solves one problem but creates others. This is the story of how I discovered Nix and learned to love a deterministic approach to building software."
+isPublished: true
+category: guides
+author: Michael Stahnke
+authorKey: michael-stahnke
+publishedDate: 26 March 2025
+thumbnail: '/images/blog/layering-tower-of-babel.webp'
+orderBy: 20250326
+---
+
+Users new to Nix often feel as if they’re struggling to stay afloat in the deepest of Olympic diving pools.
+
+They might not be Olympic divers, but they’re still world-class swimmers—they should at least be able to tread water, right? This was my experience. I've led and scaled engineering teams with Caterpillar, Puppet, and CircleCI, driving platform engineering, SRE, and core backend systems with the latter two. At Puppet, I created packages and packaging systems for basically every Unix-like OS that’s ever existed, some of which you probably haven’t heard of. When it comes to packaging software, I am certainly not a novice. 
+
+But when I first discovered Nix, I felt like a strong swimmer being pulled under by tidal forces I couldn’t quite grasp, gasping the same question almost every newcomer asks: "Why is this so complicated?"
+
+Turns out, this was both a my-problem and, if we’re being honest, a Nix-problem too.
+
+
+## We’re doing it wrong
+
+The first question I found myself asking was: “Why Nix?” Why not something else? Asking this question forced me to confront an inconvenient truth: Given how most teams ship software, _something else always begets something else_. Solving one problem always exposes two or three more. So we “solve” these new problems by layering on _another_ tool, _another_ framework, _another_ abstraction. Our stack gets deeper—but never, ever simpler. Eventually I realized: _The approach itself is the problem_.
+
+Whether it’s containers for portable runtimes, microservices for modular architectures, or serverless for event-driven scaling, each layer is great at solving for aspects of the modern SDLC—isolating dependencies, distributing loads, scaling on-demand—but brings new challenges too. Suddenly, each abstraction requires its own observability or debugging layers just to keep track of what’s running where.
+
+Nix, by contrast, gives us a unified build system we can use to package and deploy software. Rather than relying on a lattice of layered abstractions (including layer upon layer of debugging scaffolding), Nix _specifies every build input explicitly_ and isolates builds from the host system or runner. It eliminates the wrapper scripts, ad-hoc Dockerfiles, and CI glue we rely on just to make builds repeatable.
+
+Nix doesn’t eliminate the need for an observability layer, but _does_ reduce the need to instrument the build and deployment pipeline. Because the system is reproducible and isolated by design, fewer things go wrong in non-obvious ways, and you don’t have to build scaffolding just to understand what changed.
+
+
+
+## So what’s different about Nix?
+
+That's when I realized Nix is taking a big swing—aiming to deliver three huge benefits:
+
+**Deterministic builds, reproducible results**. Traditional packaging tools deliver prebuilt binaries that install into a shared system. They rely on distribution policies, shared libraries, and filesystem standards to keep things compatible and operational. Because Nix starts with the build, every input—sources, compilers, flags, environment variables—is declared explicitly. Nix builds run in isolation, and outputs under a path containing a hash of the build instructions. The goal is reproducibility: the same inputs give the same outputs.
+
+**Cross-platform portability by default**.  Because Nix builds are fully declared—sources, tools, and dependencies—they’re not tied to any particular architecture or OS. Need to build something for ARM on an x86 box? Fine. Want the same environment on macOS and Linux? Also fine. You’ll hit edge cases, but the model doesn’t care—it’s not tied to a particular platform. If the derivation supports it, it just works. 
+
+**Build isolation unlocks lots of good things**. Nix’s strict isolation model can be disorienting at first—nothing lands in the global namespace, and you can’t assume shared paths. But that’s what makes Nix's binary cache model reliable. Because Nix builds are isolated and fully described, if the exact output already exists in a trusted binary cache, Nix can skip the local build and fetch the result directly.
+
+This makes it easy to share build artifacts across teams or CI pipelines. If one runner builds it, others can reuse the result without rebuilding. You can also push builds to a remote cache from CI, or offload builds to remote builders when local resources are limited. Everything Just Works across the SDLC.
+
+Given all this, adopting Nix seems like a no-brainer, right? Well … not exactly. 
+
+
+
+## Unlearning what you’ve learned
+
+When you start out with Nix, you need to learn to unlearn a lot of what you’ve learned. That’s because Nix completely inverts the conventional way of doing things.
+
+For example, Nix throws out pretty much everything you think you know about packaging and installing software. The FHS? Gone. Traditional package managers install files into shared paths like `/usr/bin` or `/usr/lib`, adhering to system-wide conventions. Nix ignores those. It builds everything into `/nix/store` and creates per-user environments by symlinking relevant store paths—no global installs, no system-wide mutation.
+
+That changes how you think about installing software, too. In Nix, you’re _not really installing anything_—you’re declaring what should be _available_ in an environment. The “install” step kind of goes away.
+
+And that’s just the start. In Nix, you don’t begin with a package—you begin with a build. Everything starts with a derivation, the basic building block for Nix software. Inside this, you declare every dependency, compiler flag, environment variable, and so on and so forth. This is great for reproducibility, but it’s … disorienting if you’re used to `apt install` and post-install config.
+
+If, like me, you've spent years obsessing about FHS compliance and packaging guidelines, your first experience with Nix can make you feel like you’re drowning in place. 
+
+This is a pretty common experience.
+
+
+## A gentler on-ramp to Nix
+
+The most common onramp to Nix in the enterprise starts with a single person: the “wizard” who sets up and maintains an org’s entire Nix infrastructure. Problem is, if you’re managing a team of developers (or you’re a VP of engineering responsible for _teams_ of developers), this isn’t a recipe for long-term success.
+
+If someone pitched _me_ a deterministic build system that only one internal person knew how to maintain, I’d shut it down. That kind of operational risk isn’t just unacceptable, it’s untenable.
+
+Flox changes this risk profile. With Flox, Nix experts can continue using familiar tooling, while their teammates—who probably don’t know Nix—can use Flox, while getting all the benefits of Nix. For those new to Nix, Flox offers a more intuitive entry point and feels much closer to a traditional package or environment manager—tools like `nvm`, `rbenv`, or Python’s `venv`s. 
+
+Flox drops right into existing workflows, meeting developers and operators where they are. Sharing a Flox environment is as simple as **`flox push**`-ing it to FloxHub, or **`git push`**-ing it and its project code to a Git remote. Teammates can **`flox pull`** or **`git clone`** environments, and these same environments can be consumed by your CI runner. And if you need to produce a container artifact, either locally or in CI, you can use **`flox containerize`** to export the environment as an image before pushing it to a registry.
+
+
+## Nix, but different
+
+Flox gives you Nix with a twist: Nix begins with the _build_, Flox begins with the _environment_. A Flox environment is a declarative collection of packages, env vars, hooks, functions, and services. If that sounds a little bit like Docker Compose, it’s because the goal is similar: defining a portable, runnable context. But unlike containers or multi-container runtimes, Flox environments are deterministic and fully declarative. They aren’t susceptible to the non-determinism you get with containers—things like image drift, mutable state, and caching quirks.
+
+Flox environments are portable across teams and platforms; if I’m on Linux and you’re on macOS, we each use _the same environment definition_, and Flox just resolves platform-specific differences at run time. Any developer, not just the in-house Nix guru, can spin up the exact same dev, test, or prod setup … anywhere. Instead of using a domain-specific language, you declare Flox environments using TOML: packages, build steps, functions, environment variables—all are captured in a Flox environment’s manifest. This becomes the source of truth for how the environment is built and run. 
+
+Here’s the genius part. You reuse the _same_ Flox environment across all your workflows, so you don’t need multiple layers of tooling just to bridge local development, CI, and prod. This lets you avoid the layering problem that’s endemic across platform engineering because by taking a radically different approach: a single, portable definition that runs on Linux and macOS—whether in local dev, CI, or prod.
+
+
+## Flox Helps Bring Nix to the Enterprise
+
+Flox isn’t trying to be Nix++—or even a better version of Nix: The goal isn’t to _replace_ Nix, but to make it easier to solve real-world SDLC problems by building on top of Nix as a foundation. 
+
+You can start however you like with Flox. In local dev, Flox gives your teams controlled, reproducible environments that don’t rely on VMs or container runtimes. In your CI pipelines, Flox frees you from having to create and maintain multiple layers just to set up your runtime environment. With Flox, you can trim some of the tool and observability layers you use In both CI _and_ prod: a single call to **`flox activate`** pulls in the declared version of tools, libraries, and env vars you need. Your runtimes Just Work. 
+
+Flox (and Nix) effectively collapse several layers of build scaffolding into one reproducible input.
+
+I shared these experiences with Nix and Flox during a talk at [Planet Nix](https://planetnix.com) in March 2025. Planet Nix was an excellent gathering of users and developers with all levels of experience. You can watch the video here:
+
+<iframe width="700" height="422" src="https://www.youtube-nocookie.com/embed/yhfDtRRTmY8?si=mxq1ZNMDnzeLxUuE&amp;start=1735"></iframe>
+
+Want to know more? Flox is free to [download](https://flox.dev/get) and takes seconds to install. Its CLI semantics are similar to tools like `npm` or `pip`, so it’s easy to use. Check it out!

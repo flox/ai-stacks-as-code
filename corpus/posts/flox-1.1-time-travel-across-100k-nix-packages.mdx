@@ -1,0 +1,57 @@
+---
+title: 'Flox 1.1: Time Travel Across 100k+ Nix Packages'
+altTitle: 'Flox 1.1: Time Travel Across 100k+ Nix Packages'
+description: "The Flox Catalog now contains over 3 years of history for each of its 100k packages, totaling over a million building blocks you can assemble however you like. Find everything you're looking for."
+metaDescription: "The Flox Catalog now contains over 3 years of history for each of its 100k packages, totaling over a million building blocks you can assemble however you like. Find everything you're looking for."
+isPublished: true
+category: news
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 25 June 2024
+thumbnail: '/images/blog/books-on-shelves.webp'
+orderBy: 20240625
+---
+
+We’re _pretty stoked_ to announce the release of Flox 1.1, our flagship CLI.
+
+Flox gives you a new way to work with packages and build reproducible development environments … without using containers. It gives users transparent, no-hassle access to the tools, files, and environment variables in their local systems. It enables teams to create portable, reproducible development environments that behave the same way anywhere, taking advantage of available OS, CPU, and even GPU capabilities.
+
+This just isn’t possible with other tools or patterns.
+
+## Flox 1.1: Reproducible Developer Environments, Batteries Included
+
+Flox 1.1 packs improvements that make it easier for you to find software, create environments, and start building. Improvements that enable you to share and reproduce what you’ve built—be it with other collaborators, or in CI. And improvements that give you access to massively more versions of packages. In addition, the new release boasts the following new features:
+
+- **A massively expanded Flox Catalog.** Flox’s Catalog now integrates fresh packages daily from the Nixpkgs unstable branch. This expands the range of available Flox packages to over one _million_ unique package/version combinations, opening up the breadth and depth of the Nix’s ecosystem’s unmatched collection of open-source software. If you need a package that came out yesterday, there’s a pretty good chance it’s already in the Flox Catalog.
+
+![](/images/blog/1.1-search-results.webp)
+
+- **Browse 3+ years of package history.** With the revamped `flox show` command, users can easily find and install even deprecated versions of packages. Need a specific patch version of an older `gcc`, `1password` or `elasticsearch` package? No problem! Use `flox show` to list all available versions.
+
+![](/images/blog/1.1-show-results.webp)
+
+- **Secure, reliable, reproducible software deployment.** Under the covers, key functions in Flox are powered by [Nix, a proven open-source package manager](https://nixos.org). Like Nix, Flox uses declarative methods to install and version software packages. Reproducing a Flox environment exactly is as simple as copying its `.flox` directory, which contains both the environment’s software manifest and the lockfile that ensures version consistency. Not only can you be confident when recreating your environment from yesterday, you know it’ll be the same when it passes through CI, or when you share it with coworkers.
+
+- **Fast, easy access to software when you need it.** Fresh installs are at least as fast as your target system’s package manager, and if all dependencies are cached locally, take just milliseconds. Flox seamlessly reuses installed packages in new environments, creating symlinks to the originals in its local store. It all adds up to the fastest, easiest, and most reliable way to install and manage software, with no clutter, no orphaned files, and no unanticipated dependency conflicts.
+
+- **Flox is stackable and extensible.** You can use Flox to compose layered software stacks, replicating complex toolchains and their dependencies, sophisticated application or service stacks, and use case-specific stacks for AI or ML, among others. Flox makes it easy to sync common toolchains across your local and cloud workstations, ensuring you have a consistent development environment wherever you work. And with Flox, you can quickly change contexts by injecting new environment variables, making it seamless to switch between different projects or tasks.
+
+  Best of all, layered Flox stacks live on your local system and enjoy transparent access to all your local resources. There’s no building, configuring, or _rebuilding_ complex, multi-container runtimes.
+
+- **Flox environments are optimized by default.** Flox packages run on Apple silicon/ARM and 64-bit x86, and are compatible with macOS and all popular flavors of Linux on either architecture.
+
+  This means when you share a Flox environment with a collaborator who uses an ARM-based MacBook Pro, Flox installs packages optimized for that person’s system. And when a team member using a x86-64 Linux system pulls your environment from FloxHub, they get packages optimized for their platform, too.
+
+- **The advantages of open-source Nix—without the learning curve.** Nix enables a revolutionary approach to deploying and securing software, but it’s also famously challenging to learn. Flox gives you the best bits of Nix—including access to the world’s largest collection of open-source software—without the complexity.
+
+You can [download Flox here](https://flox.dev/docs/install-flox/).
+
+## Breaking Down Barriers, One Release at a Time
+
+With each new release, Flox chips away at the barriers of the modern SDLC.
+
+Whether it’s fighting with containers, VMs, and venvs to set up consistent build environments; managing a tangle of dependencies across projects, platforms, and CI workflows; or mastering the quirks of a half dozen (or more!) package managers, all of these layers of abstraction and isolation really add up. The upshot is that software engineering can sometimes feel like an exercise in manipulating robotic arms from outside a clean room—without being able to see what you’re doing!
+
+Flox lets you isolate and abstract _on your local system_, with reproducible environments that run and behave the same way anywhere—including in CI. Together, the Flox CLI and FloxHub give you a way to version and collaborate your development environments, just like you do with your code and git.
+
+Tired of putting on a clean-room suit just to build, share, and ship software? Keen to see how Flox improves your workflow? Check out [Flox in 5 Minutes](https://flox.dev/docs/) for a quick walk-through of how Flox works!

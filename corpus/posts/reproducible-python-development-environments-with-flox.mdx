@@ -1,0 +1,129 @@
+---
+title: 'Reproducible Development Environments for Python with Flox'
+altTitle: 'Reproducible Development Environments for Python with Flox'
+description: 'Create reproducible Python environments with Flox. Declaratively define everything in one file and activate the same setup every time.'
+metaDescription: 'Create reproducible Python environments with Flox. Declaratively define everything in one file and activate the same setup every time.'
+isPublished: true
+category: guides
+author: Flox Team
+publishedDate: 29 July 2025
+thumbnail: '/images/blog/containers-on-a-counter.webp'
+orderBy: 20250908
+---
+
+
+With a reproducible development environment like Flox, anyone can build, run, test, debug, and ship code the same way. Teams always use the same tools, dependencies, and settings—along with all required packages, tools, environment variables, services, even setup and teardown logic. Everything is defined in a single declarative artifact: a TOML manifest.
+
+How does this work? First, FLox-based reproducible development environments are _deterministic_ in that each dependency is referenced by a unique content fingerprint: a cryptographic (SHA256) hash. Recreating the development environment—be it tomorrow or six months from now—_always_ fetches or rebuilds the artifacts that match those hashes.
+
+This means teams always get exactly the same packages and exactly the same environment—byte for byte. Using a reproducible development environment eliminates “works on my machine” scenarios and turns what would otherwise be a multi-step setup into a single command: activating the environment. 
+
+This guide shows how to use Flox to create reproducible development environments for new or existing Python projects.
+
+
+## Using Flox in a new project
+
+Getting started with Flox is super simple. First, create and/or cd into your project directory.
+
+
+```
+mkdir new-python-project && cd new-python-project
+```
+
+Next, initialize your Flox environment:
+
+```
+flox init
+```
+
+This will suggest a few commands you can run next:
+
+```
+$ flox init
+✨ Created environment 'new-python-project' (x86_64-linux)
+Next:
+ $ flox search <package>    <- Search for a package
+ $ flox install <package>   <- Install a package into an environment
+ $ flox activate            <- Enter the environment
+ $ flox edit                <- Add environment variables and shell hooks
+```
+
+This Flox environment is now ready to be populated with packages.
+
+You can read more here about [how to keep going]( https://flox.dev/docs/cookbook/languages/python/#poetry).
+
+
+## Using Flox in an Existing Project
+
+If you are working with an existing project that is already configured for Python - e.g. it has a `requirements.txt` or `pyproject.toml`—Flox provides an automated environment setup flow.
+
+For this example we will clone the `eralchemy` repo, which already contains Python configuration:
+
+```
+git clone https://github.com/eralchemy/eralchemy.git && cd eralchemy
+```
+
+You can read more here about [how to keep going]( https://flox.dev/docs/cookbook/languages/python/#poetry).
+
+
+## Building with Flox
+
+Not only can you develop your software with Flox, but you can build it as well. See the builds concept page for more details.
+
+### Manifest builds
+
+For Python projects using pip, a build looks like installing the project to the $out directory.
+
+```
+[build.myproject]
+command = '''
+ pip install --target=$out .
+'''
+```
+
+Note the trailing **`.`** indicates that you're installing the package in the current directory. If you're working in a repository with multiple packages in subdirectories, you would replace **`.`** with the path to the package sources.
+
+### Poetry
+
+For Poetry and tools that create a virtual environment for you, a build entails installing the virtual environment to $out. Poetry in particular does not allow you to choose the location (or name) of the virtual environment directory itself, but it does allow you to configure the parent directory of the virtual environment. The build command shown below uses environment variables to tell Poetry to use the $out directory as the parent of the virtual environment. After running poetry install you should have a directory structure that looks like this:
+
+```
+$out/
+
+
+ myproject-<hash>-py3.12/
+   ...
+```
+
+Since Poetry doesn't let you decide where exactly this virtual environment belongs, you need to symlink any executables from the virtual environment into the $out/bin directory yourself to ensure that the build output adheres to the Filesystem Hierarchy Standard (FHS). You also need to install a Python interpreter and add it to `runtime-packages` so that the virtual environment can reference it.
+
+The full manifest for a build using Poetry is shown below:
+
+```
+version = 1
+[install]
+python3.pkg-path = "python3"
+python3.version = ">=3.12"
+poetry.pkg-path = "poetry"
+[build.myproject]
+command = '''
+# Install to a new virtualenv.
+ export POETRY_VIRTUALENVS_PATH=$out
+ export POETRY_VIRTUALENVS_IN_PROJECT=false
+ export POETRY_VIRTUALENVS_OPTIONS_NO_PIP=true
+ poetry install
+ # Symlink any executables from the virtualenv.
+ mkdir -p "${out}/bin"
+ cd $out/bin
+ ln -s ../*/bin/myproject .
+'''
+runtime-packages = [
+ "python3",
+]
+```
+
+## Your Python Dev Environments, Reproduced Exactly
+
+Flox’s input-addressed store and declarative manifest pin every dependency and tool, so the same Python environment reproduces bit-for-bit on any machine. Typing **`flox activate`** and running the Flox environment gets you exactly the same build, tests, and tooling—today or six months from now.
+
+To share and run that environment anywhere, use [FloxHub](https://flox.dev/docs/concepts/floxhub/): you can sign up at **[https://hub.flox.dev](https://hub.flox.dev)**. Teammates can easily push, pull, and run Flox environments—even on-demand—by remotely activating them: **`flox activate -r flox/python-poetry**` or **`flox activate -r flox/python-uv`**. FloxHub makes it easy to publish, version, audit, and remotely run environments, as well as control who uses them. You can even switch/roll back between generations—all in one place.

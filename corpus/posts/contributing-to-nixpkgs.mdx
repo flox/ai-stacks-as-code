@@ -1,0 +1,100 @@
+---
+title: 'Contributing to Nixpkgs'
+description: "We're big fans of Nixpkgs (obviously) and encourage others to contribute packaging and review. Nixpkgs is surprisingly easy to contribute to, but has its particular details. This is a guide to contributing your first PR to Nixpkgs."
+metaTitle: 'A guide to contributing your first PR to Nixpkgs.'
+metaDescription: "Contributing to Nixpkgs: a beginner's guide"
+isPublished: true
+category: guides
+publishedDate: 8 May 2023
+thumbnail: /images/blog/nixpkgs-contribution.webp
+orderBy: 13
+---
+
+I recently worked through my first Nixpkgs contribution, and thought it might be useful to give an overview of the process for those looking to do the same.
+
+Before we start, some useful resources:
+
+- Read the "[Submitting Changes](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md#submitting-changes)" section of the Nixpkgs repository.
+- The [Manual](https://nixos.org/manual/nixpkgs/stable) has examples of adding packages for many languages and ecosystems. Ctrl-F is your friend.
+- Get familiar with the meta attributes [entry](https://nixos.org/manual/nixpkgs/stable/#sec-standard-meta-attributes) in the manual.
+- Use a Nix formatter like [alejandra](https://github.com/kamadorueda/alejandra).
+
+We will not cover [writing the actual Nix expression](https://www.reddit.com/r/funny/comments/eccj2/how_to_draw_an_owl/).
+
+## Basic Workflow
+
+The high level steps look like this:
+
+- Clone the nixpkgs repo and checkout a branch to work off of.
+- Pick a builder for the language.
+  - if a single language project, the community has usually converged on a preferred builder for a language. (Unless it's Rust, since Rust people rewrite everything all the time for fun, apparently.)
+  - if you're dealing with multiple languages, you're going to need to know some Nix and will likely need to roll your own derivation.
+- Write the Nix expression for the package.
+- Add your package to `all-packages.nix` so that it can be run with `nix-build -A my-package`. Ctrl-F in the manual.
+- If it's your first contribution, add yourself to the maintainers list under `maintainers/maintainer-list.nix`.
+
+> **The best thing you can do before you start to package something is to look at existing packages as reference.**
+
+As one of the largest package recipe repositories in existence, Nixpkgs has many examples to learn from. Search via GitHub, or search your local clone of Nixpkgs with (rip)grep.
+For example, if you're packaging a Rust project, you might look at the [Rust](https://nixos.org/manual/nixpkgs/stable/#rust) section of the manual and decide to use the recommended `buildRustPackage` builder. Then you can search Nixpkgs for expressions which use that builder.
+
+## If it's broken, keep fixing it
+
+Once you have your expression set up, try to build it. It will probably fail, and return errors about what went wrong. Read the errors, and, as unhelpful as this is... just fix them. For example, while packaging this [tool](https://github.com/NixOS/nixpkgs/blob/master/pkgs/servers/nostr-rs-relay/default.nix), the first error I hit was something about missing protobuf. So I added `protobuf` as a package to the runtime dependencies of the package (via `nativeBuildInputs`).
+
+There's really no way around it. The best you can hope for is someone who can help you decipher errors when they get too cryptic or unfamiliar.
+
+## Hash formats
+
+Nix expressions use cryptographic hashes to validate sources. For example, when you use a `fetchFromGitHub` function to fetch a repository from GitHub, you must provide the hash that represents this packed source tree.
+
+Nix recommends using SRI hashes, which are _self-descriptive_ hashes, i.e. hashes that tell you which format they are in.
+You can use the `nix hash to-sri $HASH --type sha256` to transform a sha256 hash to an SRI hash. You'll see that the result is prefixed with `sha256-`.
+
+## Testing on other distros
+
+One of the key superpowers of Nix is being able to define package expressions for multiple OS's and chip architectures. But you likely don't have access to multiple architectures if building on your local machine. In my case, I asked a colleague to try to build it on his Mac machine, and he [added an input](https://github.com/NixOS/nixpkgs/commit/8046afdbd4090864d93fc4dc3a9a8873d6b9ccb4) that MacOS expects to build the package successfully.
+
+## Adding meta information
+
+A `meta` attribute is required: its aim is to provide metadata around a package.
+Fields should include a short description of the package, a license attribute which mirrors the license for the source code, a URL to the project's changelog, the platforms this program can run on, and notably the maintainers of this Nix expression.
+
+The maintainers field is not for the project maintainers--it is the maintainer(s) of the Nix expression in question. If you're submitting a package to Nixpkgs, people should know who to direct questions to regarding this Nix expression. It's also a measure of responsibility on your part: if you're submitting this package, you should consider yourself responsible for its ongoing maintenance, such as bumping versions. Open source is not one-and-done.
+
+The following is an example of the `meta` attribute for the `sqlite` package, found in [this expression](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/libraries/sqlite/default.nix):
+
+```
+meta = with lib; {
+  changelog = "https://www.sqlite.org/releaselog/${lib.replaceStrings [ "." ] [ "_" ] version}.html";
+  description = "A self-contained, serverless, zero-configuration, transactional SQL database engine";
+  downloadPage = "https://sqlite.org/download.html";
+  homepage = "https://www.sqlite.org/";
+  license = licenses.publicDomain;
+  mainProgram = "sqlite3";
+  maintainers = with maintainers; [ eelco np ];
+  platforms = platforms.unix ++ platforms.windows;
+};
+```
+
+## Nixpkgs Organization
+
+First, decide under which `pkgs/` subfolder your expression should live.
+Then, add your expression under `{my-package}/default.nix`.
+There's an expression in `top-level/all-packages.nix` which serves as an index for all expressions in nixpkgs.
+Once you add yours in there, you can run `nix-build -A my-package` to build it.
+
+## Opening a PR in Nixpkgs
+
+Once your expression builds, and is in the right directory, run your [formatter](https://github.com/kamadorueda/alejandra) to format the code.
+Then, go to GitHub and open up a PR. If you push your local branch to your GitHub remote, the UI will prompt you to open a PR in the Nixpkgs repository.
+
+The PR title guidelines are described in the [CONTRIBUTING](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md#submitting-changes) doc. For example, if this is a new package (not a version upgrade of an existing one) then the PR title should look like: `nginx: init at 2.0.1`.
+Regarding commit hygiene, read [this section](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md#writing-good-commit-messages) carefully.
+
+## Review
+
+Once your PR is open, you will have to wait for someone to review and/or merge it. Even if you have merge access (and if this is your first contribution, you probably don't), you should have someone else review and merge your contribution.
+I was grateful to have @natsukium's careful review of my PR. As far as I can tell, there are no rules or guidelines here, you just have to wait for someone to volunteer to spend time reviewing your contribution.
+
+As with most open-source projects, PR review is the bottleneck. Once you feel comfortable with the Nixpkgs contribution process, consider reviewing open PRs as an excellent way to contribute!

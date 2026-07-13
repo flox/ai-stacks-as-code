@@ -1,0 +1,113 @@
+---
+title: 'Intro to the Flox CLI, Part Two: Aliases, Vars, and Hooks'
+altTitle: 'Intro to the Flox CLI, Part Two: Aliases, Vars, and Hooks'
+description: 'The second part of this series explores the ways you can use Flox environments to adjust the way software is configured and run.'
+metaDescription: 'The second part of this series explores the ways you can use Flox environments to change the way software is configured and run.'
+isPublished: true
+category: guides
+author: Ross Turk
+publishedDate: 26 Mar 2024
+thumbnail: '/images/blog/manage-the-universe.jpg'
+orderBy: 20240321
+---
+
+In [part one of this series](/blog/intro-to-the-flox-cli-part-one-easy-environments), we explored how Flox is used to create environments and install packages. The way Flox works with packages is similar to the `apt` and `yum` interactions we’re all familiar with, except that they are installed into isolated environments instead of affecting your entire system.
+
+But packages are just one part of a Flox environment. In this post, we’ll take a look at some of the other stuff that makes Flox environments useful: [shell hooks](/docs/concepts/manifest/#hook-section), [environment variables](/docs/concepts/manifest/#vars-section), and aliases.
+
+In the last post, we created a playground environment in `~/playgrnd/cows` and installed the [`charasay`](https://github.com/latipun7/charasay) package into it. In case you are just joining us now, this can be accomplished with the following set of commands:
+
+```
+% mkdir -p ~/playgrnd/cows && cd ~/playgrnd/cows
+% flox init && flox install charasay
+% flox activate
+```
+
+Once you run that, you will have a Flox environment containing `charasay` that you can activate whenever you need it.
+
+Every Flox environment has a manifest: a block of text that defines the environment and can - by itself - be used to recreate it. Let’s take a closer look at the manifest for our new environment by running `flox edit`. This opens an editor containing the manifest:
+
+```toml
+# List packages you wish to install in your environment
+[install]
+charasay.pkg-path = "charasay"
+# hello.pkg-path = "hello"
+# nodejs = { version = "^18.4.2", pkg-path = "nodejs_18" }
+
+# Set environment variables
+[vars]
+# message = "Howdy"
+# pass-in = "$some-env-var"
+
+# Script source by your shell after entering
+
+# An activation hook will be run when entering the environment.
+[profile]
+# common = """
+#   echo "it's gettin flox in here";
+# """
+
+# In order to use the environment on a system you must explicitly
+# add it to this list.
+[options]
+systems = ["aarch64-darwin"]
+```
+
+Most of this content is boilerplate, so let’s start with the only line that isn't:
+
+```toml
+charasay.pkg-path = "charasay"
+```
+
+This is the part of the declaration that instructs Flox to pull the `charasay` package into the environment. If you want to install another new package but, for some reason, would rather add a line to a file than run `flox install`, you can add that line after calling `flox edit`.
+
+Packages are great, and assembling them in new ways is what makes Flox spring out of bed every morning. But let’s go one small step further by adding an environment variable and shell alias:
+
+```toml
+# Set environment variables
+[vars]
+CHARACTER = "cow"
+
+[profile]
+common = """
+  alias csay="chara say -c $CHARACTER"
+"""
+```
+
+You can probably guess what these two additions do. The first one defines an environment variable, `CHARACTER`. The second line creates a shell alias that expands `csay` to a `chara say` command, passing along the character we defined.
+
+If we activate the environment and run `csay`, we can see that it expands the alias and environment variable correctly:
+
+![](/images/blog/this-env-moooves.webp)
+
+Shell aliases and variables are hardly new innovations, but Flox allows you to manage them alongside software in reproducible environments. This makes Flox more than a package manager; it is an environment manager that has the ability to control how the software in those packages behaves.
+
+For example:
+
+- a web dev working with multiple clients could create an environment for each of them that contains the engines and frameworks they need along with aliases they can use to interface with hosting providers
+- a data engineer building a set of ETL tasks could create an environment for each upstream data source that contains the necessary client software, connection strings, and credential locations
+- a backend engineer who works with services across multiple AWS regions could create an environment tailored for each one, making it easy to switch between them
+
+Surely by this point you have noticed the `[profile]` section in your environment declaration. This is executed when an environment is activated, and it is able to access environment variables. For example, we could change the profile in our environment so that it reads:
+
+```
+[profile]
+common = """
+  chara say -c $CHARACTER "welcome to your env"
+"""
+```
+
+With this profile in place, we will see a nice image of a moocow welcoming us into our environment every time we activate it:
+
+![](/images/blog/welcome-to-your-env.webp)
+
+Ok. I know what you’re saying: this is fun _I guess_ but it would become infuriating in a very small amount of time. I agree. This is an illustrative example, yet not terribly practical. That's okay, I'm okay with that.
+
+Here are some other, more useful things that you can do with a shell customization:
+
+- open an SSH tunnel to a remote cluster
+- provision an authentication token
+- output a list of GitHub issues you’ve been assigned in a particular project
+- select a “work” Git identity vs. a personal one
+
+It's easy to [install Flox](https://flox.dev/docs/install-flox/) and create your first environment. Give it a try!

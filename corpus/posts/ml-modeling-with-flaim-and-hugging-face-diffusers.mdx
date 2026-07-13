@@ -1,0 +1,194 @@
+---
+title: 'ML Modeling with FLAIM and Hugging Face Diffusers'
+altTitle: 'ML Modeling with FLAIM and Hugging Face Diffusers'
+description: 'Using Flox, it is easy to create reproducible environments for ML training and inference using Hugging Face Diffusers. Our FLAIM environment gets you there in a single command.'
+metaDescription: 'Using Flox, it is easy to create reproducible environments for ML training and inference using Hugging Face Diffusers. Our FLAIM environment gets you there in a single command.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 10 July 2024
+thumbnail: '/images/blog/canvas-on-easel.webp'
+orderBy: 20240710
+---
+
+Diffuser models like [Stable Diffusion 3.0](https://stability.ai/news/stable-diffusion-3-medium) are lots of fun to play around with. But these models are more than just toys: you can build with them, too!
+
+The fine folks at 🤗 (Hugging Face) have made it surprisingly simple to do this, producing [a virtual toolbox](https://github.com/huggingface/diffusers) that lets you [download and run](https://huggingface.co/blog/sd3#using-sd3-with-diffusers) Stable Diffusion 3 and other “Diffusers.” (Diffusers are a type of model that generates data by iteratively refining it across multiple steps.) Thanks to 🤗’s Diffusers toolbox, running models like Stable Diffusion 3 is pretty close to painless—once you have it installed.
+
+Flox makes it easy to create environments that contain 🤗 Diffusers.
+
+In fact, we created one you can download and use right now: FLAIM, the Flox AI Modeling environment. This short video shows what it can do:
+
+<iframe
+  width="750"
+  height="422"
+  src="https://www.youtube-nocookie.com/embed/fVQWSzftgyk?si=WRgIZJwi3OYcDQRQ"
+></iframe>
+
+In this blog, you’ll learn how Flox equips you to build environments like FLAIM that deliver reproducible results across all phases of your SDLC—from local dev to CI and beyond. All without using containers, which can’t give us the acceleration we need for projects like FLAIM.
+
+## How not to build a dev environment for running ML and AI models
+
+Let’s deal with the elephant in the room: The solution is not to containerize Stable Diffusion.
+
+In the first place, you’ll need to build and maintain separate container images for popular machine architectures, like ARM and 64-bit x86. Second, getting Nvidia’s CUDA toolkit running in containers isn’t exactly a heavy lift, [but it isn’t super easy, either](https://github.com/NVIDIA/nvidia-container-toolkit). And third, getting containerized ARM workloads to take advantage of Apple’s Metal GPU API is … well, [it really isn’t easy](https://github.com/makllama/makllama).
+
+The third one is the real showstopper. A solid one-third of professional developers use MacOS, more than six times the overall market share of that platform. (The data is from [StackOverflow’s 2023 Developer Survey](https://survey.stackoverflow.co/2023/#technology), but MacOs performed about the same in [StackOverflow’s 2022 tally](https://survey.stackoverflow.co/2022/#technology), too.)
+
+So if you can’t containerize Stable Diffusion, but you still need it as part of a reproducible development environment, what can you do?
+
+The team at Flox would like to make a modest proposal.
+
+## A better way to build and run software
+
+Why not run Stable Diffusion directly on your local system using Flox, a virtual environment manager and package manager rolled into one?
+
+Flox works with \*any\* language or toolchain, and \*any\* language- or application-specific package manager. And by [layering](https://flox.dev/blog/a-very-short-introduction-to-layering-in-flox) Flox environments, you can create the equivalent of multi-container runtimes on your local system, with transparent access to all of your tools, files, environment variables, secrets, etc. This isn’t sleight of hand, much less magic, because Flox borrows from the same ideas and principles used to power [Nix](https://nixos.org/), the proven open-source package manager.
+
+This walk-through showcases another unique Flox feature, running FLAIM from a FloxHub environment. FloxHub environments are great for test-driving software: you activate them when you need them, and when you exit, the session ends (but the cache remains for next time). This makes test-driving software painless.
+
+First, we'll activate FLAIM from FloxHub. When you grab a FloxHub environment, it "activates" in whatever directory you're currently in. For this walk-through, we'll assume we're in `~/dev/`.
+
+```
+~/dev % flox activate -r flox/flaim
+```
+
+You use the `-r` switch plus the `/` syntax to activate a FloxHub environment. This environment will cease to exist as soon as you type `exit` and press the enter key.
+
+Until then, it will provide a discrete context in which to run software.
+
+Once activated, FLAIM attempts to enable GPU acceleration, if available. This is actually trickier than you might think! NVIDIA’s CUDA libraries don’t live in the same locations across all Linux distributions.
+
+In creating FLAIM, Flox’s Ross Turk built in some arresting visual cues, so you’ll know if you’re running with GPU acceleration or not. As the screengrab below shows, these cues are hard to miss.
+
+![](/images/blog/flaim-cuda.webp)
+
+If you believe your FLAIM environment should be accelerated, but isn’t, run the built in `testaccel` alias to retry:
+
+![](/images/blog/flaim-testaccel.webp)
+
+I don’t use OSX, but Ross does. Here’s what the output of `testaccel` looks like on his MacBook Pro:
+
+```
+flox [flox/flaim (remote)] ~ % testaccel
+Metal is available 🍏
+```
+
+When you try to run FLAIM on a non-GPU-accelerated platform, your output looks like this:
+
+```
+flox [flox/flaim (remote)] daedalus@hybris:~/dev$ testaccel
+I only see a CPU 😞
+```
+
+Things will still run in FLAIM, but make some popcorn. It’ll take awhile.
+
+## Putting FLAIM through its paces
+
+Once FLAIM is active, you will have access to a few key packages:
+
+```
+~/dev % flox list
+accelerate: python311Packages.accelerate (python3.11-accelerate-0.30.0)
+diffusers: python311Packages.diffusers (python3.11-diffusers-0.29.0)
+sentencepiece: python311Packages.sentencepiece (python3.11-sentencepiece-0.2.0)
+transformers: python311Packages.transformers (python3.11-transformers-4.42.3)
+pytorch: python311Packages.pytorch-bin (python3.11-torch-2.2.2)
+```
+
+You can now pass the following commands to the built-in Python interpreter, generating an image:
+
+```
+
+% python3
+>>> import torch
+>>> from diffusers import StableDiffusionPipeline
+>>> pipe = StableDiffusionPipeline.from\_pretrained(
+   "runwayml/stable-diffusion-v1-5", torch\_dtype=torch.float16)
+
+[this takes a while]
+
+>>> pipe = pipe.to("cuda") # or "mps" on mac, or leave out for cpu
+>>> image = pipe("a smiling brittany spaniel puppy").images[0]
+>>> image.save("smiling-brittany-spaniel-puppy.png")
+```
+
+![](/images/blog/flaim-dog.webp)
+
+But no one should have to interact with a Python interpreter to generate images, right?! Happily, Ross built a script into FLAIM that does this for us. You can call it with the alias `genimg`, passing your prompt—enclosed in quotes—as part of the command.
+
+```
+flox [flox/flaim (remote)] daedalus@ethos:~/dev$ genimg \
+  "public domain steamboat willie letting his freak flag fly"
+```
+
+![](/images/blog/flaim-willy.webp)
+
+FLAIM is by no means a one-trick pony.
+
+If you need a Python package that isn’t already built into it—and there’s a high likelihood of this!—you can add it to requirements.txt:
+
+```
+daedalus@ethos:~/dev/myproject$ mkdir myproject && cd myproject
+daedalus@ethos:~/dev/myproject$ echo "imgcat" > requirements.txt
+daedalus@ethos:~/dev/myproject$ echo "click" >> requirements.txt
+
+daedalus@ethos:~/dev/myproject$ flox activate -r flox/flaim
+flox [flox/flaim (remote)] daedalus@ethos:~/dev/myproject$
+```
+
+Note: If you do create a requirements.txt file, you end up with a `flaim-venv` virtual environment in the directory where you activated FLAIM. This means you can activate FLAIM in different projects, even if they have different dependency requirements.
+
+## DIY AIM
+
+That’s basically it. But wait! There’s one more thing: Even though we built FLAIM for you, you could almost as easily Build Your Own AI Modeling (BYOAIM) environment. After all, one of the neatest things about Flox is that it’s simple to use and has just a few commands.
+
+Another neat thing is how Flox borrows from Nix to give you a declarative way of managing and versioning software. A `manifest.toml` file defines which versions of which packages are installed in your environment. Creating a Flox environment is as easy as adding the names of packages to the `[install]` section of this file, which is nested in the `./.flox/env` folder inside your project directory.
+
+For example, to BYOAIM, all you’ve got to do is type
+
+```
+flox init
+```
+
+in your project’s directory and copy the following (from FLAIM) package and version information into your `manifest.toml` file.
+
+```
+[install]
+pytorch.pkg-path = "python311Packages.pytorch-bin"
+pytorch.version = "python3.11-torch-2.2.2"
+pytorch.pkg-group = "torch"
+
+accelerate.pkg-path = "python311Packages.accelerate"
+accelerate.version = "python3.11-accelerate-0.30.0"
+accelerate.pkg-group = "pkgs"
+
+transformers.pkg-path = "python311Packages.transformers"
+transformers.version = "python3.11-transformers-4.42.3"
+transformers.pkg-group = "pkgs"
+
+sentencepiece.pkg-path = "python311Packages.sentencepiece"
+sentencepiece.version = "python3.11-sentencepiece-0.2.0"
+sentencepiece.pkg-group = "pkgs"
+
+diffusers.pkg-path = "python311Packages.diffusers"
+diffusers.version = "python3.11-diffusers-0.29.0"
+diffusers.pkg-group = "pkgs"
+```
+
+To customize your BYOAIM environment, just add environment variables, hooks, aliases, and other stuff (including functions and complete code blocks!) to the `[vars]`, `[hook]`, and `[profile]` sections of your `manifest.toml`.
+
+## Mic drop: Reproducible software development made simple
+
+You’ve probably been frustrated with how difficult it is to build and deploy GenAI solutions, mainly because you can’t guarantee that they’ll work on your teammates’ systems, in CI, or in prod.
+
+So maybe they still seem more like toys than useful tools to you.
+
+But it’s time to rethink this. Flox gives you a way to ensure reproducibility and platform-optimized performance across the SDLC, whether you’re building collaboratively, pushing to CI, or deploying to prod. You can easily put Flox environments into containers, or you can (just as easily) build containers using Flox environments.
+
+FLAIM is the latest example of this. We’ve also created a portable, reproducible, GPU-accelerated [Flox environment for Ollama](https://flox.dev/blog/llms-in-your-project-with-ollama-flox), which lets you run dozens of open-source LLMs. We’ve shipped environments that showcase how easy it is to access applications and services—[like Jupyter Notebook](https://flox.dev/blog/using-jupyter-notebooks-with-flox)—in portable, reproducible ways.
+
+All of this without using containers, while also taking full advantage of available hardware and operating system affordances.
+
+Sound too good to be true? [Download Flox](https://flox.dev/docs/install-flox/) and take FLAIM for a test-drive! And think about whether you have any projects where Flox can help you build and ship faster - with a catalog containing more than 1 million package and version combinations, the possibilities are endless!

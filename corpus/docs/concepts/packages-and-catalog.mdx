@@ -1,0 +1,38 @@
+---
+title: "What is the Flox Catalog?"
+description: "Everything you need to know about the Flox Catalog and Packages."
+---
+
+A Flox Catalog is a collection of package artifacts and associated metadata that can be consumed via a Flox Environment. The contents of a catalog can be searched, shown, and installed into an environment by way of the [flox search](/man/flox-search), [flox show](/man/flox-show), and then [flox install](/man/flox-install) commands.
+
+There are two types of catalogs:
+
+The Base Catalog is populated by Flox and contains packages over time as maintained by the Nix Community by way of The [Nixpkgs](https://github.com/nixos/nixpkgs) Collection.
+
+Custom Catalogs are maintained by the Users and Organizations that own them by way of the `flox publish` command, as described in the [Build](/concepts/builds) and [Publish](/concepts/publishing) concept pages.
+
+The visibility of Custom Catalogs can be public or private, and packages from all types of catalog are consumed by way of the same flox (search|show|install) commands.
+
+It can also be consulted on [https://hub.flox.dev/packages](https://hub.flox.dev/packages).
+
+A **package** is a collection of computer programs and related data that are
+bundled for distribution together on a UNIX-based computer system.
+Packages are declared in the [environment manifest](/concepts/environments#manifesttoml).
+
+## Base Catalog and nixpkgs
+
+The built-in catalog is called the [Base Catalog](/concepts/base-catalog), and contains a wide variety of open source packages you can use in your environments.
+The Base Catalog uses [nixpkgs](https://github.com/NixOS/nixpkgs) as an input.
+Nixpkgs is a community maintained project, but the [Base Catalog](/concepts/base-catalog) is maintained by Flox.
+Upstream changes in [nixpkgs](https://github.com/NixOS/nixpkgs) are reflected in the Flox Catalog daily from the `nixos-unstable` branch of [nixpkgs](https://github.com/NixOS/nixpkgs).
+
+## Supported package metadata
+
+* **pkg-path**: unique location in the Flox Catalog.
+* **version**: semantic version of the package.
+* **license**: license metadata.
+* **unfree**: indicates if the software uses a license not defined as Open
+Source by the Open Source Initiative (OSI).
+* **broken**: indicates if the package is marked as broken in
+[nixpkgs](https://github.com/NixOS/nixpkgs).
+* **outputs**: the different "parts" of a package ([see here for more details](/tutorials/package-outputs))

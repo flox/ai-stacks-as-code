@@ -1,0 +1,91 @@
+---
+title: 'Mitigating Shai-Hulud Attacks with Hermetic Builds'
+altTitle: 'Mitigating Shai-Hulud Attacks with Hermetic Builds'
+description: 'Shai-Hulud-style supply chain worms exploit the secrets, permissions, and network access exposed during builds. Reproducible, hermetic build environments can limit the blast radius across local development and CI/CD.'
+metaDescription: 'Shai-Hulud-style supply chain worms exploit the secrets, permissions, and network access exposed during builds. Reproducible, hermetic build environments can limit the blast radius across local development and CI/CD.'
+isPublished: true
+category: engineering
+author: Flox Team
+authorKey: flox-team
+publishedDate: 22 June 2026
+thumbnail: '/images/blog/padlocks-in-the-desert.webp'
+orderBy: 20260622
+---
+
+Recently, we’ve seen the rise of supply chain worms: malware that spreads throughout the software supply chain by compromising packages, build systems, or developer workflows. During CI/CD, the build environment simultaneously has access to secrets (e.g. API keys) and external services (e.g. GitHub). That combination of secrets access and network access can be exploited to simultaneously exfiltrate secrets and spread the attack by publishing it to other dependencies.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/CICD_Build_Attack.webp"
+	alt="A compromised package running in CI/CD reads secrets, discovers external services, exfiltrates data to GitHub, and propagates by publishing the worm into another package."
+/>
+
+Shai-Hulud campaigns have demonstrated this in the last few months. The original [September 2025](https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem) Shai-Hulud campaign compromised 500+ npm packages, and follow-on waves have since pushed the total far higher. The worm harvests secrets at build time and then exfiltrates them by committing to remote Git repositories using a token harvested from the compromised environment. Certain variants targeted the CI/CD pipeline to add an install-time lifecycle script (**`preinstall`** or **`postinstall`**) that runs during installation, then bump the version and republish.
+
+Agentic software engineering increases this risk because it increases both the volume and the speed of code delivery. Agents that update manifests, modify package scripts, or operate inside authenticated CI/CD workflows can make malicious dependency changes harder to catch and faster to propagate. As agentic workflows become more common, attackers gain more opportunities not only to compromise company secrets, but also to damage a company’s reputation by poisoning public packages published under its name.
+
+Short-lived, least-privilege tokens can reduce the blast radius in the event of compromise. Teams can also limit what CI/CD jobs can access; keep secrets out of build steps that run third-party code; verify that package versions come from trusted source repos/workflows; restrict network egress; and rotate credentials regularly … or immediately after suspected exposure. These are necessary controls, but they still don’t address the crux of the problem: a compromised build can see and use whatever the environment exposes.
+
+An often overlooked strategy is our focus at Flox: reproducible and hermetic build environments. Hermetic build environments won’t prevent attacks like Shai-Hulud, but they will tightly limit the damage. Given that these attacks are continuing to proliferate, organizations should consider switching to reproducible, hermetic environments. Today, we’ll spell out how these environments work in context of supply chain attacks.
+
+
+## Understanding Shai-Hulud
+
+Shai-Hulud exposed the inconvenient truth about modern software delivery: once untrusted code runs inside a credentialed build environment, an attacker inherits that environment’s secrets, privileges, and (not least) network access. They can use this access to publish malicious package versions under a trusted name, transforming a single compromised environment into a distribution channel for malicious code.
+
+Previously, many developer attacks would target the maintainers. They’d try to hijack a developer’s machine and search for sensitive information. Packages that were compromised in this way include **[eslint-scope](https://eslint.org/blog/2018/07/postmortem-for-malicious-package-publishes/)** and **[ua-parser-js](https://www.cisa.gov/news-events/alerts/2021/10/22/malware-discovered-popular-npm-package-ua-parser-js)**. They focused on two steps only: harvesting secrets and exfiltrating them by hijacking the maintainer’s publishing credentials.
+
+Recent Shai-Hulud campaigns instead targeted the build environment. The build environment typically has publish access to packages and publish access to repositories. Worms harvest secrets and exfiltrate them; they also clone the exploit into packages, bump the version, and publish an update. Even with 2FA security, developers often haphazardly accept minor version bumps. Unfortunately, that single digit upgrade might contain a serious attack.
+
+Intercom recently fell victim to a variation of this. Version 7.0.4 of **`intercom-client`** contained two malicious files absent from version 7.0.3: **`setup.mjs`** and **`router_runtime.js`**. An attacker published the new version using credentials stolen from a compromised developer account. Then, when any downstream project installed the hijacked version, these files ran during installation and exfiltrated secrets from whatever build environment they were running in to the attacker’s GitHub repositories. Those stolen secrets are what let the worm publish the next poisoned package: exactly the self-replication pattern Shai-Hulud was built around.
+
+
+### AI Expands the Attack Vector
+
+This type of attack might appear like a tangential problem with respect to AI. However, AI exponentiates the risk of these types of attacks.
+
+AI agents are actively maintaining codebases. At some companies, agents are even running CI/CD pipelines. Agents are easily manipulated and error-prone: they might easily install an infected package *or* publish one. Given that many developers run agents with options like **`--dangerously-skip-permissions`**, they might miss the signs that they’re installing malware. Unaudited packages land on disk, execute, and exfiltrate secrets.
+
+
+### Flox and Nix: Hermeticism Limits the Blast Radius
+
+Flox won’t solve Shai-Hulud campaigns. But it’ll limit the blast radius.
+
+Flox uses Nix, and what makes Nix different from package managers like npm is hermetic environments. These environments are guaranteed, cryptographically, to be identical between machines. There is no unpredictability of how version ranges resolve, no mirror inconsistencies, and no network access (when sandboxing is enabled). Nix derivations are identified by hashes of all their inputs; outputs are cached by input hash; Nix packages must declare their output hash up front, and the build fails if the fetched content doesn't match. This process can be a bit tricky, but Flox wraps around Nix to easily manage reproducible environments on every machine.
+
+Flox and Nix do not solve the human error of adding a compromised package to a manifest. That could still happen. Developers could still fall for social engineering attacks and everyone is susceptible to zero-day attacks. Rather, what Flox and Nix do is limit what is and isn’t callable at build. That means no exfiltration to GitHub nor access to ambient credentials that live outside of the environment and aren’t explicitly included in the build inputs.
+
+Let’s paint a side-by-side comparison: a typical developer workstation which uses public clouds might have a tool like the AWS CLI logged in and available on its path. If that developer is building an unrelated project with a compromised package, then the compromised package code can search, discover, and use the ambient AWS credentials. Conversely, with a hermetic build, only the required software packages are present during the build, so if any sensitive paths or credentials aren’t declared in the build inputs, then they cannot be accessed during build time.
+
+
+## Consistency Matters Here
+
+It’s important to flag that this approach only works if you use a hermetic builder for everything. If you only use hermetic builders on CI/CD, then a compromised package might still achieve exfiltration from a local developer machine. The purpose of Flox is to create reproducible, predictable builds across your entire developer lifecycle. If you vary your build strategy, then that introduces risks of an attack.
+
+
+## What about a Sandbox?
+
+We’re often asked how Flox and Nix differ from a sandbox. It’s a good question. Nix does use a sandbox during builds. On Linux, it implements that sandbox using the host operating system’s isolation mechanisms: namespaces, cgroups, chroot/bind mounts, seccomp, unprivileged users, and related kernel features.
+
+The difference is their purpose.
+
+A sandbox is generically an isolated environment for an application to run so that it cannot access the greater file system. It might be used by servers that might be running foreign code that cannot be trusted. It might be used to isolate a CI/CD build in a shared pipeline.
+
+Nix was purpose-built for trusted code to execute in isolation so that the same inputs are cryptographically guaranteed to resolve to the same store path, and the rendered output looks the same on all machines.
+
+
+## Reproducible build environments aren’t a security product
+
+We should caveat that Flox was not designed to be a security product. The security benefits are a side effect of its hermeticity.
+
+Rather, reproducibility is a precondition to building predictable applications. AI agents create an abundance of randomness. To minimize bugs from stealing developer time, we need environments that’ll behave the same at every stage of the process: *local*, *staging*, and *production*. That way, if there are issues (or security risks) upstream, and a patch works locally, then there is confidence that a redeployment will fix the problem. 
+
+With more and more Shai-Hulud worms popping up, companies should consider hermetic builds as part of their security paradigm. The easiest way to get started is to use Flox for builds or sandbox builds with Flox.
+
+Learn more about Flox in [this quick guide](https://flox.dev/docs/flox-5-minutes). If you're curious about building with Flox (and Nix), check out these articles:
+
+[GPU-Optimized PyTorch Builds Made Easy with Flox and Nix](https://flox.dev/blog/gpu-optimized-pytorch-builds-made-easy-with-flox-and-nix/)
+
+[Reproducible Builds Made Simple with Nix and Flox](https://flox.dev/blog/reproducible-builds-made-simple-with-nix-and-flox/)
+
+[Introducing Flox Build and Publish](https://flox.dev/blog/introducing-flox-build-and-publish/)
+

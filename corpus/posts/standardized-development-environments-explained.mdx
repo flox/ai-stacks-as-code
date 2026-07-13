@@ -1,0 +1,520 @@
+---
+title: 'Standardized Development Environments Explained'
+altTitle: 'Standardized Development Environments Explained'
+description: 'Works-on-my-machine is symptomatic of an ongoing failure to treat the local development environment itself as shared project infrastructure. Standardized development environments are a compelling solution to chronic problems of this kind.'
+metaDescription: 'Works-on-my-machine is symptomatic of an ongoing failure to treat the local development environment itself as shared project infrastructure. Standardized development environments are a compelling solution to chronic problems of this kind.'
+isPublished: true
+category: engineering
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 14 May 2026
+thumbnail: '/images/blog/nothing-will-come-of-nothing.webp'
+orderBy: 20260514
+---
+
+For many organizations, “works on my machine” is anything but a punchline, minor irritant, or bizarre edge case: It’s a many-times-daily occurrence that’s at once predictable _and_ inevitable. It’s symptomatic of an org’s ongoing failure to treat _the local development environment itself_ as shared project infrastructure.
+
+As [Fellow.ai](https://flox.dev/case-studies/how-fellow-ai-ships-faster-with-flox/), [detaso](https://flox.dev/blog/flox-and-containers-a-perfect-pattern-for-local-development/), and others have discovered, this cost compounds as teams scale. An engineer upgrades a dependency, changes a compiler flag, or updates a shared library. No problem: the build tool _should_ re-resolve the affected build outputs from scratch; instead, however, it reuses the stale cache produced by an earlier build. So the project _appears_ to build on that engineer’s machine, but fails to run in CI. Engineers squander time debugging missing libraries, package conflicts, undocumented variables, and port collisions instead of diagnosing and correcting actual issues.
+
+To combat this problem, many organizations use standardized development environments to control—and, in some cases, to _lock down_—the context in which engineers build and test locally.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/how-it-happens.svg"
+	alt="Chart depicting two common paths leading to works-on-my-machine failures."
+/>
+
+This article explores several common standardized development environments, walking through each one’s pluses and minuses. It assesses these environments on the basis of **how much control** they exert in the local context. It discovers that the trade-offs involved in strictly isolating the environment (as with dev containers and cloud dev shells) exceed what is required for reproducibility in the local context. It argues that declarative, graph-backed standardized development environments achieve comparable reproducibility without restricting local autonomy or impeding developer and team velocity.
+
+
+### The Insidiousness of “Works on My Machine”
+
+When every workstation, CI runner, staging system, and production runtime comprises a different world, teams pay a price in terms of failed builds, flaky tests, s-l-o-w onboarding, and time wasted debugging environment-specific issues rather than project code. This problem is usually more insidious than (for example) each engineer running a different version of Python, Node, Rust, Go, or other toolchains. Often they’re running _exactly the same versions_—but on differently configured machines, with different globally installed dependencies.
+
+In other words, everyone’s using the same canonical versions of core toolchains (Node.js v22.22; Python 3.13.11; Rust 1.94.1; Go 1.25.9), but some machines have undeclared dependencies—an up-to-date GNU **`make`**; a surreptititously installed **`libstdc++`**, installed-and-forgotten Postgres client libraries—while others do not. Projects build and run on machines with undeclared dependencies; when engineers go to share them, however, they fail to build or run everywhere.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/insidious.svg"
+	alt="Chart depicting two build or runtime paths, one successful the other not"
+/>
+
+Standardized development environments are a compelling solution to chronic problems of this kind. 
+
+The idea behind them is to isolate a project’s build or runtime context from the arbitrary state of the host machine on which the engineer works. Examples of general-purpose standardized environments include VM-based development environments, dev containers, cloud dev shells, virtual desktop infrastructure (VDI), Guix shells, Nix-based shells, and Flox environments.
+
+Generally speaking, these tend to differ in scope:
+
+-  **VMs** or **VDI** services standardize a complete guest OS, with or without a desktop;
+-  **Dev containers** and **dev cloud shells** standardize a containerized userspace;
+-  **Guix**, **Nix**, and **Flox** standardize a project’s packages, services, and runtime variables, along with the environment in which it runs.
+
+This article focuses on dev containers, cloud dev shells, and Guix, Nix, and Flox. We focus on these specific tools for two reasons: **First**, they aim to standardize the project development context, rather than (as with VMs or VDI services) the machine context as a whole. **Second**, dev containers and cloud dev shells are two of the most common patterns for project-scoped development environments, while Guix, Nix, and Flox are archetypal examples of a less well-known but withal compelling pattern: the declared, graph-backed standardized dev environment.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/dev-env-comparison.svg"
+	alt="Chart comparing isolation models across different types of standardized development environments"
+/>
+
+A methodological note re: classification: Some toolchain environment managers have the ability to create language- or ecosystem-specific dev environments. These include toolchain version managers like **`asdf`**, Python tools like **`uv`**, Poetry, and Conda, and JavaScript/TypeScript workflows based on runtime and package management for Node.js, Bun, or Deno. With the partial exception of Conda, these are not “standardized” in an important sense of the term, however: They can pin the build or runtime environment for **their specific local context**, but cannot reliably reproduce that environment across laptops, CI, staging, and production.
+
+
+### Standardized Dev Environments: VMs, Dev Containers and Cloud Dev Shells
+
+A standardized development environment creates an **isolation boundary** between the specific requirements of a project and the specific local context in which engineers work. Say, for instance, that a project needs Python 3.14.3 and Node.js 25.9.0, but an engineer’s laptop has Python 3.13.11 and Node.js 24.14.1. The standardized environment exposes the project’s versions instead of the laptop’s. We distinguish standardized dev environments on the basis of how they instantiate this isolation boundary.
+
+This boundary can be stronger or weaker depending on the pattern used. VM-based development environments provide strong, hermetic isolation: each project runs in its own guest operating system. Dev containers and cloud dev shells enforce strict, but not hermetic, isolation: each project inherits its own filesystem view, installed packages, OS userland, environment variables and port bindings. With all three, projects are sealed off virtually (dev containers) or physically (cloud dev shells) from the engineer’s local machine.
+
+The downside is that platform teams must define, build, distribute, and maintain VM and container images, wiring up turn-key support for editors, secrets, env vars, GPUs, local storage bindings, networking, and other conveniences. Anything that isn’t prebuilt into the image isn’t available in the dev environment. Inside the VM or container, engineers work isolated from their local systems, so common escape hatches like installing tools, inspecting processes, and opening ports require penetrating the container. The same is true for Unix sockets: Local integrations such as SSH and GPG agents, local database sockets, credential brokers, and systemd user services aren’t exposed inside a VM, dev container, or cloud dev shell. They must first be mounted, forwarded, proxied, or duplicated. This is manageable, but it turns common workflows into integration work for platform teams.
+
+Other downsides include the fact that images ship with standard, prebuilt shell configurations, so engineers lack the affordances of their preferred shells. VMs and multi-container standardized dev environments typically suffer from cold-start latency, too. And specific to dev containers is the problem that they’re **Linux-specific**. On macOS and Windows, containers run via a virtualization layer, which results in slower file I/O and increased resource usage.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/isolation-models.svg"
+	alt="Chart comparing isolation models across containers, VMs, cloud dev shells, and virtual desktop infrastructure"
+/>
+
+
+### Standardized Dev Environments: Guix, Nix, and Flox
+
+Guix shells, Nix shells, and Flox environments provide declared software environments rather than machine-level isolation. This means they run processes on the developer’s local machine, but each project’s _declared environment_ controls which tools appear on **`PATH`**, which packages and libraries are available, which variables get set, and which setup hooks run when the environment activates. And because Guix, Nix, and Flox run processes on the host machine, they preserve access to host-local integration points such as Unix sockets, background services, credentials, ports, and editor workflows.
+
+The downside is that these tools stop short of **machine-level** isolation. Again, processes run directly on each engineer’s local machine, so the dev environment inherits the host’s kernel, filesystem layout, background services, credentials, ports, and anything else outside the declared package set. This is typically fine for runtime-level isolation: the environment itself controls which compiler, interpreter, CLI tools, libraries, environment variables, and setup hooks appear in the active shell.
+
+And for builds, these tools enforce much stronger boundaries: Nix can run builds in a sandbox that sees only its declared store dependencies and build paths, Guix runs builds in an isolated chroot/container-style build environment. Flox inherits Nix’s behavior, supporting pure builds in a sandboxed context.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/declared-env-models.svg"
+	alt="Chart comparing isolation models across Guix, Nix, and Flox"
+/>
+
+### Reproducibility and Isolation in Context
+
+It’s worth examining how much—or what degree of—isolation is actually merited across the SDLC.
+
+There is a good argument to be made that the requirement for strict isolation in all stages of the SDLC is partly folklore: a form of cargo-culting around the tools, patterns, and infrastructure we use to build, ship, and deploy software. In other words, if the modern SDLC had not coalesced around OCI images as _the_ standard intermodal unit of transporting and running software, we would not have the prior bias that strict isolation is absolutely required.
+
+We insist on strict isolation because we believe it gives us a strong degree of control over the way software behaves and the output it produces. Given exactly the same environment, software will behave the same way and produce the same results/outputs every time. That is, we correlate strict isolation with reproducibility itself. But at the risk of invoking a now-trite expression, correlation is not causation.
+
+There’s no question that reproducibility requires _some_ degree of isolation; however, strict or hermetic isolation—as with containers (strict) and VMs (hermetic), or cloud dev shells, which use both—is not absolutely required to guarantee reproducibility at build time and run time. Moreover, isolation and reproducibility are not identical: Isolation helps reduce the number of external inputs that can interact with a process, but reproducibility is a function of whether or not those inputs can be reliably identified, declared, and pinned. 
+
+The upshot is that isolation _correlates_ with but is not the same thing as reproducibility.
+
+
+### Reproducibility Reconsidered
+
+Both virtualization technologies (like VMs, containers, and cloud dev shells) and graph-backed declarative technologies (like Guix, Nix, and Flox) enforce control over what packages, environment variables, services, compiler-specific performance flags, and other inputs are available in the build or runtime environment. But only the Guix / Nix / Flox model defaults to explicit, declarative control: only declared inputs are available (materialized) in the environment.
+
+To take one example, authoring a Dockerfile so it rebuilds deterministically over time is as much an art as a science. This is a feature, not a bug, of the way we build and ship containers. The reason for this is that a Dockerfile is a _procedural recipe_ for assembling a filesystem; typically, it records a sequence of procedural steps that call out to mutable external systems: package indexes, language registries, install scripts, Git refs, base-image tags, and download URLs. 
+
+But neither the container model in particular, nor virtualization technologies in general, provide a deterministic mechanism for realizing a declared input graph as an immutable image. 
+
+Teams rely on dependency pinning, mirroring, digest-pinned base images, vendored artifacts, image signing, and lockfiles to approximate determinism, but there’s no native causal mechanism by which the set of declared inputs can be used mathematically to determine the realized output. For example, a tag like **`node:22`**, **`ubuntu:24.04`**, or **`o11y-collector:latest`** refers to a mutable image index or manifest. This index/manifest references the image’s config and filesystem layers. Over time, the tag itself can (and usually does) resolve to different images. This means the practical unit of reproducibility is usually the container image itself; the deterministic reference to that image is its content digest. This makes the unit of promotion or rollback _the digest-pinned image_—not the dockerfile that produces it.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/repro-flow.svg"
+	alt="Diagram comparing the unit of reproducibility between VMs/OCI Images and Declared Environments"
+/>
+
+
+### Standardized Dev Environments: The Declarative Dimension
+
+Guix, Nix, and Flox approach the problem of reproducibility in a fundamentally different way.
+
+Instead of beginning with an assembled filesystem and treating the resultant OCI image as the reproducible object, each begins with the declared dependency graph itself, realizing that graph into immutable store objects. A Guix, Nix, or Flox environment’s graph names the inputs on the basis of which its **closure**, or complete set of dependencies, gets computed. With Guix, Nix, and Flox, a build recipe or runtime environment encodes named inputs, sources, patches, build instructions, toolchains, target systems, and environment variables as **derivations**; realizing these derivations produces store objects under **`/nix/store`** or **`/gnu/store`**. The essential distinction is that with Guix, Nix, and Flox, reproducibility is a function of the declared graph, lock state, derivation, and closure of the realized store.
+
+What’s more, this claim is testable: Running **`guix shell`**, **`nix develop`**, or **`flox activate`** against the same environment definition realizes the same immutable store closure across space (i.e., on any machine anywhere) and across time: one week, one month, even one year later. The materialized environment is not merely “similar”; it has a combined physical and cryptographic fingerprint in the form of store paths and hashes that teams can validate and use as a basis for compliance. Standardized Guix, Nix, and Flox environments are, then, reproducible in a way that dev containers are not.
+
+The upshot for platform teams is that Guix, Nix, and Flox standardize the **dependency graph itself**.
+
+Instead of building and maintaining development workspaces for every project, platform teams can define a pinned set of canonical packages, publish reusable environment definitions, operate binary caches, and so govern how dependencies are used across the organization. Like dev containers, Guix is Linux-only, but Nix and Flox offer cross-platform support: Nix environments run on Linux and macOS (on multiple CPU architectures, including x86-64 and ARM); Flox runs on both Linux and macOS, x86-64 and ARM.
+
+In this model, the platform team standardizes the software inputs without also being responsible for where code runs or how each engineer’s local machine is configured. Each environment is portable to the extent that its definition and lockfile travels with, or is referenced by, the project. This has the effect of making the unit of promotion the environment reference: the definition plus the lock state or channel revision that identifies the realized dependency graph. Promotion is simply a matter of advancing that reference (and rollback of reverting it), not rebuilding and redistributing a digest-pinned OCI image.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/declarative-dimension.svg"
+	alt="Diagram showing Declared Environments materializing exactly the same runtime dependencies and environment over time"
+/>
+
+
+### Have Standardized Environment, Will Travel
+
+It’s ironic: Even though the OCI container image is the default intermodal transport unit for shipping and running software, the dev container usually _isn’t_ the object that transits the SDLC. 
+
+With local dev containers and cloud dev shells, an isolated runtime provides the context in which engineers build, test, and validate software. What **travels** is the source repository, the CI definition, the build artifact, the package itself (along with its release metadata), or the production OCI image built from that context. Git and the remote version control system (VCS) remain the system of record. 
+
+The same is true with Guix, Nix, and Flox: teams still version, review, share, and promote code via the source repository and the remote VCS. But these tools also allow for a powerful variation on this pattern: The environments they define can travel with projects as part of their source repositories. This means the dependency graph required to build, test, run, or operate software moves with the code that depends on it. Put differently, this model co-locates both code and its runtime dependencies; each travels with each.
+
+A CI runner, staging deployment target, or Kubernetes node doesn’t need a prebuilt dev environment; it needs the project itself—the code, workload, application, services, etc.—along with the dependencies these need to run. It needs **the environment** that reproduces the behavior or output of the project.
+
+With Guix, Nix, and Flox, activating an environment definition realizes these dependencies and the environment itself at the point of use. Flox adds a second distribution path via FloxHub: teams can push an environment, version it as **`generations`**, activate it remotely with **`flox activate -r`** (or run any defined services with **`flox activate -s -r`**), and pin the runtime context by referencing a generation in their Kubernetes pod specs. The upshot is that with Guix, Nix, and Flox, the environment becomes a versioned dependency of the project: It’s no longer only the context in which engineers build and test an artifact; it can, rather, become one of the artifacts that CI, staging, and production systems consume.
+  
+<PostLightbox
+	thumbnailSrc="/images/blog/sdlc-transit.svg"
+	alt="Diagram comparing how dev containers / dev cloud shells / VMs versus Declared Environments transit the SDLC"
+/>
+
+
+### Postscript: What about Toolchain Environment Managers?
+
+Toolchain-specific environment managers provide a useful contrast to both dev containers/cloud dev shells and declarative technologies like Guix, Nix, and Flox. Tools such as **`pyenv`**, **`uv`**, Poetry, **`rbenv`**, **`nvm`**, **`asdf`**, **`virtualenv`**, **`venv`**, Volta, and **`rustup`** can standardize _part_ of a language toolchain or dependency workflow, but they do not define a portable, complete, self-contained development environment in the sense used here. They typically manage a single runtime, a single ecosystem, a single layer of the stack. They don’t enforce a machine-level boundary like a dev container or cloud shell, nor define a cross-language, store-backed dependency graph like Guix, Nix, and Flox.
+
+A Python **`venv`**, a **`uv`**-managed environment, or a Node.js package/runtime manager can pin the language interpreter or runtime, along with project packages, but doesn’t describe the whole of the _runtime context_: viz., system libraries, native build tools, shell behavior, services, credentials, available ports, and so on. Conda is a partial exception: it can provide native libraries, binaries, and non-Python dependencies, but it still does not, by itself, define a machine-level boundary or self-contained runtime.
+
+In fact, Conda neatly illustrates the shortcomings of toolchain package managers: they do not easily travel **unchanged** across the SDLC. A Conda project built locally is reproducible to the extent that (1) the artifacts and repodata it’s locked against remain unchanged and available, and (2) its Conda environment is solved and installed from the same frozen channel snapshot on a system whose OS, CPU architecture, and virtual packages match that lock. Because these conditions are difficult to maintain across local dev, CI, and prod, many teams opt to freeze their Conda environments and ship them as OCI images.
+
+So while Conda _can_ manage more of the runtime than **`venv`**, **`uv`**, or **`npm`**, it still needs an external freezing / packaging strategy to travel unchanged from local development to CI and production.
+
+This is the fundamental limitation of toolchain managers: To package and ship a runtime such that it runs reproducibly across boundaries, teams usually need a dedicated transport mechanism, like an OCI image.
+
+<PostLightbox
+	thumbnailSrc="/images/blog/toolchain-scope.svg"
+	alt="Diagram showing the limitations of toolchain managers across the whole of the SDLC"
+/>
+
+
+## Diversity in Local Dev, Reconsidered
+
+A parting note: The purpose of the standardized development environment isn’t to **eliminate** diversity across an organization. Quite the contrary: in local dev, especially, engineering teams thrive on diversity. In most cases, engineering teams prefer to define their own local workflows and workstreams because each team’s goals, constraints, and responsibilities differ.
+
+Diversity of this kind is how software development scales. Teams can choose the tools and feedback loops that fit their work, so they aren’t forced to use the same least-common-denominator environments, irrespective of the requirements of their workstreams.
+
+Heterogeneity at the team level is completely compatible with CI/CD and consistent with the logic of DevOps. It aligns with Herbert Simon’s concept of “[nearly decomposable systems](https://faculty.sites.iastate.edu/tesfatsi/archive/tesfatsi/ArchitectureOfComplexity.HSimon1962.pdf),” which holds that complex systems (like the separate workstreams of an engineering team) are composed of discrete subsystems that operate to some extent autonomously and interact with one another via interfaces. Simon’s idea anticipates the logic of domain driven design, one of the major influences in software architecture today. But dev environment diversity **within a team** results in chronic works-on-my-machine failures. It’s one thing for **the team as a unit** to define standard tools, standard intra-team workflows, and a standard dev environment for each member; it’s another for each team member to make this decision on their own.
+
+This puts dev and platform teams in a double bind. Traditionally, the steps a platform team might take to standardize local development **on the machine itself** constrain local autonomy for dev teams. Entrusting this responsibility to developers promotes local autonomy … at the cost of creating a permission structure for works-on-my-machine chaos across the SDLC.  
+
+Guix, Nix, and Flox enable engineering and platform teams to standardize the project environment in a way that promotes autonomy, ease-of-use, and team velocity while at the same time minimizing the operational burden. Platform teams, in turn, get declarative environments they can version, update, audit, and reuse across developer laptops, CI jobs, deployment tooling, and production-adjacent workflows.
+
+
+## Appendix: Standardized Dev Environments Up Close
+
+The following sections showcase examples of standardized dev environments. The first, a procedural Dockerfile, is borrowed from a popular [Python and Node.js dev container](https://hub.docker.com/r/nikolaik/python-nodejs) hosted on DockerHub. The Guix, Nix, and Flox examples are custom-built to approximate the dependencies and versions pulled in by this Dockerfile. All you need do is clone [the repo](https://github.com/flox/python-nodejs-dev-environment) that hosts these declarative examples (\<1 MB) to test drive all three. This proves the core point: Declarative, graph-backed environments travel and run anywhere, at any time.
+
+### Dev containers
+
+The first example uses [this docker image](https://hub.docker.com/r/nikolaik/python-nodejs), a dev container for Python and Node.js that (as of May 6th, 2026) has 34 million pulls on DockerHub. The Dockerfile used to build this image is [here](https://github.com/nikolaik/docker-python-nodejs/blob/main/Dockerfile).
+
+**Note**: This is an incredibly useful and helpful project. I reference it not as a negative example, much less an antipattern, but because it is a popular, practical, well-maintained dev-container image that illustrates how this class of environment is typically resolved, assembled, and published.
+
+```dockerfile
+FROM python:trixie
+LABEL org.opencontainers.image.authors="Nikolai R Kristiansen <nikolaik@gmail.com>"
+
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+RUN groupadd --gid 1000 pn && useradd --uid 1000 --gid pn --shell /bin/bash --create-home pn
+ENV POETRY_HOME=/usr/local
+
+RUN NODE_VERSION="$(curl -fsSL https://nodejs.org/dist/latest/SHASUMS256.txt | head -n1 | awk '{ print $2}' | awk -F - '{ print $2}')" \
+  ARCH= && dpkgArch="$(dpkg --print-architecture)" \
+  && case "${dpkgArch##*-}" in \
+    amd64) ARCH='x64';; \
+    arm64) ARCH='arm64';; \
+    *) echo "unsupported architecture"; exit 1 ;; \
+  esac \
+  && for key in $(curl -sL https://raw.githubusercontent.com/nodejs/docker-node/HEAD/keys/node.keys); do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+  done \
+  && curl -fsSLO --compressed "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-linux-$ARCH.tar.xz" \
+  && curl -fsSLO --compressed "https://nodejs.org/dist/$NODE_VERSION/SHASUMS256.txt.asc" \
+  && gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
+  && grep " node-$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
+  && tar -xJf "node-$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+  && rm "node-$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
+  && ln -s /usr/local/bin/node /usr/local/bin/nodejs
+RUN npm install -g corepack && corepack enable yarn
+RUN \
+  apt-get update && \
+  apt-get upgrade -yqq && \
+  pip install -U pip pipenv uv && \
+  curl -sSL https://install.python-poetry.org | python - && \
+  rm -rf /var/lib/apt/lists/*
+```
+
+This Dockerfile starts with the mutable **`python:trixie`** base image, creates a user, discovers the latest Node.js release, imports the current Node signing keys from GitHub, verifies and installs the selected Node tarball, installs Corepack, enables Yarn, updates and upgrades Debian packages from the current package index, upgrades Python packaging tools from PyPI, and runs Poetry’s remote installer script.
+
+At runtime, this dev-container surfaces:
+
+-  Python  v3.14.4
+-  Node.js v25.9.0
+-  **`npm`**     v11.12.1
+-  **`pip`** v26.0.1
+-  **poetry v2.3.4
+-  **gcc** v14.2.0
++ 49 other packages
+
+The Dockerfile records the procedural steps used to assemble the image, along with some validation steps, but it does not declare a fixed set of inputs the resolved identities of which determine the output. It tells an image build tool how to construct the dev environment, but doesn’t explicitly define which environment gets constructed on any given day. This project publishes specific image variants for selected Python, Node.js, and distro combinations. The user can pull, for example, Python 3.13 with Node.js 24 on a Debian Bookworm base image, rather than accepting whatever **`latest`** resolves to.
+
+
+### Guix shell
+
+This example uses a Guix declared development environment that approximates the dev container’s Python-and-Node.js toolchain without building or running an OCI image. The environment is defined in **`manifest.scm`** and activated with **`guix shell -m manifest.scm`**. A companion script, **`guix-setup.sh`**, performs post-activation setup for the tools (like **`uv`** and **`pipenv`**) that this manifest does not source directly from Guix.
+
+**Note**: Because Guix manifests are strictly package declarations, with no equivalent to Nix's **`shellHook`** or Flox's **`[hook]`**, a companion script, **[guix-setup.sh](https://github.com/flox/python-nodejs-dev-environment/blob/main/guix-setup.sh)** is used to bootstrap the environment: creating the Python virtualenv, exporting cache directories, and installing tools (**`uv`**, **`pipenv`**, **`yarn`**, **`pnpm`**) that are not packaged in Guix. The two files are inseparable; **[manifest.scm](https://github.com/flox/python-nodejs-dev-environment/blob/main/manifest.scm)** provides the packages, **`guix-setup.sh`** provides the setup wiring.
+
+```bash
+# guix-setup.sh — post-activation bootstrap for tools not packaged in Guix
+# Usage:
+#   guix shell -m manifest.scm
+#   source ./guix-setup.sh
+
+case "${BASH_VERSION:-}" in
+  "")
+    echo "guix-setup.sh must be sourced from bash" >&2
+    return 2
+    ;;
+esac
+
+set -e
+
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/python-nodejs-dev"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+mkdir -p "$CACHE_DIR/uv" \
+         "$CACHE_DIR/pip" \
+         "$CACHE_DIR/npm" \
+         "$CACHE_DIR/yarn" \
+         "$CACHE_DIR/pnpm-store" \
+         "$CACHE_DIR/npm-global/bin"
+
+export UV_CACHE_DIR="$CACHE_DIR/uv"
+export PIP_CACHE_DIR="$CACHE_DIR/pip"
+
+export npm_config_cache="$CACHE_DIR/npm"
+export npm_config_prefix="$CACHE_DIR/npm-global"
+export npm_config_store_dir="$CACHE_DIR/pnpm-store"
+
+export YARN_CACHE_FOLDER="$CACHE_DIR/yarn"
+
+export PATH="$CACHE_DIR/npm-global/bin:$PATH"
+
+# SSL certs for foreign distros, when running inside a Guix shell.
+if [ -n "${GUIX_ENVIRONMENT:-}" ]; then
+  for _cert_file in \
+    "$GUIX_ENVIRONMENT/etc/ssl/certs/ca-certificates.crt" \
+    "$GUIX_ENVIRONMENT/etc/ssl/certs/ca-bundle.crt"; do
+    if [ -f "$_cert_file" ]; then
+      export SSL_CERT_DIR="$GUIX_ENVIRONMENT/etc/ssl/certs"
+      export SSL_CERT_FILE="$_cert_file"
+      export GIT_SSL_CAINFO="$_cert_file"
+      export CURL_CA_BUNDLE="$_cert_file"
+      break
+    fi
+  done
+
+  unset _cert_file
+fi
+
+# Key the venv by Python implementation and version so manifest changes
+# do not reuse one generic cached venv forever.
+PYTHON_ID="$(
+  python3 - <<'PY'
+import sys
+print(f"{sys.implementation.name}-{sys.version_info.major}.{sys.version_info.minor}")
+PY
+)"
+
+venv="$CACHE_DIR/venv-$PYTHON_ID"
+
+if [ ! -d "$venv" ]; then
+  python3 -m venv "$venv"
+fi
+
+source "$venv/bin/activate"
+
+if ! python -m pip --version >/dev/null 2>&1; then
+  echo "pip is not available inside the venv. Add Python venv/pip support to the Guix manifest." >&2
+  return 1
+fi
+
+REQ_HASH="$(sha256sum "$SCRIPT_DIR/requirements.txt" | awk '{print $1}')"
+pip_marker="$venv/.pip_tools_installed-$REQ_HASH"
+
+if [ ! -f "$pip_marker" ]; then
+  python -m pip install --quiet -r "$SCRIPT_DIR/requirements.txt" uv pipenv
+  touch "$pip_marker"
+fi
+
+# Install missing Node.js package managers into the writable npm prefix.
+if ! command -v yarn >/dev/null 2>&1 || ! command -v pnpm >/dev/null 2>&1; then
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "npm is not available. Add npm/node tooling to the Guix manifest." >&2
+    return 1
+  fi
+
+  npm install --global --silent yarn pnpm
+fi
+```
+
+Guix manifests do not declare a cross-platform system matrix. For all intents and purposes, Guix targets GNU/Linux and GNU Hurd-family systems, with Linux as the mainstream supported path. With this repo, running **`guix shell -m manifest.scm`** realizes the package set for the current Guix-supported Linux system, such as x86_64-linux or aarch64-linux, provided the selected channel can build or substitute the requested packages for that architecture.
+
+The **`manifest.scm`** declares a set of Guix package specifications, including:
+
+-  **`python`**
+-  **`node`**
+-  **`poetry`**
+-  **`gcc-toolchain`**
+-  **`make`**, **`autoconf`**, **`automake`**, **`libtool`**, **`m4`**, **`pkg-config`**, **`patch`**
+-  **`openssl`**, **`zlib`**, **`bzip2`**, **`xz`**, **`zstd`**
+-  **`libffi`**, **`readline`**, **`ncurses`**, **`expat`**, **`gdbm`**, **`sqlite`**, **`libyaml`**, **`libxml2`**, **`libxslt`**, **`gmp`**
++ 49 other packages
+
+The setup script creates project-specific cache directories for **`uv`**, **`pip`**, **`npm`**, **`yarn`**, and **`pnpm`**; configures an npm global prefix outside the read-only Guix store; wires certificate paths for non-Guix host distributions; creates and activates a Python virtual environment; installs **`uv`** and **`pipenv`** with **`pip`**; and installs **`yarn`** and **`pnpm`** with **`npm`**.
+
+In organizations where impure dependency resolution is untenable, teams can package Python wheels, Node packages, native extensions, and other language-level dependencies as Guix packages, pin the Guix channel revision, build them in Guix’s sandboxed build environment, and publish substitutes from an internal build farm. This doesn’t eliminate the work of owning those dependencies, but it makes the work practicable: the dependency build is declared once, reproduced by the build system, cached in a private store, and reused across local dev, CI runners, and deployment targets.
+
+This particular example is not fully pinned by the manifest alone. The resolved package versions depend on which Guix channel revision is in use when the shell is realized. To make this environment reproducible across space and time, the manifest must travel with a pinned channel definition (**`channels.scm`**), or be invoked via **`guix time-machine -C channels.scm`** against a fixed channel commit.
+
+
+### Nix flake
+
+The third example uses this Nix flake, a declarative dev environment that recreates the Python-and-Node.js dev container above. The environment is defined in **`flake.nix`** and locked by **`flake.lock`**.
+
+```nix
+{
+  description = "Python 3.14 + Node.js dev environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-gcc14.url = "github:NixOS/nixpkgs/nixos-24.11";
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-gcc14 }:
+    let
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+
+      forAllSystems = f:
+        nixpkgs.lib.genAttrs supportedSystems (system: f {
+          pkgs = import nixpkgs { inherit system; };
+          pkgs-gcc14 = import nixpkgs-gcc14 { inherit system; };
+          inherit system;
+        });
+    in
+    {
+      devShells = forAllSystems ({ pkgs, pkgs-gcc14, system }: {
+        default = pkgs.mkShell {
+          name = "python-nodejs";
+
+…
+
+          shellHook = ''
+            export PROJECT_ROOT="$(pwd)"
+            export CACHE_DIR="''${XDG_CACHE_HOME:-$HOME/.cache}/python-nodejs-dev"
+
+            mkdir -p "$CACHE_DIR/uv" "$CACHE_DIR/pip" \
+                     "$CACHE_DIR/npm" "$CACHE_DIR/yarn" \
+                     "$CACHE_DIR/pnpm-store"
+
+            export UV_CACHE_DIR="$CACHE_DIR/uv"
+            export PIP_CACHE_DIR="$CACHE_DIR/pip"
+            export npm_config_cache="$CACHE_DIR/npm"
+            export YARN_CACHE_FOLDER="$CACHE_DIR/yarn"
+            export PNPM_STORE_PATH="$CACHE_DIR/pnpm-store"
+
+            venv="$CACHE_DIR/venv"
+            if [ ! -d "$venv" ]; then
+              uv venv "$venv" --python python3 --quiet
+            fi
+            if [ -f "$venv/bin/activate" ]; then
+              source "$venv/bin/activate"
+            fi
+
+            if [ -f "$venv/bin/activate" ] && [ ! -f "$CACHE_DIR/.base_tools_installed" ]; then
+              uv pip install --python "$venv/bin/python" --quiet -r "$PROJECT_ROOT/requirements.txt"
+              touch "$CACHE_DIR/.base_tools_installed"
+            fi
+
+            cd "$PROJECT_ROOT"
+          '';
+        };
+      });
+    };
+}
+```
+
+**Note**: This code snippet intentionally omits all 55 defined packages. The complete flake is [here](https://github.com/flox/python-nodejs-dev-environment/blob/main/flake.nix).
+
+
+The flake declares one input:
+
+- **`nixpkgs`**, originally requested as **`github:NixOS/nixpkgs/nixpkgs-unstable`**
+
+The lockfile resolves that moving ref to a fixed revision:
+
+- **rev**: `ed67bc86e84e51d4a88e73c7fd36006dc876476f`
+- **narHash**: `sha256-62EWg6lI0qyzm7oAx5cAnGkLutvJsRBe0KkEW2JDZCE=`
+- **lastModified**: May 6, 2026
+
+The flake supports both Linux and macOS, x86-64 and ARM. At activation time, this dev shell surfaces:
+
+-  Python  v3.14.3
+-  Node.js v25.9.0
+-  **`npm`**     v11.12.1
+-  **`pip`** v26.0.1
+-  **poetry v2.3.4
+-  **gcc** v14.2.0
++ 49 other packages
+
+This flake works by describing a declared environment rather than a procedural image build. It names the packages to materialize from a pinned **`nixpkgs`** revision, the lockfile pins the set of (era- and ABI-compatible) upstream packages on the basis of which those package identities resolve.
+
+The shell hook still performs mutable local setup: it creates cache directories, idempotently creates a virtual environment (i.e., if absent), and installs pinned versions of **`pip`**, **`setuptools`**, and **`wheel`** into that virtual environment. But the declared system/toolchain layer—the runtimes, compilers, libraries, package managers, and CLI tools—is derived on the basis of the locked Nix input graph. The result is a reproducible development environment, backed by an immutable, cryptographically hashed store.
+
+In organizations where impure dependency resolution is untenable, teams can package Python wheels, Node packages, native extensions, and other language-level dependencies as Nix build outputs, then publish them to a private binary cache. This doesn’t eliminate the work of owning these dependencies, but it makes the work practicable: the dependency build is declared once, reproduced by the build system, cached in a private store, and reused across local dev, CI runners, and deployment targets.
+
+
+### Flox environment
+
+The final example features a declared Flox development environment that approximates the same Python-and-Node.js toolchain without building or running a dev-container image. The environment is defined in **`manifest.toml`** and locked by **`manifest.lock`**.
+
+The manifest declares support for both macOS and Linux, x86-64 and ARM:
+
+- **`aarch64-darwin`**
+- **`aarch64-linux`**
+- **`x86_64-darwin`**
+- **`x86_64-linux`**
+
+In includes a setup hook that boostraps a Python virtual environment:
+
+```toml
+[hook]
+on-activate = '''
+  mkdir -p "$FLOX_ENV_CACHE/uv" "$FLOX_ENV_CACHE/pip" \
+           "$FLOX_ENV_CACHE/npm" "$FLOX_ENV_CACHE/yarn" \
+           "$FLOX_ENV_CACHE/pnpm-store"
+
+  export UV_CACHE_DIR="$FLOX_ENV_CACHE/uv"
+  export PIP_CACHE_DIR="$FLOX_ENV_CACHE/pip"
+  export npm_config_cache="$FLOX_ENV_CACHE/npm"
+  export YARN_CACHE_FOLDER="$FLOX_ENV_CACHE/yarn"
+  export PNPM_STORE_PATH="$FLOX_ENV_CACHE/pnpm-store"
+
+  venv="$FLOX_ENV_CACHE/venv"
+  if [ ! -d "$venv" ]; then
+    uv venv "$venv" --python python3 --quiet
+  fi
+  if [ -f "$venv/bin/activate" ]; then
+    source "$venv/bin/activate"
+  fi
+
+  if [ -f "$venv/bin/activate" ] && [ ! -f "$FLOX_ENV_CACHE/.base_tools_installed" ]; then
+    uv pip install --python "$venv/bin/python" --quiet -r "$FLOX_ENV_PROJECT/requirements.txt"
+    touch "$FLOX_ENV_CACHE/.base_tools_installed"
+  fi
+
+  cd "$FLOX_ENV_PROJECT"
+'''
+```
+
+At activation time, this Flox environment surfaces:
+
+-  Python  v3.14.3
+-  Node.js v25.9.0
+-  **`npm`**     v11.12.1
+-  **`pip`** v26.0.1
+-  Poetry v2.3.4
+-  **gcc** v14.2.0
++ 49 other packages
+
+**Note**: This code snippet intentionally omits all 55 defined packages. The complete manifest is [here](https://github.com/flox/python-nodejs-dev-environment/blob/main/.flox/env/manifest.toml). The lockfile that pins the package versions is [here](https://github.com/flox/python-nodejs-dev-environment/blob/main/.flox/env/manifest.lock).
+
+The lockfile resolves the pinned package paths into specific package versions for each supported system. For example, **`python314`** resolves to **Python 3.14.3**, **`nodejs_25`** resolves to **Node.js 25.9.0**, **`uv`** resolves to **0.11.8**, **`poetry`** resolves to **2.3.4**, **`pipenv`** resolves to **2026.5.1**, **`pnpm`** resolves to **10.33.2**, **`yarn`** resolves to **1.22.22**, and **`gcc14`** resolves to **GCC 14.2.0**. The lockfile also records the selected Flox/Nix package revision and the concrete **`/nix/store`** outputs for each package and target system.
+
+The activation hook creates cache directories, creates a virtual environment if absent, and installs mutable Python requirements into that virtual environment with **`uv pip install -r requirements.txt`**. But the system/toolchain layer—the runtimes, compilers, package managers, libraries, and CLI tools—is declared in the manifest and fixed by the lockfile. In organizations where impure dependency resolution is untenable, teams can package Python wheels, Node packages, native extensions, and other language-level dependencies as Flox build outputs, then publish them to a private, self-hosted Flox Catalog.

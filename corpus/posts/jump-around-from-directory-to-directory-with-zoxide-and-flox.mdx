@@ -1,0 +1,166 @@
+---
+title: 'Jump Around! From Directory to Directory with zoxide and Flox'
+altTitle: 'Jump Around! From Directory to Directory with zoxide and Flox'
+description: 'zoxide is a fuzzy-matching directory-jumping tool that styles itself as a “smarter” replacement for cd. It also pairs nicely with another featured package: fzf.'
+metaDescription: 'zoxide is a fuzzy-matching directory-jumping tool that styles itself as a “smarter” replacement for cd. It also pairs nicely with another featured package: fzf.'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: zoxide
+author: Steve Swoyer
+publishedDate: 18 October 2024
+thumbnail: '/images/blog/jump-around.webp'
+orderBy: 20241018
+---
+
+
+Just when you thought it safe to quit your laptop for the weekend, here's Flox's latest Fun Packages Fridays(R)(TM) entry, highlighting a keen piece of software in the Flox Catalog, powered by Nixpkgs.
+
+This week's package is [zoxide](https://github.com/ajeetdpesouza/zoxide), a fuzzy-matching directory-jumping tool that styles itself as a “smarter” replacement for the venerable `cd` command.
+
+The choice of zoxide is inspired in part by last week's package, [fzf](https://flox.dev/blog/get-warm-and-fuzzy-search-in-your-shell-with-fzf-and-flox/), which is a fuzzy-matching search utility. This article gives you an idea how zoxide can fit into and improve your workflow.
+
+## Getting It
+
+The following examples assume you're working inside an existing Flox environment. If you don't know what goes into creating one of these, consider checking out [Flox's Quick Start guide](https://flox.dev/docs/) and, if you want to play along at home, [downloading Flox](https://flox.dev/docs/install-flox/).
+
+First we'll install and activate zoxide. We'll install fzf, too, because both combined are greater than the sum of their parts.
+
+```
+daedalus@askesis:~$ flox install zoxide fzf && flox activate
+✅ 'zoxide' installed
+✅ 'fzf' installed
+✅ You are now using the environment 'chumbawamba'.
+To stop using this environment, type 'exit'
+```
+
+That was simple enough, wasn't it?
+
+## Using It
+
+To put zoxide through its paces, it needs to have a history of the directories you work in. You can use the `zoxide add <directory_path>` command to manually populate this history. If you want to automate this, however, you could also whip up something using the shell logic of your choice. For example, the following one-liner recursively traverses your $HOME directory and adds directories for you:
+
+```
+daedalus@askesis:~$ find "$HOME" -type d -print -exec zoxide add {} \;
+```
+
+(Warning: If you've got a massive $HOME with tens of thousands of folders, this will take awhile to run!)
+
+Okay, now we're ready to begin! Let's say that six months ago I was working in a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) project but I can't remember where the heck I put it. This ceases to be a problem with zoxide—provided I can remember at least _something_ distinctive about my project directory's name.
+
+I can jump right to a fuzzily matched directory using the `z` alias:
+
+```
+daedalus@askesis:~$ z Com
+daedalus@askesis:~/dev/ComfyUI$
+```
+
+Neat! I had only to type `z Com`, hit `[ENTER]`, and zoxide plopped me right into my `ComfyUI` project directory!
+
+This time let's jump into something a little bit more deeply nested, like that relict directory where I stashed the PDFs I used to train my [Verba-powered](https://flox.dev/blog/get-a-portable-turn-key-rag-stack-with-verba-and-flox/) RAG stack. The problem is (wait for it) I can't remember where I put it!
+
+```
+daedalus@askesis:~$ z rag
+daedalus@askesis:~/go/src/cmd/compile/internal/coverage$
+```
+
+Huh. Fuzzy matching for the win? Obviously I'm not using the right string, so let's try again:
+
+```
+daedalus@askesis:~$ z RAG
+daedalus@askesis:~/go/src/runtime/coverage$
+```
+
+Okay. So fuzzy matching also means _case-insensitive_ matching. Good to know.
+
+Oh! I just remembered which string I can use to jump successfully:
+
+```
+daedalus@askesis:~$ z ragtime
+daedalus@askesis:~/sandbox/projects/llm/training/ragtime$
+```
+
+Awesome! That was easy! Imagine how simple it is to jump around in your workflow when you _can_ actually remember the names of your project folders. For instance:
+
+```
+daedalus@askesis:~$ z golde
+daedalus@askesis:~/sandbox/projects/llm/training/ragtime/golden-verba$ z open_s
+daedalus@askesis:~/sandbox/var/vm/x86-64/suse/open-suse-leap$ z et
+daedalus@askesis:/etc$ z sudo
+daedalus@askesis:/etc/sudoers.d$ z o11y
+daedalus@askesis:~/dev/prototype/o11y-stack$
+```
+
+But wait: There's more.
+
+## Mastering It
+
+Because zoxide isn't just a one-trick tool. For example, I can use it to match on multiple terms just by separating them with a space:
+
+```
+daedalus@askesis:~$ z stable diffusion
+daedalus@askesis:~/dev/stable-diffusion-webui$
+daedalus@askesis:~/dev/stable-diffusion-webui$ z trying to break my heart
+daedalus@askesis:~/sandbox/var/vm/aarch64/debian_arm/r-u-trying-to-break-my-heart$
+```
+
+What else? Zoxide has a fuzzy _search_ feature that makes use of [fzf](https://github.com/junegunn/fzf). Conveniently enough, this automatically gets aliased to `zi`. It makes searching for, finding, and jumping into directories dead simple:
+
+```
+daedalus@askesis:~$ zi rag
+> < 3/3
+┌────────────────────────────────────────────────────────────────────┐
+│> < 3/3                                                             │
+│* 13.2 /home/daedalus/go/src/runtime/coverage                       │
+│  8.0 /home/daedalus/sandbox/projects/llm/training/ragtime          │
+│  5.2 /home/daedalus/go/src/cmd/compile/internal/coverage           │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+See those numbers next to each path? They represent zoxide's [frecency](https://github.com/ajeetdsouza/zoxide/wiki/Algorithm) score for each directory, which is based on the **fre**quency and, er, re**cency** with which you've accessed them. Dammit: all of those dead-end jumps into `/home/daedalus/go/src/runtime/coverage` artificially inflated its score!
+
+One last thing. You can also use zoxide and fzf together to get fuzzy search and completion. You just need to type your search term, followed by a space, and then hit `[TAB]`, much like you'd do with fzf by itself:
+
+```
+daedalus@askesis:~$ z stable-
+┌────────────────────────────────────────────────────────────────────┐
+│ > < 1/1                                                            │
+│ * 8.0 /home/daedalus/dev/stable-diffusion-webui                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Pretty neat, huh?! Zoxide has oodles of other features, including support for all major shells, and integration with [emacs](https://www.gnu.org/software/emacs/), [vim](https://github.com/vim/vim), [ranger](https://github.com/ranger/ranger), and [tmux](https://github.com/tmux/tmux), along with other tools. This article very much scratches the surface of what you can do with it. 
+
+## Housekeeping Notes
+
+It made sense to front-load this article by showing all the fun stuff you can do with zoxide.
+
+I'll conclude by briefly explaining the one or two things you need to do to set it up.
+
+**First**, you're going to need to add zoxide's shell initialization logic to your shell's configuration and/or profile dotfiles. If you're using bash or zsh, you could just add the following line:
+
+```
+eval "$(zoxide init <bash or zsh>)"
+```
+
+to your `.bashrc` or `.profile` config files. Re-source your shell (`source ~/.bashrc`) and ... _voila_.
+
+**Second**, if you want to use fzf with zoxide, you'll need to have _its_ eval command in your shell config, too.
+
+## A Better Way
+
+However, doing this involves making changes you might not want to persist. What if you don't like zoxide? What if you're evaluating it along with similar tools, like [autojump](https://github.com/wting/autojump) or [fasd](https://github.com/clvv/fasd)? What if you just have issues with commitment?
+
+This is what Flox environments are made for! You can `flox activate` our zoxide and fzf proof-of-concept as a FloxHub environment using the -r option:
+
+```
+flox activate -r flox/a-perfect-shell
+```
+
+FloxHub environments are cached locally. You can activate 'em, use 'em, and when you're done, they're gone. So there's nothing in your shell config files to clean up! Next time you activate, the environment is instantly ready. New changes on FloxHub can be pulled in via `flox pull -r`.
+
+That's it. That's zoxide. Paired with fzf, it makes for a pretty powerful combination, no?
+
+Happy hacking.
+
+_Special thanks to Flox's great and powerful Nick Lewis for turning me on to zoxide, and to the no less thaumaturgical Rok Garbas for offering his $0.02—or, rather, €0.02._

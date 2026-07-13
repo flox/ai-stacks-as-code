@@ -1,0 +1,410 @@
+---
+title: 'Create Portable, Reproducible Node.js Environments With Flox'
+altTitle: 'Create Portable, Reproducible Node.js Environments With Flox'
+description: 'Build consistent Node.js environments across Linux, macOS, and Windows. Flox uses declarative manifests to ensure identical setups for all developers.'
+metaDescription: 'Build consistent Node.js environments across Linux, macOS, and Windows. Flox uses declarative manifests to ensure identical setups for all developers.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 05 February 2026
+thumbnail: '/images/blog/atomic-molecule.webp'
+orderBy: 20241007
+---
+
+Flox makes it easy to create portable, reproducible Node.js environments that run the same way on Linux, macOS, and Windows (with WSL2), across both ARM and x86 architectures.
+
+If you've got an existing Node.js project with a `package.json` or a `yarn.lock` file, it's just as easy to use it with Flox. You won’t even have to do much lifting, because Flox automatically installs Node.js for you!
+
+This article provides a quick-start overview of [how to create Flox environments](https://flox.dev/docs/tutorials/creating-environments/) for new Node.js projects, and shows how Flox integrates with existing Node.js projects, too. It also explores the benefits of using Flox to create, share, and manage your Node.js build environments. Beyond portability and reproducibility, Flox supports all languages and toolchains, which makes Flox dev environments ideal for Node.js projects involving WebAssembly (WASM), Python, Go, Rust, and other languages. And unlike containers, Flox dev environments give you transparent access to local resources, along with strict deterministic safeguards.
+
+**TL;DR**
+- Run flox init to detect and configure projects.
+- Install dependencies with flox install and flox activate
+- Version-control your manifest.toml for team consistency
+- Skip containers and access local files directly
+
+## How to Kickstart a New Node.js Project with Flox
+
+Getting started with Flox is super simple. First, [install Flox using the method of your choice](https://flox.dev/docs/install-flox/install/). 
+
+Then, you just need to create and/or cd into your project directory and initialize your Flox environment.
+
+```
+$ mkdir baby-got-backend && cd baby-got-backend
+$ flox init
+
+✨ Created environment 'baby-got-backend' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+```
+
+Think of each Flox environment as a self-contained, clean-room ecosystem, ready to be populated with packages, or configured with environment variables, setup and teardown logic, automated actions, and functions. It's like a container, only better, because it runs on your local system, so you enjoy transparent access to all of your files, settings, and resources.
+
+To start things off, we need Node.js—but not just any version! Our project requires a version that’s greater than or equal to v20.0. Let's use `flox search` to look for compatible versions of Node.js.
+
+```
+$ flox search nodejs
+nodejs       Event-driven I/O framework for the V8 JavaScript engine
+nodejs_22    Event-driven I/O framework for the V8 JavaScript engine
+nodejs_21    Event-driven I/O framework for the V8 JavaScript engine
+nodejs_20    Event-driven I/O framework for the V8 JavaScript engine
+nodejs_19    Event-driven I/O framework for the V8 JavaScript engine
+nodejs_18    Event-driven I/O framework for the V8 JavaScript engine
+nodejs_16    Event-driven I/O framework for the V8 JavaScript engine
+nodejs_14    Event-driven I/O framework for the V8 JavaScript engine
+nodejs-slim  Event-driven I/O framework for the V8 JavaScript engine
+nodejs-19_x  Event-driven I/O framework for the V8 JavaScript engine
+
+Showing 10 of 65 results. Use `flox search nodejs --all` to see the full list.
+```
+
+Next, use the `flox show` subcommand to drill down into the `nodejs_20` package:
+
+```
+$ flox show nodejs_20
+nodejs_20 - Event-driven I/O framework for the V8 JavaScript engine
+    nodejs_20@nodejs-20.17.0
+    nodejs_20@nodejs-20.16.0
+    nodejs_20@nodejs-20.15.1
+    nodejs_20@nodejs-20.14.0
+    nodejs_20@nodejs-20.12.2
+    nodejs_20@nodejs-20.11.1
+    nodejs_20@nodejs-20.11.0
+    nodejs_20@nodejs-20.10.0
+    nodejs_20@nodejs-20.9.0
+    nodejs_20@nodejs-20.8.0
+    nodejs_20@nodejs-20.6.1
+    nodejs_20@nodejs-20.5.1
+    nodejs_20@nodejs-20.5.0
+    nodejs_20@nodejs-20.3.1
+    nodejs_20@nodejs-20.2.0
+    nodejs_20@nodejs-20.1.0
+    nodejs_20@nodejs-20.0.0
+
+```
+
+Plenty of options. We'll go with the `nodejs_20` metapackage and then use the `flox list` subcommand to see which version Flox installs for us.
+
+```
+$ flox install nodejs_20
+✅ 'nodejs_20' installed to environment 'baby-got-backend'
+
+$ flox list
+nodejs_20: nodejs_20 (nodejs-20.12.2)
+```
+
+That'll do nicely. Under its hood, Flox is a genius at [resolving package dependencies](https://flox.dev/blog/hassle-free-cross-platform-dev-with-flox/). It automatically figures out which versions of which packages can coexist in the same environment. And if there’s a conflict—like when two or more packages need the same version of the same library, which they expect to be installed to the same path—Flox gives you [simple, declarative workarounds](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/).
+
+What’s next? We already get `npm` with Flox’s `nodejs_20` package, but what if we prefer to use another package manager, like Yarn. Does Flox have that, too?
+
+```
+$ flox search yarn
+yarn               Fast, reliable, and secure dependency management for javascript
+yarn2nix           Convert packages.json and yarn.lock into a Nix expression that downloads all the dependencies
+yarn-berry         Fast, reliable, and secure dependency management
+yarnBuildHook      Run yarn build in buildPhase
+fetchYarnDeps              <no description provided>
+yarnConfigHook     Install nodejs dependencies from an offline yarn cache produced by fetchYarnDeps
+yarnInstallHook    <no description provided>
+fixup-yarn-lock    <no description provided>
+fixup_yarn_lock    <no description provided>
+nodePackages.yarn  Fast, reliable, and secure dependency management for javascript
+
+Showing 10 of 36 results. Use `flox search yarn --all` to see the full list.
+```
+
+Nice! Flox has both [Yarn Classic](https://classic.yarnpkg.com/en/) and [Berry](https://yarnpkg.com/getting-started/install), the name given to Yarn versions 2.0 and greater. I can use Flox to install either or a completely different package manager like pnpM if desired.
+
+Let’s say for the sake of argument that we also want to install [Bun](https://github.com/oven-sh/bun), a hip new alternative to Node.js. Can I get this from Flox too? You bet!
+
+```
+$ flox search bun
+bun             Incredibly fast JavaScript runtime, bundler, transpiler and package manager – all in one
+```
+
+Whatever you're looking for, the Flox Catalog has much of what you’ll need—including commonly used packages like [electron](https://github.com/electron), [pm2](https://github.com/Unitech/pm2), [parcel](https://github.com/parcel-bundler/parcel), [node-gyp](https://github.com/nodejs/node-gyp), and hundreds of others. Or useful add-ons like [create-react-app](https://github.com/facebook/create-react-app), [mocha](https://github.com/mochajs/mocha), or even [eslint_d](https://github.com/mantoni/eslint_d.js), and more.
+
+Let’s say I install all of these into my environment. Here’s what this looks like in our software manifest, [manifest.toml](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments), Flox’s declarative environment configuration artifact. This file lives in the `.flox` subdirectory that's nested inside every Flox environment. Instead of installing packages imperatively, as with `flox install nodejs`, we can declaratively define them under `[install]`, even specifying versions:
+
+```
+[install]
+nodejs_20.pkg-path = "nodejs_20"
+nodejs_20.version = "nodejs-20.12.2"
+pnpm.pkg-path = "pnpm"
+node-gyp.pkg-path = "node-gyp"
+node-gyp.pkg-group = "node-gyp"
+pm2.pkg-path = "pm2"
+mocha.pkg-path = "nodePackages.mocha"
+electron.pkg-path = "electron"
+parcel.pkg-path = "nodePackages.parcel"
+eslint_d.pkg-path = "eslint_d"
+```
+
+By adding the line `nodejs_20.version = "nodejs-20.12.2`, we can explicitly define and pin a specific version of Node.js. And we can do this with _any_ package, e.g. first using `flox show <package_name>` to figure out which package versions are available in the Flox Catalog. So if we want to use a specific version of the `create-react-app`, for instance, we can just declaratively define it under `[install]`:
+
+```
+create-react-app.pkg-path = "nodePackages_latest.create-react-app"
+create-react-app.version = "5.0.1"
+```
+
+Neat, right?
+
+As a final step, let's fire up our environment by typing `flox activate`:
+
+```
+$ flox activate
+✅ You are now using the environment 'baby-got-backend'.
+To stop using this environment, type 'exit'
+```
+
+Now let’s use one of our installed packages (`pm2`) to run a “Hello, World!” example. Offscreen, I’ve created an `index.js` with logic that prints this message to the console. Let’s see if my JavaScript one-liner works.
+
+```
+flox [baby-got-backend] daedalus@aisthesis:~/dev/baby-got-backend$ pm2 start index.js --name hello-world
+
+                        -------------
+
+__/\\\\\\\\\\\\\____/\\\\____________/\\\\____/\\\\\\\\\_____
+ _\/\\\/////////\\\_\/\\\\\\________/\\\\\\__/\\\///////\\\___
+  _\/\\\_______\/\\\_\/\\\//\\\____/\\\//\\\_\///______\//\\\__
+   _\/\\\\\\\\\\\\\/__\/\\\\///\\\/\\\/_\/\\\___________/\\\/___
+    _\/\\\/////////____\/\\\__\///\\\/___\/\\\________/\\\//_____
+     _\/\\\_____________\/\\\____\///_____\/\\\_____/\\\//________
+      _\/\\\_____________\/\\\_____________\/\\\___/\\\/___________
+       _\/\\\_____________\/\\\_____________\/\\\__/\\\\\\\\\\\\\\\_
+        _\///______________\///______________\///__\///////////////__
+
+
+                          Runtime Edition
+
+        PM2 is a Production Process Manager for Node.js applications
+                     with a built-in Load Balancer.
+
+                Start and Daemonize any application:
+                $ pm2 start app.js
+
+                Load Balance 4 instances of api.js:
+                $ pm2 start api.js -i 4
+
+                Monitor in production:
+                $ pm2 monitor
+
+                Make pm2 auto-boot at server restart:
+                $ pm2 startup
+
+                To go further checkout:
+                http://pm2.io/
+
+
+                        -------------
+
+[PM2] Spawning PM2 daemon with pm2_home=/home/daedalus/.pm2
+[PM2] PM2 Successfully daemonized
+[PM2] Starting /home/daedalus/dev/baby-got-backend/index.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name           │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ hello-world    │ default     │ N/A     │ fork    │ 236874   │ 0s     │ 0    │ online    │ 0%       │ 30.7mb   │ daedalus │ disabled │
+
+```
+
+Success!
+
+You can use Flox to install core Node.js packages, like the ones above, as well as configure environment variables, settings, and overrides for your project environments. From there, just use your preferred package manager to install project-specific packages.
+
+Flox environments are _especially_ useful when you’re working on polyglot project architectures involving multiple programming languages and toolchains. You can get versions of WASM, Python, Go, Rust, C++, and other required dependencies from Flox Catalog, installing software packages optimized both for operating system platforms (Linux and macOS) and chip architectures (x86-64 and ARM). The upshot is that Node.js projects you create on your M1 MacBook will run with native binaries and libraries in x86-64 containers in production!
+
+## How Flox Integrates with a Pre-Existing Node.js Project
+
+Flox also effortlessly integrates with _existing_ Node.js projects that already have defined package dependencies using a `package.json` or `yarn.lock` file. 
+
+Further reading: [Floxifying a Project Repo](https://flox.dev/blog/floxifying-a-project-repo-part-1/)
+
+Let’s use the official Kubernetes (K8s) documentation website’s [GitHub repo](https://github.com/kubernetes/website) as an example project.
+
+You can clone this project from Github and either spin up a local instance, powered by [Hugo](https://github.com/gohugoio/hugo), or build the whole thing into a container and run it that way. For what it’s worth, the K8s project “strongly recommends” using the latter approach, which it says is more reliably reproducible, but we’ve got Flox, whose superpower is reproducibility ... so why not build locally?
+
+```
+$ git clone https://github.com/kubernetes/website && cd ./website
+$ flox init
+
+…
+
+Flox can add the following to your environment:
+* nodejs 20.17.0 with npm bundled
+* An npm installation hook
+
+! Would you like Flox to apply this suggestion?
+You can always change the environment's manifest with 'flox edit'
+> Yes
+  No
+  Show suggested modifications
+[Use '--auto-setup' to apply Flox recommendations in the future.]
+```
+
+This time around, when running `flox init`, Flox automatically detects the `package.json` in the project directory and asks me if I want it to install version 20.17.0 of Node.js.
+
+Let’s see what other mods it wants to make. By selecting “Show suggested modifications,” we can preview the entries Flox will create for us in this environment’s `manifest.toml`.
+
+```
+[install]
+nodejs.pkg-path = "nodejs"
+nodejs.version = "20.17.0"
+
+[hook]
+on-activate = """
+  # Install nodejs dependencies
+  npm install
+"""
+```
+
+The `[install]` section defines the version of Node.js the Kubernetes documentation website needs to run. The `[hook]` section lets you specify activation hooks and other automations for an environment. Here `npm install` automatically installs the packages (if any) specified in `package.json`.
+
+Let’s go ahead and accept these modifications:
+
+```
+! Would you like Flox to apply this suggestion?
+You can always change the environment's manifest with 'flox edit'
+> Yes
+No
+```
+
+Next up, the K8s documentation repo showcases Flox’s built-in automations for Go. Detecting a `go.mod` file in the project directory kickstarts a bootstrapping wizard that installs the required `go` package:
+
+```
+Flox detected a go.mod file in the current directory.
+
+Go projects typically need:
+* Go
+* A shell hook to apply environment variables
+
+
+! Would you like Flox to apply the standard Go environment?
+You can always revisit the environment's declaration with 'flox edit'
+ Yes
+  No
+>  Show environment manifest
+```
+
+Let’s again see what changes Flox wants to make:
+
+```
+[install]
+go.pkg-path = "go"
+go.version = "^1.22.0"
+
+[hook]
+on-activate = '''
+  # Point GOENV to Flox environment cache
+  export GOENV="$FLOX_ENV_CACHE/goenv"
+
+  # Install Go dependencies
+  go get .
+'''
+```
+
+Nothing unusual here. Let’s accept the modifications and keep going.
+
+To build and serve the Kubernetes documentation website locally, we’ve got to install required dependencies, like the `hugo` package. The packages in the Flox Catalog are usually self-describing, so let’s try installing them by name, rather than first `flox search`-ing for them.
+
+We already have `npm` and `go`; the only thing missing is `hugo`:
+
+```
+$ flox install hugo
+✅ 'hugo' installed to environment 'website'
+```
+
+Before we activate our environment, let’s just see what the `[install]` section of our software manifest looks like:
+
+```
+[install]
+nodejs.pkg-path = "nodejs"
+nodejs.version = "20.17.0"
+go.pkg-path = "go"
+go.version = "^1.22.0"
+hugo.pkg-path = "hugo"
+curl.pkg-path = "curl"
+```
+
+Looks good. Now let’s go ahead and activate our Floxified K8s documentation environment!
+
+```
+$ flox activate
+✅ You are now using the environment 'website'.
+To stop using this environment, type 'exit'
+```
+
+Before firing up our local instance of the K8s documentation website, the install instructions prescribe some prep work, which we’ll do off-screen. This includes running `make module-init` so required submodules (like the `Docsy Hugo` theme) are initialized and available, and running `npm ci` (rather than `npm install`).
+
+This done, we can run `make serve` to trigger the makefile target that (**a**) builds the website with Hugo and (**b**) starts the local dev server. Here’s what this looks like running inside a Flox environment:
+
+```
+flox [website] daedalus@aisthesis:~/dev/website$ make serve
+hugo server --buildFuture --environment development
+Watching for changes in /home/daedalus/dev/website/{archetypes,assets,content,data,layouts,package.json,postcss.config.js,static,themes}
+Watching for config changes in /home/daedalus/dev/website/hugo.toml, /home/daedalus/dev/website/themes/docsy/config.toml, /home/daedalus/dev/website/go.mod
+Start building sites …
+hugo v0.134.3+extended linux/amd64 BuildDate=unknown VendorInfo=nixpkgs
+
+WARN  deprecated: resources.ToCSS was deprecated in Hugo v0.128.0 and will be removed in a future release. Use css.Sass instead.
+
+                   |  EN  | BN  | ZH-CN | FR  | DE  | HI  | ID  | IT  | JA  | KO  | PL  | PT-BR | RU  | ES  | UK  | VI
+-------------------+------+-----+-------+-----+-----+-----+-----+-----+-----+-----+-----+-------+-----+-----+-----+------
+  Pages            | 2216 | 234 |  1816 | 379 | 209 | 130 | 336 |  80 | 563 | 616 |  70 |   360 | 192 | 317 |  90 |  78
+  Paginator pages  |   60 |   0 |    23 |   0 |   0 |   0 |   0 |   0 |   1 |   0 |   0 |     0 |   0 |   0 |   0 |   0
+  Non-page files   |  725 | 598 |   611 |  84 |  83 |  75 |  80 |  39 | 523 |  86 |  74 |    86 |  80 |  83 |  78 |  75
+  Static files     |  842 | 842 |   842 | 842 | 842 | 842 | 842 | 842 | 842 | 842 | 842 |   842 | 842 | 842 | 842 | 842
+  Processed images |   14 |  13 |     1 |   0 |   0 |   0 |   0 |   0 |   0 |   0 |   0 |     0 |   0 |   0 |   0 |   0
+  Aliases          |    8 |   1 |     6 |   2 |   1 |   0 |   1 |   1 |   3 |   3 |   0 |     3 |   4 |   2 |   1 |   0
+  Cleaned          |    0 |   0 |     0 |   0 |   0 |   0 |   0 |   0 |   0 |   0 |   0 |     0 |   0 |   0 |   0 |   0
+
+Built in 42053 ms
+Environment: "development"
+Serving pages from disk
+Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender
+Web Server is available at http://localhost:1313/ (bind address 127.0.0.1)
+Press Ctrl+C to stop
+```
+
+It seems like our local instance of the K8s documentation website is up and running. But let’s open it up in a web browser to make sure.
+
+![](/images/blog/kubernetes-documentation-landing-page.png)
+
+Success! All told, Floxifying a repo with a `package.json` file took less than two minutes!
+
+## Flox Takes Node.js Dev to the Next Level
+
+Flox makes it trivially easy to create and share portable, reproducible Node.js development environments.
+
+Need to compile Rust libraries to WASM for a Node.js app that transforms and encrypts data? No problem! Just add `rustc`, `cargo`, `clippy`, [wasm-pack](https://github.com/rustwasm/wasm-pack), [wasmtime](https://github.com/bytecodealliance/wasmtime), or any required dependencies to your Flox environment’s software manifest. You can feel confident your Flox Node.js environments will run and behave the same across all phases of your SDLC—from local development on macOS, Linux, or Windows (with WSL2), to the Linux VM and container runners you use in CI and prod.
+
+It's simple to get started using Flox. In [fewer than five minutes](https://flox.dev/docs/flox-5-minutes), you can set up a Node.js dev environment on your local machine, with complete access to all your tools, files, and resources. To share your environment, just run `git push` or `flox push` (to push to [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/)).
+
+That's all it takes! Your teammates can `git clone` or `flox pull` your environment to run it locally.
+
+[Download Flox](https://flox.dev/docs/install-flox/) today and discover how it can transform your Node.js workflow!
+
+## Flox & Node.js FAQs
+
+**How does Flox provide reproducible and portable Node.js environments across different platforms?**
+
+Flox utilizes Nix to create self-contained environments that run identically on Linux, macOS, and Windows (with WSL2), regardless of ARM or x86 architectures. It captures all dependencies and configurations in a declarative manifest, ensuring consistent behavior from local development to CI/production without discrepancies.
+
+**What are the advantages of using Flox for Node.js development over traditional container-based solutions?**
+
+Flox environments offer transparent access to local resources, unlike containers which introduce isolation layers and performance overheads. They provide bulletproof reproducibility due to Nix's immutable build cache, guaranteeing the exact same software versions every time. Flox also allows layering multiple environments for flexible tool combinations without the complexity of container orchestration.
+
+**Does Flox support polyglot Node.js projects involving multiple programming languages?**
+
+Flox is ideal for polyglot Node.js projects as it supports all languages and toolchains. You can easily include dependencies for languages like Python, Go, Rust, or C++ alongside Node.js within the same Flox environment. This allows developers to manage complex project architectures with all required tools optimized for various platforms and architectures.
+
+**How can Flox Node.js environments be shared among development teams?**
+
+Flox environments can be easily shared by committing the manifest.toml file to your project's version control system. Teammates can then git clone the repository and activate the Flox environment, instantly getting the exact same setup. Additionally, environments can be pushed to and pulled from FloxHub for broader distribution, ensuring consistency across the team.
+

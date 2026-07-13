@@ -1,0 +1,42 @@
+schema-version = "1.13.0"
+
+## ai-embeddings component — empty scaffold. Add manually, e.g.:
+##   torch-cuda.pkg-path  = "flox-cuda/python3Packages.torch"   # Linux, GPU/CPU fallback
+##   torch-cuda.systems   = ["x86_64-linux", "aarch64-linux"]
+##   torch-cuda.pkg-group = "cuda"     # flox-cuda is a separate catalog page
+##   torch-mps.pkg-path   = "python313Packages.torch"           # Apple Silicon (Metal/MPS)
+##   torch-mps.systems    = ["aarch64-darwin"]
+##   sentence-transformers.pkg-path = "python313Packages.sentence-transformers"
+##   chromadb.pkg-path    = "python313Packages.chromadb"
+[install]
+torch-cuda.pkg-path  = "flox-cuda/python3Packages.torch"   # Linux, GPU/CPU fallback
+torch-cuda.systems   = ["x86_64-linux", "aarch64-linux"]
+torch-cuda.pkg-group = "cuda"     # flox-cuda is a separate catalog page
+
+torch-mps.pkg-path   = "python313Packages.torch"           # Apple Silicon (Metal/MPS)
+torch-mps.systems    = ["aarch64-darwin"]
+torch-mps.pkg-group = "mps-torch"
+torch-mps.priority = 6
+
+sentence-transformers.pkg-path = "python313Packages.sentence-transformers"
+sentence-transformers.pkg-group = "python-deps"
+sentence-transformers.priority = 6
+
+chromadb.pkg-path    = "python313Packages.chromadb"
+chromadb.pkg-group = "chromadb"
+chromadb.priority = 7
+
+[vars]
+
+[hook]
+
+[profile]
+
+[services]
+
+[include]
+
+[build]
+
+[options]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]

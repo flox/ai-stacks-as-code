@@ -1,0 +1,3 @@
+title,claim
+Local RAG,The pipeline can retrieve and summarize local evidence without an API key.
+Regression guard,The evaluation command should run against tiny fixtures and fail when citations do not resolve.

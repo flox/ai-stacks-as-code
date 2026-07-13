@@ -1,0 +1,363 @@
+---
+title: 'Nix and Containers: Why Not Both?'
+description: >-
+  People often say they don't use Nix because it solves the same problems as containers.
+  This is a half truth. Nix specializes in packaging software, containers excel at deploying it. They're best used together.
+metaTitle: 'Nix and Docker containers: Why Not Both?'
+metaDescription: 'Nix, Flox, and containers are best when used together.'
+isPublished: true
+category: guides
+author: Tom Bereknyei
+publishedDate: 25 February 2025
+thumbnail: /images/blog/container-ship.webp
+orderBy: 20250225
+---
+
+### TL;DR
+- Nix and containers solve different problems but work best together.
+- Nix builds deterministic, reproducible software with fully specified dependencies.
+- Containers package and run software in portable, isolated environments.
+- [Flox simplifies using Nix for development and container workflows](https://flox.dev/).
+
+Nix gives you a scalable, reliable way to build [deterministic, reproducible OCI container images](https://flox.dev/blog/enterprise-nix-its-time-to-bring-nix-to-work/), which you can deploy using _any_ OCI-compatible tooling, runtime, or orchestration system. This article explores how and why Nix and containers complement each other—and why you might use Nix to build containers.
+
+Think of it as a kind of technological mutualism: [Nix specializes in _packaging_ software, while containerization excels at _deploying_ it](https://flox.dev/nixinthewild/nix-in-the-wild-bellroy/). To better understand this distinction, let’s examine the differences between Nix and containerization as approaches to packaging, distributing, and deploying software.
+
+
+## The role of containers 
+
+It’s helpful to think of containers as _infrastructure artifacts_ optimized for running workloads in isolated environments to meet operational needs—whether for scaling services, ensuring availability and resilience, or shipping software to CI and production.
+
+Containers strike a balance between isolation and portability, making them easier to build, run, and maintain than other forms of encapsulation, like VMs. This makes them a convenient solution for deploying software. 
+
+But a container doesn’t _package_ software any more than a shipping container packages goods. “Packaging” happens beforehand—when software is built, staged, and configured prior to being loaded into a container image, just as goods are palletized, crated, or unitized before being loaded into a shipping container. 
+
+In both contexts, the role of the container is to provide a standard, convenient unit for _transport_—i.e., deployment. Containers are an ideal tool for this: they encapsulate software into a portable, isolated runtime designed for the most common infrastructure platforms used in CI and production.
+
+
+
+## How Nix is different from containers
+
+[Nix, by contrast, is a package manager and build system](https://flox.dev/blog/the-experienced-novice-dives-into-nix/) that builds packages based on declarative definitions, [Nix expressions](https://nixos.org/guides/nix-pills/04-basics-of-language.html), which evaluate to [derivations](https://nix.dev/manual/nix/2.25/language/derivations) that specify build inputs and steps.
+
+So when you run `nix build`, Nix either retrieves pre-built binaries from a [binary cache](https://cache.nixos.org/) _or_  evaluates the Nix expression to build the package from source in an isolated sandbox. Because package definitions are [versioned in Git](https://github.com/NixOS/nixpkgs), they can be pinned to specific commits for reproducibility. If a prebuilt binary is unavailable, Nix can just build the package from source using the pinned definition.
+
+Nix doesn’t just track individual packages—it tracks all dependencies transitively, so that every input needed to reproduce a package is available. This complete set of dependencies is called the [Nix closure](https://nix.dev/manual/nix/2.25/glossary.html?highlight=closure#gloss-closure).
+
+### Nix vs. containers
+
+ <table>
+ <thead>
+ <tr>
+ <th></th>
+ <th>
+ <strong>Containers</strong>
+ </th>
+ <th>
+ <strong>Nix</strong>
+ </th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr>
+ <td>
+ <strong>Size</strong>
+ </td>
+ <td>
+ Building a container image starts with installing a base OS and a bunch
+ of build-time dependencies. Afterward, the user needs to strip out
+ everything that's not needed at runtime. It's possible to start with
+ minimal base images or use third-party utilities to strip out unneeded
+ software, but by default, container images include unneeded bits.
+ </td>
+ <td>
+ Nix has knowledge of every dependency an application needs at runtime
+ (the runtime closure)—not only the names of the packages, but also
+ precisely which version and build is needed. With this knowledge it's
+ possible to create "perfect container images", which are by definition
+ the smallest possible size. All of this comes from the primitives
+ provided by Nix.
+ </td>
+ </tr>
+ <tr>
+ <td>
+ <strong>Easy customization</strong>
+ </td>
+ <td>
+ Containers rely on the base image's package manager (e.g. an Ubuntu
+image will use <code>apt</code>, a Red Hat-based image will use <code>dnf</code>), and for the
+most part, they are limited to using software included in that distro.
+ </td>
+ <td>
+ Nix is tightly coupled with{' '}
+ <a href="https://flox.dev/blog/nixpkgs-the-big-recipe-book-of-open-source">Nixpkgs</a>—an open source
+ repository of build recipes for a large number of software packages and
+ libraries. Nix allows you to modify package build recipes independently
+of the defaults specific to a distribution. And according to <a href="https://repology.org">repology</a>
+Nixpkgs is fresher and larger than any other open source repo,
+ thanks to active support from the Nix community.
+ </td>
+ </tr>
+ <tr>
+ <td>
+ <strong>Reproducibility</strong>
+ </td>
+ <td>
+ Builds are not reproducible. For example, a Dockerfile will run
+something like <code>apt update</code> or <code>dnf check-update</code> as one of the
+first steps. Resources are accessible over the network at build time,
+and these resources can change between `docker build` commands.
+There is no notion of immutability when it comes to source.
+ </td>
+ <td>
+ Builds can be fully reproducible. Resources are only available over the
+ network if a checksum is provided to identify what the resource is. All
+ of a package's build-time dependencies can be captured through a
+Nix expression, so the same steps and inputs (down to libc, gcc, etc.)
+can be repeated.
+ </td>
+ </tr>
+ <tr>
+ <td>
+ <strong>Dependency Sharing</strong>
+ </td>
+ <td>
+ Dependencies are shared if you carefully craft your container layers to
+ be identical.
+ </td>
+ <td>
+ Every dependency can be shared, not only between containers, but also
+ between containers and any machine using Nix.
+ </td>
+ </tr>
+ <tr>
+ <td>
+ <strong>Build instructions</strong>
+ </td>
+ <td>
+ Dockerfiles and official images repeat a lot of work taking place in
+ Nixpkgs (grabbing source, patching, <code>make</code>, <code>make install</code>). And they do
+ this work as pureshell scripts. This results in further inconsistencies
+ and breakages, especially when you need to use a fresher version of some
+ package. There's also no convenient way to build bespoke versions of
+ dependencies when necessary.
+ </td>
+ <td>
+ All packages use a widely maintained and frequently updated set of build
+ instructions. The community keeps these instructions fresh, and we make
+ sure the rare breakages that do occur never propagate to your software.
+ When you need to build bespoke versions of dependencies, Nix makes it
+ easy to override build instructions (e.g. change a build flag).
+ </td>
+ </tr>
+ </tbody>
+ </table>
+
+
+## The benefits of using Nix and containers together
+
+Containers have no equivalent to a Nix closure. While you can pin package versions in container builds, base image tags are mutable, system package managers depend on external repositories, and registries like PyPi or npm may remove or change package versions. A container image is essentially a snapshot of a filesystem at a specific point in time, with no built-in mechanism for regenerating its state from first principles. 
+
+To sum up:
+
+-  Containers capture filesystem snapshots but cannot deterministically regenerate their state;
+-  Nix derivations fully specify builds, permitting deterministic rebuilds.
+
+Nix and containers are best when they’re used together. Nix gives you a way to build and package software in a way that guarantees reproducibility, while containers provide a standard, convenient way to distribute and run it. You can use Nix to construct container images that fully specify their runtime dependencies. This eliminates common sources of variability like mutable base images, external package repositories, and non-deterministic build metadata. Containers then provide an isolated, portable execution environment, making them ideal for deployment.
+
+
+
+## How to use Nix in container workflows: Two different methods
+
+Nix being Nix, there are several approaches you can use to export a Nix shell or profile to a container.
+
+This article describes two possible methods of using Nix with containers. Rest assured, there are many others.
+
+These are:
+
+-  Define an environment using Nix, export this environment to a container;
+-  Create a Nix flake and leverage `dockerTools` from Nixpkgs to generate a container;
+
+Which method is right for you? For most teams using Nix, the second is usually preferable.
+
+I’ll explore each one in depth so you can get a sense ofr what’s involved, how they work, and how they’re usefully distinct. 
+
+
+
+
+## Method 1: Define environment with Nix, export to container
+
+It is straightforward to specify a runtime environment with Nix and export it in a container.
+
+This method is ideal if you _already have_ a Nix runtime environment—be it a Nix shell or profile; a Flox environment; or even just a single package—and want to containerize it.
+
+This process involves:
+
+-  Using Nix to resolve all required runtime dependencies;
+-  Assembling these into a `chroot`-like filesystem structure;
+-  Exporting this `chroot` into a container.
+
+Believe it or not, this basic approach is … how traditional container base images are built. But [when you do this with a Nix expression](https://flox.dev/docs/concepts/nix-expression-builds/), you don’t need to start with a base image, and you’re building _only_ required dependencies into the container runtime.
+
+You’re also defining the container _declaratively_, specifying the configuration of both the runtime environment and the container image in a single Nix expression. Nix handles dependency resolution and produces a fully specified OCI-compliant image, building everything into a single monolithic layer.
+
+The final step involves leveraging `docker build` or `podman build` to package the assembled `chroot` into an OCI-compliant image. This workflow uses these tools to do just one thing: copy the `chroot` into the OCI image. This eliminates the imperative build logic typically used in Dockerfiles and keeps the entire build process simple and deterministic. All critical steps are handled declaratively by Nix.
+
+What does this look like? The scripting logic in the code block below builds a minimal Docker image by:
+
+-  Creating a Nix profile with required packages;
+-  Copying its store paths into `root-store`; and
+-  Manually setting up basic system files like `passwd`, `group`, and `nix.conf`.
+
+This script then defines a _pro forma_ Dockerfile using an empty base image (`FROM scratch`); copies `root-store` as the container’s root filesystem; configures a non-root user (`uid 1000`); and sets Bash as the entrypoint. Basically, the minimal Dockerfile and `docker build` are used only to package the Nix-defined `root-store` into an OCI image, with no imperative build steps beyond copying the `root-store` filesystem.
+
+First, the script used to define the Dockerfile:
+
+
+```
+==> Dockerfile <==
+FROM scratch # all the best
+
+# Copy over our chroot into the container
+COPY --chown=1000:1000 root-store/ /
+
+# Set up some env stuff
+USER 1000
+ENV NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt # required for https network calls
+WORKDIR /home/user
+
+# This can be anything you desire
+ENTRYPOINT ["/bin/bash"]
+```
+
+Next, the script used to prepare a Nix profile:
+
+```
+# Create a nix profile containing stuff you need
+nix profile install nixpkgs#{bashInteractive,coreutils,cacert} --profile ./profile
+
+# Create a root-store for copying into container
+# ./profile can be ANY STORE PATH, even a flox env or a single package
+nix copy --to $PWD/root-store ./profile   
+cp -r profile/* root-store/
+chmod +w root-store/etc
+echo user:!:1000: > root-store/etc/group
+echo user:!:1000:1000::/home/user:/bin/bash > root-store/etc/passwd #support non-root user
+mkdir root-store/{tmp,etc/nix}
+
+
+# Build the container
+docker build -t foo .
+```
+
+This method of copying a fully assembled Nix store path into the container also hints at an alternative approach: bind-mounting the necessary `/nix/store` paths into the container from the host, a volume, or another container. This approach minimizes the container’s own footprint while avoiding duplication of dependencies, allowing multiple containers—or the host and containers—to share the same store paths.
+
+
+
+## Method 2: Create a Nix flake and leverage dockerTools
+
+A second option is to use `buildLayeredImage` from the Nixpkgs [dockerTools library](https://ryantm.github.io/nixpkgs/builders/images/dockertools/) to construct OCI images declaratively with Nix.
+
+Instead of creating an imperative Dockerfile with `RUN` commands, this uses a Nix flake to define both the contents of the container (its dependencies) and its structure (its layers). Other variants, such as `streamLayeredImage`, can generate layers incrementally during the build process, This reduces intermediate storage use and avoids the need to first materialize the full image in the Nix store. **Note**: The flake below is specifically written for `buildLayeredImage` and would need adjustments to work with `streamLayeredImage`.
+
+Unlike the first method outlined above, **Method 2** doesn’t produce a monolithic container image with all dependencies bundled into a single layer. Rather, each dependency gets its own layer. Since Docker caches image layers and reuses them when it builds new images, structuring the image this way enables it to detect and reuse unchanged dependencies _at the level of individual Nix store paths_.
+
+This has at least four benefits:
+
+-  **Permits build reuse when images share dependencies**. Each dependency gets its own layer; 
+-  **Speeds up image rebuilds when dependencies change**. Rebuild the layer, not the whole image.
+-  **Keeps the build process fully declarative.** The Nix closure defines the dependencies used to build the image;
+-  **Uses Nix as a build tool.** This guarantees builds are deterministic.
+
+This method doesn’t rely on using a Dockerfile and Docker’s [BuildKit](https://docs.docker.com/build/buildkit/) backend. Instead, you’re using the Nix derivation generated by `buildLayeredImage` to construct a container image—without invoking Docker or Podman.
+
+The flake below defines a configuration that `nix build` uses to:
+
+-  Build an OCI image named `teh-awesome-container:v1` with `dockerTools.buildLayeredImage`;
+-  Include dependencies (`hello`, `perl`, `python3`) along with the contents of the current directory;
+-  Set `hello` as the container’s entrypoint.
+
+
+```
+{
+
+inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+outputs = _: {
+  packages = builtins.mapAttrs (system: pkgs: rec {
+
+    default = pkgs.dockerTools.buildLayeredImage {
+      name = "teh-awesome-container";
+      tag = "v1";
+
+      contents = pkgs.buildEnv {
+        name = "env1";
+        paths = [
+          pkgs.hello
+          pkgs.perl
+          pkgs.python3
+          ./.            # COPY the current dir in
+        ];
+      };
+      config = { # OCI Runtime configuration goes here:
+        Cmd = ["hello"];
+      };
+
+    };
+  }) _.nixpkgs.legacyPackages;
+  };
+}
+```
+
+The final steps would involve using `docker load` or `podman load` to import the resulting image into Docker or Podman respectively, or using `docker push` or `podman push` to push to a container registry.
+
+
+
+
+## Flox, the simplest way to use Nix in container workflows
+
+Most teams familiar with Nix will probably opt for **Method #2**. This gives them a way of using Nix with their existing container-based workflows—and vice-versa—and guarantees that the build process itself is deterministic and fully reproducible.
+
+However, there is another method I’d like to describe: using Flox to build an OCI container image.
+
+It involves:
+
+-  **Initializing and defining a Flox environment**. Run **[flox init](https://flox.dev/docs/reference/command-reference/flox-init/?h=flox+init)** to create an environment, use commands like **[flox install &lt;package_name&gt;](https://flox.dev/docs/reference/command-reference/flox-install/?h=flox+install)** to imperatively install software from Nixpkgs. Or define runtime software and required dependencies declaratively using TOML in the Flox environment's manifest.
+
+-  **Configuring settings, services, and available features**. The Flox [environment manifest](https://flox.dev/docs/reference/command-reference/manifest.toml/?h=manifest.toml) has separate sections for defining environment variables (**`[vars]`**), services (**`[services]`**), setup and teardown tasks (**`[hook]`**), and in-environment features and functions (**`[profile]`**). Teams define variables, services, actions, and functions using a combination of TOML and Bash shell scripting logic.
+
+Running **[flox containerize](https://flox.dev/docs/reference/command-reference/flox-containerize/?h=flox+contain)**  inside a Flox environment produces a tarball (with the **`--file`** option) _or_ writes to `stdout`, piping the image to `docker load` or `podman load`. By default, **`flox containerize`** loads the image into whatever container runtime it finds in `PATH` (e.g., Docker or Podman), or writes to `./<environment_name>-container.tar` if no runtime is available.
+
+In the end, this as simple as:
+
+```
+flox init
+flox install hello perl python3
+flox containerize
+```
+
+With this approach, you get Nix's build guarantees but don't have to know how to write Nix expressions or flakes. It's a simple way of encapsulating a runtime into a container so it builds deterministically.
+
+If you're curious about what you've read here, want to learn more about Flox, or want to share your own preferred methods for constructing containers, drop into our [community Discourse](https://discourse.flox.dev/) forum or join our [community Slack](https://go.flox.dev/slack). We'd love to chat with you.
+
+## FAQs about Nix and containerization
+
+**How do Nix and traditional container tools differ in their approach to software delivery?**
+
+Nix functions as a package manager and build system. It creates fully reproducible and deterministic software builds with all dependencies explicitly tracked in a "closure." Traditional container tools like Docker, on the other hand, do not inherently guarantee the reproducibility of the build process itself. Their instructions can fetch mutable external resources. Nix excels at preparing pristine, minimal software "packages," while containers specialize in transporting and running these packages.
+
+**What specific benefits does Nix bring to the creation of OCI container images?**
+
+Thanks to its declarative nature and checksum-verified inputs, Nix can guarantee reproducibility and determinism. "Perfect container images" of the smallest possible size can then be created. Nix precisely knows all runtime dependencies. 
+Nix also facilitates extensive dependency sharing not only between containers but also with any machine using Nix. In doing so, it reduces duplication and speeds up development.
+
+**How do the various methods for integrating Nix with container workflows function?**
+
+Here are three ways to approach the integration:
+Define a runtime environment with Nix. Assemble its dependencies into a chroot-like structure then use container tools like Docker solely to package this pre-assembled filesystem into an OCI image. 
+Declaratively construct OCI images with Nixpkgs' dockerTools.buildLayeredImage. Each dependency then occupies its own layer, enabling efficient caching and rebuilds without traditional Dockerfiles. 
+The simplest way is to use Flox. It automates the process, allowing users to define and containerize Nix environments without writing complex Nix expressions.
+
+**In what ways do Nix and containers achieve a "better together" synergy for developers?**
+
+They each address different stages of the software lifecycle. Nix ensures that software builds are fully specified and reproducible, eliminating common sources of variability like mutable base images or non-deterministic build metadata. Containers then provide an isolated, portable execution environment, making deployment reliable across various infrastructure platforms. We recommend using Nix to construct container images. This way, developers gain the confidence of deterministic builds combined with the convenience and scalability of container-based distribution and orchestration.

@@ -1,0 +1,271 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Flox",
+  "appearance": {
+    "default": "light"
+  },
+  "seo": {
+    "metatags": {
+      "canonical": "https://flox.dev/docs"
+    }
+  },
+  "colors": {
+    "primary": "#8D45FF",
+    "light": "#B080FF",
+    "dark": "#6F2BFF"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Geist"
+    },
+    "body": {
+      "family": "Geist"
+    }
+  },
+  "favicon": "/favicon.ico",
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "index"
+            ]
+          },
+          {
+            "group": "Install Flox",
+            "pages": [
+              "install-flox/install",
+              "install-flox/uninstall",
+              "install-flox/troubleshooting",
+              "install-flox/ide-extensions"
+            ]
+          },
+          {
+            "group": "Quickstart",
+            "pages": [
+              "flox-5-minutes"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "tutorials/creating-environments",
+              "tutorials/default-environment",
+              "tutorials/sharing-environments",
+              "tutorials/layering-multiple-environments",
+              "tutorials/customizing-environments",
+              "tutorials/multi-arch-environments",
+              "tutorials/build-and-publish",
+              "tutorials/overriding-packages",
+              "tutorials/ci-cd",
+              "tutorials/composition",
+              "tutorials/package-outputs",
+              "tutorials/cuda",
+              "tutorials/flox-and-systemd",
+              "tutorials/installing-from-repo",
+              {
+                "group": "Migration guides",
+                "pages": [
+                  "tutorials/migrations/homebrew",
+                  "tutorials/migrations/nvm"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Imageless Kubernetes",
+            "pages": [
+              "imageless-kubernetes/intro",
+              "imageless-kubernetes/tech",
+              {
+                "group": "Installation",
+                "pages": [
+                  "imageless-kubernetes/install/eks",
+                  "imageless-kubernetes/install/self-managed",
+                  "imageless-kubernetes/install/troubleshooting",
+                  "imageless-kubernetes/install/upgrading",
+                  "imageless-kubernetes/install/uninstall"
+                ]
+              },
+              {
+                "group": "Examples",
+                "pages": [
+                  "imageless-kubernetes/examples/gitlab-ci",
+                  "imageless-kubernetes/examples/kind-demo"
+                ]
+              },
+              "imageless-kubernetes/config"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/environments",
+              "concepts/activation",
+              "concepts/auto-activation",
+              "concepts/compatibility",
+              "concepts/floxhub",
+              "concepts/floxhub-environments",
+              "concepts/generations",
+              "concepts/packages-and-catalog",
+              "concepts/package-groups",
+              "concepts/base-catalog",
+              "concepts/services",
+              "concepts/composition",
+              "concepts/organizations",
+              "concepts/builds",
+              "concepts/manifest-builds",
+              "concepts/nix-expression-builds",
+              "concepts/catalog-imports",
+              "concepts/publishing",
+              "concepts/secrets-management",
+              "concepts/flox-vs-containers"
+            ]
+          },
+          {
+            "group": "Languages",
+            "pages": [
+              "languages/c",
+              "languages/go",
+              "languages/jvm",
+              "languages/nodejs",
+              "languages/python",
+              "languages/ruby",
+              "languages/rust"
+            ]
+          },
+          {
+            "group": "Customer",
+            "pages": [
+              "customer/catalog-store",
+              "customer/known-issues",
+              "customer/signing-keys"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "man/flox",
+              "man/manifest.toml",
+              "man/nix-builds.toml"
+            ]
+          },
+          {
+            "group": "Setup",
+            "pages": [
+              "man/flox-init",
+              "man/flox-auth",
+              "man/flox-config"
+            ]
+          },
+          {
+            "group": "Environments",
+            "pages": [
+              "man/flox-activate",
+              "man/flox-edit",
+              "man/flox-delete",
+              "man/flox-envs"
+            ]
+          },
+          {
+            "group": "Packages",
+            "pages": [
+              "man/flox-search",
+              "man/flox-show",
+              "man/flox-install",
+              "man/flox-uninstall",
+              "man/flox-upgrade",
+              "man/flox-list"
+            ]
+          },
+          {
+            "group": "Sharing",
+            "pages": [
+              "man/flox-push",
+              "man/flox-pull"
+            ]
+          },
+          {
+            "group": "Build & Publish",
+            "pages": [
+              "man/flox-build",
+              "man/flox-build-clean",
+              "man/flox-build-import-nixpkgs",
+              "man/flox-build-update-catalogs",
+              "man/flox-containerize",
+              "man/flox-publish"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "man/flox-services-start",
+              "man/flox-services-stop",
+              "man/flox-services-restart",
+              "man/flox-services-status",
+              "man/flox-services-logs"
+            ]
+          },
+          {
+            "group": "Generations",
+            "pages": [
+              "man/flox-generations-list",
+              "man/flox-generations-history",
+              "man/flox-generations-rollback",
+              "man/flox-generations-switch"
+            ]
+          },
+          {
+            "group": "Other",
+            "pages": [
+              "man/flox-gc",
+              "man/flox-include-upgrade"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Go to FloxHub",
+      "href": "https://hub.flox.dev"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/flox/flox",
+      "x": "https://twitter.com/floxdevelopment",
+      "linkedin": "https://www.linkedin.com/company/floxdev/",
+      "youtube": "https://www.youtube.com/@floxdev",
+      "slack": "https://go.flox.dev/slack"
+    }
+  },
+  "api": {
+    "playground": {
+      "proxy": false
+    }
+  }
+}

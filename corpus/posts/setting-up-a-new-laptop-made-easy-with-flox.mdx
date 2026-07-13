@@ -1,0 +1,244 @@
+---
+title: 'Setting Up a New Laptop Made Easy with Flox'
+altTitle: 'Setting Up a New Laptop Made Easy with Flox'
+description: 'With Flox, you can easily replicate your preferred apps, tools, settings, and workflows across all your devices—including that brand new M4 MacBook Pro you’re getting for the holidays!'
+metaDescription: 'With Flox, you can easily replicate your preferred apps, tools, settings, and workflows across all your devices—including that brand new M4 MacBook Pro you’re getting for the holidays!'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 23 December 2024
+thumbnail: '/images/blog/new-laptop.webp'
+orderBy: 20241223
+---
+
+So thanks to Santa, [Hannukah Harry](https://en.wikipedia.org/wiki/Hanukkah_Harry), or a loved one’s largesse, you got a new laptop for Christmas—a fully kitted out 16.2” M4 MacBook Pro with 64GB of memory and 4TB of NVME storage. Suh-weet!
+
+You absolutely want to build software with it, which means setting up your local dev environment. Easier said than done! Experience has taught you that setting up a local dev environment is a Sisyphean enterprise: things always break, so you find yourself repeating the same motions over and over again.
+
+This time, however, you’ve got Flox. And that makes all the difference.
+
+With Flox, you use declarative methods to define all of the software, variables, services, functions, aliases, wrappers, and other features you want to make available in your environment. This means you can replicate your preferred apps, tools, settings, and workflows across _all_ your devices, making it simple to set up the same `$HOME` environment on a new MacBook as on your existing devices. Just run:
+
+```
+flox activate -r <username>/default
+```
+
+Want to learn more? This article explores how Flox makes onboarding onto a new device … effortless.
+
+
+## Zat you, Santa Claus?
+
+Your loved one did their best to fool you, putting your MacBook Pro inside a Uniqlo box and nesting _that_ inside a Harry & David box. But when you ran your battery of Holiday Gift Assessment (HGA) unit tests against each of your presents, you just knew. Your lift-and-shake test, especially, was a dead giveaway. 
+
+Since then, you’ve been thinking about what you’re going to do with it. What you _haven’t_ been thinking about is which software you’re going to install on it. Because with Flox, you’ve got that covered.
+
+After you’ve unwrapped your new M4 MacBook Pro on Christmas, Hannukah, or Festivus morning, you let it charge for a bit, then power it up. After configuring your user, connecting to WiFi, accepting Apple’s EULA, and performing other bootstrapping actions, you’re finally ready to install and set up your userland.
+
+The first first thing you do is [download Flox](https://flox.dev/docs/install-flox/). After you’ve installed it, you fire up Terminal, navigate to your `$HOME` directory (`cd ~`), and type the following...
+
+```
+flox pull --copy <username>/default
+```
+
+This pulls a copy of your **`default`** profile from your FloxHub account. Now you run:
+
+```
+flox activate
+```
+
+...which [activates](https://flox.dev/docs/concepts/activation/) **`default`** and puts you into an isolated subshell on your local system. The first time you activate this environment, Flox downloads the packages you’ve defined in its software manifest and installs them in the local Nix store (`/nix`). Because you’ve defined dozens of packages, this takes a few minutes, during which time you pop into the kitchen to play with the new, needlessly complicated [siphon coffee maker](https://en.wikipedia.org/wiki/Vacuum_coffee_maker) your partner gifted you last night.
+
+When you come back a few minutes later, steaming mug in-hand, Flox is finished. And so are you. Your entire userland is set up on your new MacBook. There’s almost literally nothing else for you to do.
+
+
+## Define once, pull and run anywhere
+
+But what’s actually _installed_ in your userland? You type `flox edit`, which opens up your software manifest in `vim`, your preferred editor. You see dozens upon dozens of packages listed, including:
+
+```
+[install]
+bash.pkg-path = "bash"
+bash.version = "5.2p32"
+bash.systems = ["x86_64-darwin", “aarch64-darwin”]
+bash.pkg-group = “darwin-userland”
+go.pkg-path = "go"
+go.pkg-group = “programming”
+python311.pkg-path = "python311"
+pip.pkg-path = "python311Packages.pip"
+pip.pkg-group = “programming”
+boto3.pkg-path = "python311Packages.boto3"
+boto3.pkg-group = “programming”
+python311.pkg-group = “programming”
+tmux.pkg-path = "tmux"
+tmux.pkg-group = “darwin-userland”
+coreutils.pkg-path = "coreutils"
+lazygit.pkg-path = "lazygit"
+gitFull.pkg-path = "gitFull"
+gitFull.pkg-path = “git”
+gitFull.pkg-group = “programming”
+github-cli.pkg-path = "github-cli"
+github-cli.pkg-group = “git”
+ngrok.pkg-path = "ngrok"
+wget.pkg-path = "wget"
+curl.pkg-path = “curl”
+gnused.pkg-path = "gnused"
+gnumake.pkg-path = "gnumake"
+openssh.pkg-path = "openssh"
+openssh.systems = ["x86_64-darwin", "aarch64-darwin"]
+openssh.pkg-group = “darwin-userland”
+tailscale.pkg-path = "tailscale"
+tailscale.pkg-group = “darwin-userland”
+```
+
+That’s right. You’ve got your essential Bash, Git, Python, and Go userland for software development. You’ve defined system-specific installation requirements for Bash and OpenSSH because you specifically need the Flox Catalog’s versions of these packages on macOS, but don’t need them on Linux, which you use at work. (The default versions that ship with macOS are too old and/or limited for your requirements.)
+
+But you also get your essential GUI userland tools from Flox Catalog, too...
+
+```
+signal-desktop.pkg-path = "signal-desktop"
+signal-desktop.pkg-group = "messaging"
+slack.pkg-path = "slack"
+slack.pkg-group = “messaging”
+whatsapp-for-mac.pkg-path = "whatsapp-for-mac"
+whatsapp-for-mac.systems = ["x86_64-darwin", "aarch64-darwin"]
+whatsapp-for-mac.pkg-group = "messaging"
+libreoffice.pkg-path = "libreoffice"
+libreoffice.pkg-group = "productivity"
+audacity.pkg-path = "audacity"
+audacity.pkg-group = "audio"
+blender.pkg-path = "blender"
+blender.pkg-group = "3D"
+blender.systems = ["x86_64-linux"]
+vlc.pkg-path = "vlc"
+vlc.systems = ["aarch64-darwin", "x86_64-darwin"]
+google-chrome.pkg-path = "google-chrome"
+google-chrome.systems = ["aarch64-darwin"]
+google-chrome.pkg-group = “browsers”
+firefox.pkg-path = "firefox"
+firefox.systems = ["aarch64-darwin", "x86_64-darwin"]
+firefox.pkg-group = “browsers”
+iterm2.pkg-path = "iterm2"
+iterm2.systems = ["aarch64-darwin", "x86_64-darwin"]
+vscode.pkg-path = "vscode"
+```
+
+...along with your container runtime environment, Docker- and Kubernetes (K8s)-specific tooling, and so on.
+
+Colima, for example, gives you a way to run containers on macOS without installing a resource-intensive desktop runtime, while you use [KIND](https://github.com/kubernetes-sigs/kind)—or “Kubernetes in Docker”—to run and test your K8s deployments locally.
+
+```
+localstack.pkg-path = "localstack"
+localstack.pkg-group = “containerd”
+colima.pkg-path = "colima"
+colima.pkg-group = “containerd”
+docker.pkg-path = "docker-client"
+docker.pkg-group = “containerd”
+kubectl.pkg-path = "kubectl"
+kubectl.pkg-group = “kubernetes”
+kind.pkg-path = "kind"
+kind.pkg-group = “kubernetes”
+awscli2.pkg-path = "awscli2"
+awscli2.pkg-group = “aws”
+trino-cli.pkg-path = "trino-cli"
+```
+
+This is the same userland you run on your ancient x86-64 MacBook Pro, and on the Dell Precision Linux laptop workstation you use at work. Each system runs platform-optimized versions of these packages: your x86-64 Linux laptop gets x86-64 Linux packages, your trusty old x86-64 MacBook Pro gets x86-64 Darwin packages, and your M4 MacBook Pro gets ARM packages.
+
+_Every time you use Flox, you’re reminded of how neat it is_. And you’re reminded, too, that this just scratches the surface. Because in addition to being a cross-platform, cross-language package manager par excellence, Flox is also a cross-platform, cross-language environment manager with superpowers.
+
+
+## A turn-key userland you can take anywhere
+
+In other words, you can use Flox to _configure_ both your userland and dev environment. For example, your **`default`** [Flox environment’s manifest](https://flox.dev/docs/reference/command-reference/manifest.toml) doubles as a configuration artifact, a place where you can define environment variables, services, setup and teardown automations, built in functions, aliases, wrappers, and other features. By taking advantage of the capabilities and affordances built into Flox and/or devolving from Nix, you’ve been able to tune your **`default`** environment so it precisely aligns with your workflow.
+
+You want to double-check a few things, so you type `flox edit` to view **`default`**’s configuration.
+
+First, under **`[vars]`**, you see the environment variables you’ve created for secrets management:
+
+```
+GITHUB_VAULT="GitHubSecretsVault"
+AWS_VAULT="AWSSecretsVault"
+DATABRICKS_VAULT="DatabricksSecretsVault"
+GITHUB_TOKEN_FIELD="PersonalAccessToken"
+GITHUB_USERNAME_FIELD="Username"
+AWS_ACCESS_KEY_ID_FIELD="AccessKeyID"
+AWS_SECRET_ACCESS_KEY_FIELD="SecretAccessKey"
+AWS_SESSION_TOKEN_FIELD="SessionToken"
+DATABRICKS_TOKEN_FIELD="APIToken"
+DATABRICKS_HOST_FIELD="HostURL"
+```
+
+Next, under **`[services.colima]`**, you see the following:
+
+```
+colima.command = "colima start"
+colima.is-daemon = true
+colima.shutdown.command = "colima stop"
+```
+
+This is TOML that defines the [Colima](https://flox.dev/blog/no-runtime-required-get-containers-on-macos-and-windows-with-colima-and-flox/) service for Flox’s built-in service management capabilities. Respectively, the **`colima.command`** and **`colima.shutdown.command`** start and stop this service.
+
+In the **[profile](https://flox.dev/docs/concepts/manifest/?h=profile#profile-section)** section of your **`default`** environment’s manifest, you've created an alias for `docker` that first checks whether the `colima` service is running before executing `docker` commands. You _could_ start any services defined in **`default`** automatically with `flox activate -s`, but you don’t always want a container runtime running. That’s one thing you appreciate about your Floxified Colima solution.
+
+```
+alias docker='[ -z "$IS_COLIMA_RUNNING" ] && flox services start colima && export IS_COLIMA_RUNNING=true; docker "$@"'
+```
+
+You have a similar configuration for [LocalStack](https://flox.dev/blog/building-and-debugging-aws-workflows-locally-with-flox-localstack-and-colima/), which you use to build and test AWS deployments locally.
+
+And because LocalStack needs a container runtime to work, you’ve also created an alias for `localstack` that checks to make sure both `IS_COLIMA_RUNNING=true` _and_ `IS_LOCALSTACK_RUNNING=true` before trying to run that command or the `awslocal` wrapper for `aws`. 
+
+```
+alias localstack='[ -z "$IS_COLIMA_RUNNING" ] && flox services start colima && export IS_COLIMA_RUNNING=true; [ -z "$IS_LOCALSTACK_RUNNING" ] && flox services start localstack && export IS_LOCALSTACK_RUNNING=true; localstack "$@"'
+
+alias awslocal='[ -z "$IS_COLIMA_RUNNING" ] && flox services start colima && export IS_COLIMA_RUNNING=true; [ -z "$IS_LOCALSTACK_RUNNING" ] && flox services start localstack && export IS_LOCALSTACK_RUNNING=true; awslocal "$@"'
+```
+
+This way, your local container runtime runs only when you actually need it. Just the way you like it.
+
+
+## All I want for Christmas is an end to restrictive add-on software licenses
+
+You’re basically done, although you do have to reboot your system to apply a macOS update.
+
+After it boots back up, you decide to do a test run, `git clone`-ing a project repo you’ve been working on:
+
+```
+git clone https://github.com/YamadaHanako/fractal
+```
+
+That's when you're presented with the following pop-up message:
+
+![](/images/blog/boo-hiss-no-good.png)
+
+D’oh! You forgot to **`flox activate`** your environment after rebooting! That’s why you’re being prompted to install Apple’s command-line developer tools. But with Flox, **you don’t need these** and you don’t have to install them, so you don’t need to accept Apple’s license. _On the other hand_, you obviously don’t want to type `flox activate` every time you go to use `git` or other tools; you want this to happen automatically, transparently. No problem! On your other systems, you’ve configured your **`default`** environment to activate automatically, so you go ahead and do that on your M4 MacBook Pro. Adding the line
+
+```
+eval "$(flox activate -m run)"
+```
+
+to both your `.zshrc` and `.zprofile` dotfiles activates **`default`** automatically in all login and interactive shell sessions. 
+
+And that’s basically it. In less than 15 minutes, your new MacBook Pro is mostly configured and ready to use. The coffee you brewed using your delightfully overcomplicated siphon coffee maker is still piping hot. You take a sip: "Needs just a touch of eggnog," you decide.
+
+
+## Software development will be magic again
+
+Flox makes it a cinch to set up a local dev environment on your new MacBook Pro. And while it probably can’t help you configure your macOS settings, or migrate your data from iCloud, or connect to your WiFi network, Flox _can_ radically simplify the process of installing and configuring the messaging, productivity, software development, and other packages you don’t already get from Apple, or download from the AppStore.
+
+With Flox, setting up your new laptop is as simple as
+
+```
+flox activate -s -r <your-floxhub-username>/default
+```
+
+I showed you this command in the introduction, but I didn’t explain what it does. It taps into one of Flox’s killer features: **remote activation**. Basically, you’re:
+
+-  Creating a _temporary_ local copy of the remote Flox environment **`default`**;
+-  Remotely activating **`default`**, using the **`-r`** switch, for “remote;” and
+-  Starting any defined services, using the **`-s`** switch, for “services.”
+
+This puts you into a Flox subshell. Best of all, by pulling and remotely activating **`default`** from FloxHub, you can be certain you’re getting the latest version of that environment. You can manage **`default`** and your other FloxHub environments in one place, updating and versioning them accordingly.
+
+[Download Flox](https://www.flox.dev/get) and try it for yourself. Discover how it transforms your workflow!

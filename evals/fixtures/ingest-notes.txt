@@ -1,0 +1,3 @@
+The ingest stage scans supported files recursively, normalizes text, records source metadata, and writes deterministic JSONL artifacts. Stable content identifiers make reruns idempotent when source content does not change.
+
+The index stage embeds chunks and stores chunk hashes so unchanged chunks do not need to be embedded again. The brief stage should summarize evidence extractively and cite chunk identifiers that exist in chunks.jsonl.

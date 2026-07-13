@@ -1,0 +1,64 @@
+schema-version = "1.13.0"
+
+## ai-ingest component — parser CLIs + Python parsing/normalization/chunking
+## libs. The Python libs share pkg-group "ingest-py" so they co-resolve on
+## one catalog page (isolated from the base/embeddings pages), matching the
+## coherence pattern used elsewhere in the stack.
+## (webvtt-py is not in the catalog — omitted; SRT is covered by `srt`.)
+[install]
+# --- parser CLIs (toplevel group) ---
+poppler-utils.pkg-path = "poppler-utils"   # pdftotext, pdfinfo
+mupdf.pkg-path = "mupdf"                    # mutool
+pandoc.pkg-path = "pandoc"
+html2text.pkg-path = "html2text"
+yt-dlp.pkg-path = "yt-dlp"
+dos2unix.pkg-path = "dos2unix"
+
+# --- Python: PDF parser ---
+pymupdf.pkg-path = "python313Packages.pymupdf"
+pymupdf.pkg-group = "ingest-py"
+pdfplumber.pkg-path = "python313Packages.pdfplumber"
+pdfplumber.version = "0.11.9"   # 0.11.7 pulls a pandas-stubs build with failing tests
+pdfplumber.pkg-group = "ingest-py"
+# --- Python: Markdown parser ---
+markdown.pkg-path = "python313Packages.markdown"
+markdown.pkg-group = "ingest-py"
+markdown-it-py.pkg-path = "python313Packages.markdown-it-py"
+markdown-it-py.pkg-group = "ingest-py"
+# --- Python: HTML parser ---
+beautifulsoup4.pkg-path = "python313Packages.beautifulsoup4"
+beautifulsoup4.pkg-group = "ingest-py"
+lxml.pkg-path = "python313Packages.lxml"
+lxml.pkg-group = "ingest-py"
+readability-lxml.pkg-path = "python313Packages.readability-lxml"
+readability-lxml.pkg-group = "ingest-py"
+# --- Python: transcript parser ---
+srt.pkg-path = "python313Packages.srt"
+srt.pkg-group = "ingest-py"
+# --- Python: document normalization ---
+unstructured.pkg-path = "python313Packages.unstructured"
+unstructured.pkg-group = "ingest-py"
+ftfy.pkg-path = "python313Packages.ftfy"
+ftfy.pkg-group = "ingest-py"
+# --- Python: chunking ---
+langchain-text-splitters.pkg-path = "python313Packages.langchain-text-splitters"
+langchain-text-splitters.pkg-group = "ingest-py"
+tiktoken.pkg-path = "python313Packages.tiktoken"
+tiktoken.pkg-group = "ingest-py"
+semchunk.pkg-path = "python313Packages.semchunk"
+semchunk.pkg-group = "ingest-py"
+
+[vars]
+
+[hook]
+
+[profile]
+
+[services]
+
+[include]
+
+[build]
+
+[options]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]

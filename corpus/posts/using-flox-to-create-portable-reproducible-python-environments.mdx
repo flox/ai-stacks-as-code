@@ -1,0 +1,499 @@
+---
+title: 'Using Flox to Create Portable, Reproducible Python Environments'
+altTitle: 'Using Flox to Create Portable, Reproducible Python Environments'
+description: 'Flox makes it trivially easy to create and share portable, reproducible Python development environments using simple declarative methods.'
+metaDescription: 'Flox makes it trivially easy to create and share portable, reproducible Python development environments using simple declarative methods.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 10 September 2024
+thumbnail: '/images/blog/jars-with-snakes.webp'
+orderBy: 20240910
+---
+
+Flox makes it easy to create portable, reproducible Python environments that run the same way on Linux, macOS, and Windows (with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/about#what-is-wsl-2)), across both ARM and x86 architectures.
+
+If you've got an existing Python project with a `requirements.txt` or `pyproject.toml` file, it's just as easy to get it working in a Flox environment. In many cases, you don't have to do any lifting at all, [because Flox automatically sets up your Python dependencies for you](https://flox.dev/docs/flox-5-minutes/).
+
+This article provides a quick-start overview of how to create Flox environments for Python projects, and explores how Flox integrates with existing Python projects. Ready to dig in?
+
+## How to Kickstart a New Python Project with Flox
+
+So you're kicking off a new Python analytics project and you want to use Flox.
+
+Smart choice! You can feel confident the Flox Python environments you create on your Linux system will work on the macOS and Windows (with WSL2) systems your teammates use to build locally, along with the VMs and containers your organization runs in CI and production.
+
+Getting started with Flox is super simple. First, create and/or `cd` into your project directory.
+
+```
+daedalus@askesis:~/dev$ mkdir ./c-is-for-cookie && cd ./c-is-for-cookie
+```
+
+Next, initialize your Flox environment:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox init
+✨ Created environment 'c-is-for-cookie' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+```
+
+Each Flox environment is _tabula rasa_, ready to be populated with packages, or configured with environment variables, setup and teardown logic, automated actions, and built-in functions.
+
+### Installing Python and packages via Flox
+
+To start things off, we need Python—version Python 3.11.x will do. So let's see what Flox has:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox search python311
+python311      High-level dynamically-typed programming language
+python311Full  High-level dynamically-typed programming language
+
+Use 'flox show <package>' to see available versions
+```
+
+Out of curiosity, let's `flox show` which versions of `python311Full` are available via the Flox Catalog:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox show python311Full
+python311Full - High-level dynamically-typed programming language
+    python311Full@python3-3.11.9
+    python311Full@python3-3.11.8
+    python311Full@python3-3.11.7
+    python311Full@python3-3.11.6
+    python311Full@python3-3.11.5
+    python311Full@python3-3.11.4
+    python311Full@python3-3.11.3
+    python311Full@python3-3.11.2
+    python311Full@python3-3.11.1
+```
+
+It looks like everything ever! We'll select `python311Full` and let Flox choose a version for us:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox install python311Full
+✅ 'python311Full' installed to environment 'c-is-for-cookie'
+daedalus@askesis:~/dev/c-is-for-cookie$ flox list
+python311Full: python311Full (python3-3.11.9)
+```
+
+What's next? You can't do anything Pythonic involving data without installing Pandas and NumPy. You can easily get these from PyPi with `pip`, but—wait—does the Flox Catalog have Python libraries, too?
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox search numpy
+[...]
+python311Packages.numpy    Scientific tools for Python
+[...]
+```
+
+Neat: the Flox Catalog does in fact have Python3 libraries, as well! Let's go ahead and trust that the Flox packages for NumPy, Pandas, Matplotlib, and other core libraries use the same naming convention:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox install python311Packages.numpy python311Packages.pandas python311Packages.matplotlib python311Packages.seaborn python311Packages.scipy python311Packages.plotly
+⠧ Installing packages to environment 'c-is-for-cookie'...
+```
+
+Because we're installing each of these libraries for the first time, Flox has to download and build them, which takes a little bit of time. However, should we need them for a _new_ Python 3.11 environment, they can be installed instantly. (“Installing” them just involves creating symlinks to where they're cached in Flox's local store, so installation truly is instantaneous.)
+
+Once Flox is finished, we see the following:
+
+```
+✅ 'numpy' installed to environment 'c-is-for-cookie'
+✅ 'pandas' installed to environment 'c-is-for-cookie'
+✅ 'matplotlib' installed to environment 'c-is-for-cookie'
+✅ 'seaborn' installed to environment 'c-is-for-cookie'
+✅ 'scipy' installed to environment 'c-is-for-cookie'
+✅ 'plotly' installed to environment 'c-is-for-cookie'
+```
+
+Oops! We forgot to install [`poetry`](https://github.com/python-poetry/poetry), which we use to manage dependencies across our Python software projects. Does the Flox Catalog have that, too?
+
+```
+flox [c-is-for-cookie] 1 daedalus@askesis:~/dev/c-is-for-cookie$ flox install poetry
+✅ 'poetry' installed to environment 'c-is-for-cookie'
+```
+
+Yes it does! Let's `flox list` our environment's contents to see just what is installed:
+
+```
+matplotlib: python311Packages.matplotlib (python3.11-matplotlib-3.9.1)
+numpy: python311Packages.numpy (python3.11-numpy-1.26.4)
+pandas: python311Packages.pandas (python3.11-pandas-2.2.2)
+plotly: python311Packages.plotly (python3.11-plotly-5.23.0)
+poetry: poetry (1.8.3)
+python311Full: python311Full (python3-3.11.9)
+scipy: python311Packages.scipy (python3.11-scipy-1.14.0)
+seaborn: python311Packages.seaborn (python3.11-seaborn-0.13.2)
+```
+### Activating your Python environment with Flox
+
+Okay: _now_ we're ready to fire up our environment so we can use it. If you’ve ever worked with a Python virtual environment, this process should seem at once simple and intuitive:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox activate
+✅ You are now using the environment 'c-is-for-cookie'.
+To stop using this environment, type 'exit'
+
+flox [c-is-for-cookie] daedalus@askesis:~/dev/c-is-for-cookie$
+```
+
+We know we’re in a Flox environment because our prompt changed. In the example above, the string `flox [<name-of-environment]` is now prepended to the username and path. Fear not: if you’re at all particular about your prompt, [you can change this](https://flox.dev/docs/reference/command-reference/flox-config/?h=prompt#supported-configuration-options). For instance, if I add the following line to the `[vars]` section of my Flox environment’s configuration file, [`manifest.toml`](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments), my prompt stays the same:
+
+```
+[vars]
+export FLOX_PROMPT_ENVIRONMENTS=""
+```
+
+This is just a taste. [The Flox Catalog has more than 17,000 Python packages](https://flox.dev/docs/concepts/packages-and-catalog/) and hundreds of thousands of Python package-version combinations, so odds are you'll be able to find just what you need. You can always rely on `pip` to install what's missing, but when you get Python packages from the Flox Catalog and you use Flox to declaratively version and manage your Python dev environments, you're getting everything you need from _one place_.
+
+You get strict deterministic safeguards, too. When a new teammate pulls your Python environment on their system three, six, or 12 months from now, they'll get _exactly the same bits_.
+
+[Under its covers, Flox is powered by Nix](https://flox.dev/blog/its-time-to-bring-nix-to-work/), the proven open source package and environment manager. [Like Nix, Flox uses cryptographic hashes for all build dependencies](https://flox.dev/blog/#nix-but-different), ensuring that each derivation and its resultant package remain immutable and _deterministic_ across time. While reproducibility means you can _recreate_ an environment, determinism ensures that every aspect—down to the exact version of each dependency—remains identical, no matter when or where it's built.
+
+You can get almost any Python package you need from PyPi, but you can't get that promise.
+
+## Integrating Flox with a Pre-Existing Python Project
+
+But what if you want to use Flox with an _existing_ Python project? Say, one that defines its package or build dependencies using `requirements.txt` or `pyproject.toml` files?
+
+No problem! Whether you're starting from scratch or integrating with an existing project, Flox is _the_ first-class solution for creating portable, reproducible, declarative Python dev environments that Just Work … anywhere.
+
+Let's take a quintessential Python project: [eralchemy](https://github.com/eralchemy/eralchemy), a tool that makes it simple to generate Entity Relationship (ER) diagrams from relational databases or SQLAlchemy models. Eralchemy is a great example of how modern Python projects are commonly structured, with tools like Poetry, Flit, Hatch, and others relying on `pyproject.toml` to define package and build dependencies. Needless to say, Flox works natively with this file, too.
+
+First we'll clone `eralchemy`'s repo to the local system:
+
+```
+daedalus@askesis:~/dev$ git clone https://github.com/eralchemy/eralchemy.git && cd eralchemy
+```
+
+Once inside `eralchemy`s project directory, let's initialize a new Flox environment:
+
+```
+daedalus@askesis:~/dev/eralchemy$ flox init
+Flox detected a Python project with the following Python provider(s):
+
+* pyproject (generic pyproject.toml)
+
+  Installs python (3.12.5) with pip bundled.
+  Adds a hook to setup a venv.
+  Installs the dependencies from the pyproject.toml to the venv.
+
+! Would you like Flox to set up a standard Python environment?
+You can always change the environment's manifest with 'flox edit'
+  Yes - with pyproject
+  No
+> Show suggested modifications
+[Use '--auto-setup' to apply Flox recommendations in the future.]
+```
+
+This is neat! A wizard that offers to build and configure your Python environment for you.
+
+It's also different from what you usually get when you type `flox init` in a new, empty project dir:
+
+```
+daedalus@askesis:~/dev/c-is-for-cookie$ flox init
+✨ Created environment 'c-is-for-cookie' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+```
+
+So what's special about `eralchemy`'s repo? Why did Flox show me this wizard?
+
+## Insta-Setup for Supported Python Projects
+
+When you initialize Flox and it finds a `pyproject.toml` or `requirements.txt` file inside a project directory, it automatically runs the wizard shown in the second code block above.
+
+Here's what each option does:
+
+- “Yes” builds the environment using the `pyproject.toml` file;
+- “No” skips automatic setup. You can use `pip` or `poetry` with `pyproject.toml` to build your environment;
+- “Show” previews the configuration you'd get by selecting “Yes,” letting you vet your environment's setup.
+
+And here's what happens if you choose the “Show” option:
+
+```
+> Show suggested modifications for pyproject
+[Use '--auto-setup' to apply Flox recommendations in the future.]
+
+
+[install]
+python3.pkg-path = "python3"
+python3.version = ">=3.8"
+
+[hook]
+on-activate = '''
+  # Setup a Python virtual environment
+
+  export PYTHON_DIR="$FLOX_ENV_CACHE/python"
+  if [ ! -d "$PYTHON_DIR" ]; then
+    echo "Creating python virtual environment in $PYTHON_DIR"
+    python -m venv "$PYTHON_DIR"
+  fi
+
+  # Quietly activate venv and install packages in a subshell so
+  # that the venv can be freshly activated in the profile section.
+  (
+    source "$PYTHON_DIR/bin/activate"
+    # install the dependencies for this project based on pyproject.toml
+    # <https://pip.pypa.io/en/stable/cli/pip_install/>
+    pip install -e . --quiet
+  )
+'''
+
+[profile]
+bash = '''
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate"
+'''
+fish = '''
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate.fish"
+'''
+tcsh = '''
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate.csh"
+'''
+zsh = '''
+  echo "Activating python virtual environment" >&2
+  source "$PYTHON_DIR/bin/activate"
+'''
+```
+
+This is a Flox manifest, the environment and software configuration artifact that lives inside every Flox environment. (If you're curious about what this is and how it works, check out [this informative overview](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments).) If you choose “Yes” to accept this configuration, you can edit or customize it once Flox finishes building just by typing `flox edit`. And you can automate the setup process for Python environments just by running:
+
+```
+flox init --auto-setup
+```
+
+The software manifest looks good. Let's go ahead and have Flox auto-build the environment:
+
+```
+> Yes - with pyproject
+✨ Created environment 'eralchemy' (x86_64-linux)
+✅ 'python3' installed to environment 'eralchemy'
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+```
+The only dependency from `pyproject.toml` that Flox did not install for us is [Graphviz](https://graphviz.org/), an open source tool for creating and visualizing graphs. This is by design: even though Flox’s import wizard automatically sets up _Python_ packages, it doesn’t install _non-Python_ build dependencies. With `pyproject.toml` you sometimes get both. So you’ve got to install packages like Graphviz manually.
+
+To do this, we could `flox edit` and add `graphviz` to the `[install]` section of our environment's software manifest, but it's just as easy to install it from the command line. So let’s do that.
+
+```
+daedalus@askesis:~/dev/eralchemy$ flox install graphviz
+✅ 'graphviz' installed to environment 'eralchemy'
+```
+
+Now it's time to put this environment through its paces.
+
+### ERD Extraction & Generation Made Easy
+
+First let's activate the environment:
+
+```
+daedalus@askesis:~/dev/eralchemy$ flox activate
+✅ You are now using the environment 'eralchemy'.
+To stop using this environment, type 'exit'
+
+Creating python virtual environment in /home/daedalus/dev/eralchemy/.flox/cache/python
+Activating python virtual environment
+
+(python) flox [eralchemy] daedalus@askesis:~/dev/eralchemy$ which eralchemy
+/home/daedalus/dev/eralchemy/.flox/cache/python/bin/eralchemy
+```
+
+Now let's grab a recommended example file, just to make sure this thing works:
+
+```
+(python) flox [eralchemy] daedalus@askesis:~/dev/eralchemy$ curl 'https://raw.githubusercontent.com/eralchemy/eralchemy/main/example/forum.er' > markdown_file.er
+```
+
+The `README.md` says we can use the following commands to make `eralchemy` do its thing.
+
+```
+(python) flox [eralchemy] daedalus@askesis:~/dev/eralchemy$ eralchemy -i 'markdown_file.er' -o erd_from_markdown.pdf
+```
+
+Now let's see what the contents of `erd_from_markdown.pdf` look like:
+
+![](/images/blog/erd.png)
+
+Success! A classic ERD!
+
+All told, Floxifying a repo with a `pyproject.toml` file took less than two minutes.
+
+## And Now for Something Completely Different…
+
+But what about a project that has a `requirements.txt` file—or, even better, _both_ types of environment configuration files? Let's find a repo that uses both and find out!
+
+Before there was [`btop`](https://github.com/aristocratos/btop) or [`bottom`](https://github.com/ClementTsang/bottom), there was [Glances](https://github.com/nicolargo/glances): one of a wave of colorful, informative, visually arresting post-`htop` terminal-based system monitoring tools.
+
+To install Glances from source, you first need to clone its GitHub repo.:
+
+```
+daedalus@askesis:~/dev$ git clone https://github.com/nicolargo/glances && cd glances
+Cloning into 'glances'…
+```
+
+But when you go to Floxify your Glances project, the first thing you'll notice is that `flox init` detects both `pyproject.toml` and `requirements.txt`:
+
+```
+daedalus@askesis:~/dev/glances$ flox init
+Flox detected a Python project with the following Python provider(s):
+
+* pyproject (generic pyproject.toml)
+
+  Installs python (3.12.5) with pip bundled.
+  Adds a hook to setup a venv.
+  Installs the dependencies from the pyproject.toml to the venv.
+
+* latest python (requirements.txt)
+
+  Installs latest python (3.12.5) with pip bundled.
+  Adds hooks to setup and use a venv.
+  Installs dependencies to the venv from: requirements.txt
+
+! Would you like Flox to set up a standard Python environment?
+You can always change the environment's manifest with 'flox edit'
+> Yes - with pyproject
+  Yes - with latest python
+  No
+  Show suggested modifications for pyproject
+  Show suggested modifications for latest python
+[Use '--auto-setup' to apply Flox recommendations in the future.]
+```
+
+Let's see what's different between the two. First, here's the resulting manifest for `requirements.txt`:
+
+```
+[install]
+python3.pkg-path = "python3"
+
+[hook]
+on-activate = '''
+  # Setup a Python virtual environment
+
+  export PYTHON_DIR="$FLOX_ENV_CACHE/python"
+  if [ ! -d "$PYTHON_DIR" ]; then
+    echo "Creating python virtual environment in $PYTHON_DIR"
+    python -m venv "$PYTHON_DIR"
+  fi
+
+  # Quietly activate venv and install packages in a subshell so
+  # that the venv can be freshly activated in the profile section.
+  (
+  source "$PYTHON_DIR/bin/activate"
+    pip install -r "$FLOX_ENV_PROJECT/requirements.txt" --quiet
+  )
+'''
+```
+
+And here's the one for `pyproject.toml`:
+
+```
+[install]
+python3.pkg-path = "python3"
+
+[hook]
+on-activate = '''
+  # Setup a Python virtual environment
+
+  export PYTHON_DIR="$FLOX_ENV_CACHE/python"
+  if [ ! -d "$PYTHON_DIR" ]; then
+    echo "Creating python virtual environment in $PYTHON_DIR"
+    python -m venv "$PYTHON_DIR"
+  fi
+
+  # Quietly activate venv and install packages in a subshell so
+  # that the venv can be freshly activated in the profile section.
+  (
+    source "$PYTHON_DIR/bin/activate"
+    # install the dependencies for this project based on pyproject.toml
+    # <https://pip.pypa.io/en/stable/cli/pip_install/>
+    pip install -e . --quiet
+  )
+'''
+```
+
+The manifests differ in the sense that they use different _methods_ to install packages, but otherwise they're the same. Since the previous section featured `pyproject.toml`, let's use `requirements.txt` this time.
+
+Offscreen, Flox did its thing and installed the package versions specified in the `glances` repo's `requirements.txt` file. Here's the final tally of  what's installed in our environment, in addition to Flox's `python3` package:
+
+```
+(python) flox [glances] daedalus@askesis:~/dev/glances$ pip list
+Package    Version
+---------- -------
+defusedxml 0.7.1
+packaging  24.1
+pip        24.2
+psutil     6.0.0
+```
+
+All the dependencies we need to install Glances are built into the environment.
+
+So let's do go ahead and kickstart the install:
+
+```
+(python) flox [glances] daedalus@askesis:~/dev/glances$ pip install .
+Processing /home/daedalus/dev/glances
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+Requirement already satisfied: defusedxml in ./.flox/cache/python/lib/python3.12/site-packages (from Glances==4.2.0b4) (0.7.1)
+Requirement already satisfied: packaging in ./.flox/cache/python/lib/python3.12/site-packages (from Glances==4.2.0b4) (24.1)
+Requirement already satisfied: psutil>=5.6.7 in ./.flox/cache/python/lib/python3.12/site-packages (from Glances==4.2.0b4) (6.0.0)
+Building wheels for collected packages: Glances
+  Building wheel for Glances (pyproject.toml) ... done
+  Created wheel for Glances: filename=Glances-4.2.0b4-py3-none-any.whl size=701566 sha256=30735734985c5c1cc8060e1aa43bd71a7f6f20a5ca6612af859e19a5bb3a9ab3
+  Stored in directory: /tmp/pip-ephem-wheel-cache-zj18zwrq/wheels/4d/20/5d/550669b9c13a2ed08f6a46b4fc446c8f2fcfd7bb222edd1de2
+Successfully built Glances
+Installing collected packages: Glances
+Successfully installed Glances-4.2.0b4
+```
+
+Fantastic! The latest version of Glances is installed—now will it run? Let's find out:
+
+![](/images/blog/glances-in-action.png)
+
+Not bad for … < 1 minute worth of work!
+
+## Flox Takes Python Dev to the Next Level
+
+Flox makes it trivially easy to [create and share portable, reproducible Python development environments](https://flox.dev/blog/using-flox-to-create-portable-reproducible-go-environments/).
+
+Using simple declarative methods, you can define build and environment dependencies for Python, Node.js, Go, Rust, Java, or virtually any combination of languages. Plus, you can feel confident your Flox environments will run and behave the same way across all phases of your SDLC—from local development on macOS, Linux, or Windows (with WSL2), to the Linux VMs and containers you use in CI and production.
+
+It's simple to get started using Flox. [In less than five minutes](https://flox.dev/docs/), you can set up a Python dev environment on your local machine, with complete access to all of your tools, files, and resources. To share your environment, just run `git push` or `flox push`. That's all it takes! Your teammates can `git clone` or `flox pull` your environment to run it locally.
+
+[Download Flox](https://flox.dev/docs/install-flox/) today and discover how it can transform your Python workflow!
+
+## FAQs about Flox and portable Python environments
+
+**How does Flox ensure Python environments are truly portable and reproducible?**
+
+Flox creates portable and reproducible Python environments that function identically across different operating systems:
+Linux, macOS, Windows (with WSL2), ARM and x86 architectures. This is achieved by leveraging deterministic builds, ensuring that every dependency and its exact version are immutably defined and cryptographically hashed. This means an environment built once will behave the same way everywhere, every time.
+
+**Can Flox integrate with pre-existing Python projects that use common dependency files?**
+
+Yes, Flox is designed to seamlessly integrate with existing Python projects. It automatically detects and can configure environments based on widely used dependency management files such as requirements.txt or pyproject.toml. This allows for a smooth transition, enabling users to quickly set up their established projects within a Flox-managed environment.
+
+**What types of Python packages are available for installation within a Flox environment?**
+
+Users can install a vast array of Python packages into a Flox environment directly from the extensive Flox Catalog, which contains tens of thousands of options. For any packages not found in the catalog, pip can be used within the activated environment to install them from PyPI. Flox prioritizes consistent installation and behavior for all managed packages.
+
+**How does Flox simplify sharing Python development environments for team collaboration?**
+
+Flox streamlines the sharing of Python development environments, enhancing team collaboration and consistency. Environments are declaratively defined, allowing developers to easily share their complete setup through version control systems. Teammates can then pull these environments, guaranteeing they get the exact same tools and dependencies, eliminating "works on my machine" issues.

@@ -1,0 +1,263 @@
+---
+title: 'Get Containers on macOS and Windows (WSL2) with Colima and Flox'
+altTitle: 'Get Containers on macOS and Windows (WSL2) with Colima and Flox'
+description: "Not everyone wants to install a resource-intensive container runtime on their local system, especially on desktop platforms like macOS and Windows."
+metaDescription: "Not everyone wants to install a resource-intensive container runtime on their local system, especially on desktop platforms like macOS and Windows."
+isPublished: true
+isPopularPackage: true
+packageCategory: containers
+packageName: colima
+author: Steve Swoyer
+publishedDate: 21 October 2025
+thumbnail: '/images/blog/big-mammal-small-pond.webp'
+orderBy: 20251021
+---
+
+
+Looking for a lightweight container runtime for macOS that doesn't consume excessive system resources? Want an alternative to running Docker Desktop on Windows?
+
+And with this as prelude, we give you...Colima, a lightweight Linux VM pre-configured for running containers on macOS, Linux, and Windows with WSL2. 
+
+Short for “Containers on Lima,” Colima is built on [Lima](https://github.com/lima-vm/lima), a [CNCF](https://www.cncf.io/)-sponsored project for running Linux VMs on macOS. It ships pre-configured with Docker Engine by default, but it can also be set up to run just [containerd](https://github.com/containerd/containerd). Colima is an especially attractive option for running containers on macOS, integrating quite nicely with macOS’ Apple Hypervisor Framework.
+
+The **FAQ** (below) provides in-depth information about running Colima on WSL2. We even created a Flox environment to get you started.
+
+
+## Colima = containers made simple
+
+Flox does this thing where we point out stuff you _can_ do with us that you _can’t_ do with containers.
+
+But the reverse of this shtik is also true. Flox, Nix, and containers are all gifts to the world. They let you do different kinds of things differently. Need to run software in a hermetically isolated context but with direct access to local hardware? Containers are great for that! (On Linux, at least.) Need a way to package up a runtime environment into a portable build artifact for deployment to a managed K8s service or a serverless environment like AWS Lambda? Containers are great for this, too!
+
+But not everyone wants to install a resource-intensive container runtime, especially on desktop platforms like macOS and Windows.
+
+If you find yourself nodding along thinking “Yep. I’m one of those people,” Colima is all you need.
+
+
+## Getting It
+
+Let’s first install Flox. If you don’t already have Flox on your system, we’ve made it pretty easy to [download](https://flox.dev/get/), [install](https://flox.dev/docs/install-flox/), and play along at home.
+
+Next, let’s grab Flox’s pre-built Colima example environment. This is shockingly simple:
+
+```
+flox activate -s -r flox/colima
+```
+
+This activates the FloxHub environment `colima` (with the `-r` switch), starts the `colima` service (with the `-s` switch, for "services"), and puts you in a Flox subshell. When you type exit to quit (or press CTRL + D), the session ends (but the local copy of the environment remains cached for next time) and Colima shuts down. 
+
+```
+✅ You are now using the environment 'flox/colima (remote)'.
+To stop using this environment, type 'exit'
+
+                                                     
+  ╔═══════════════════════════════════════════════╗  
+  ║                                               ║  
+  ║    Colima may take a few moments to start.    ║  
+  ║                                               ║  
+  ║    Once it starts, try it with:               ║  
+  ║      docker run hello-world                   ║  
+  ║                                               ║  
+  ╚═══════════════════════════════════════════════╝
+```
+
+Because Colima needs to spin up a Linux VM with Docker Engine, we do need to give it a moment, even _after_ we see this message. (Moves fingers over keyboard for 30 seconds.) Okay. That should do it.
+
+**Note**: If you want to bootstrap this yourself, you need to run `flox install colima` to install it manually.
+
+You’d then need to define a service so Flox knows to start and manage Colima. Just open up the `manifest.toml` file that lives in `.flox/env/` inside your project directory. Look for the `[services]` section, and add the following:
+
+```
+[services]
+colima.command = "colima start"
+colima.is-daemon = true
+colima.shutdown.command = "colima stop"
+```
+
+Save and exit, then start your local Flox Colima environment using the `-s` switch:
+
+```
+flox activate -s
+```
+
+You won’t see the welcome message I showed above because you haven’t created logic to display it. 😄
+
+
+## Using it
+
+Let’s suppose I’m containerizing [DuckDB](https://github.com/duckdb/duckdb) because I want to build a [Flask](https://github.com/pallets/flask)-based app that exposes RESTful endpoints for users to interact with it. I’m using an Amazon Linux base image, because that’s what my (hypothetical) org runs in both its AWS Elastic Container Service and Elastic Kubernetes Service deployments.
+
+First, I need to pull my container image from the AWS Elastic Container Registry. But let’s assume I’ve already done that. The next step is building my custom container image using a Dockerfile I’ve created.
+
+Colima spins up a lightweight Linux VM that's configured by default to use Docker Engine. This means I’ve also got to install a Docker client so I can interact with it. My Flox `colima` example environment already includes this:
+
+```
+flox list
+
+colima: colima (0.7.6)
+docker: docker-client (docker-27.3.1)
+gum: gum (0.14.5)
+```
+
+(Note: If you’re playing along at home and bootstrapping from scratch, just run `flox install docker-client`.)
+
+Now that I’ve got my Docker client, let’s build my container:
+
+```
+flox [aws-1pass colima] daedalus@askesis:~/dev/colima$ docker build -t duckdb-task-api .
+[+] Building 9.3s (10/10) FINISHED                                                                                                                                               docker:colima
+ => [internal] load build definition from Dockerfile                                                                                                                                      0.0s
+ => => transferring dockerfile: 489B                                                                                                                                                      0.0s
+ => [internal] load metadata for public.ecr.aws/amazonlinux/amazonlinux:latest                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                                                         0.0s
+ => => transferring context: 2B                                                                                                                                                           0.0s
+ => [1/5] FROM public.ecr.aws/amazonlinux/amazonlinux:latest                                                                                                                              0.0s
+ => [internal] load build context                                                                                                                                                         0.0s
+ => => transferring context: 1.83kB                                                                                                                                                       0.0s
+ => [2/5] RUN yum update -y &&     yum install -y python3 python3-pip &&     yum clean all                                                                                                6.1s
+ => [3/5] RUN pip3 install flask duckdb                                                                                                                                                   2.7s
+ => [4/5] WORKDIR /app                                                                                                                                                                    0.0s 
+ => [5/5] COPY crud.py .                                                                                                                                                                  0.0s 
+ => exporting to image                                                                                                                                                                    0.2s 
+ => => exporting layers                                                                                                                                                                   0.2s 
+ => => writing image sha256:0f68c78630a25d7cbb5edada7a288ec454e0a6ad2818d8930377516d19341626                                                                                              0.0s 
+ => => naming to docker.io/library/duckdb-task-api
+```
+
+Alll right. Now I’m ready to fire up and run my container in Colima:
+
+```
+docker run -p 5000:5000 duckdb-task-api
+ * Serving Flask app 'crud'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+* Running on http://172.17.0.2:5000
+```
+
+Success! A quick double-check confirms that my container is, in fact, running:
+
+```
+docker ps
+CONTAINER ID   IMAGE             COMMAND             CREATED          STATUS          PORTS                                       NAMES
+3545e6e5247d   duckdb-task-api   "python3 crud.py"   52 minutes ago   Up 52 minutes   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   sharp_montalcini
+```
+
+It’s one thing to _start_ a container, another to confirm it’s running, and still another to interact with it.
+
+So let’s interact with. Let’s see if it behaves like a RESTful service running in a container should.
+
+```
+curl http://localhost:5000/
+Welcome to the DuckDB Trivial Task Management API (TTMA) v0.0.0.314159!
+```
+
+So it’s up, it’s running, and it’s accessible. But can I do the stuff I expect to able to do with it?
+
+```
+curl -X POST -H "Content-Type: application/json" \
+-d '{"title": "Cured Global Warming"}' http://localhost:5000/tasks
+{"message":"Task created"}
+
+curl http://localhost:5000/tasks
+[[1,"Cured Global Warming",false],[2,"Cured Global Warming",false]]
+```
+
+Even though I can't change that task's status to `true`, I’m going to go ahead and call this a successful q.e.d.!
+
+
+## Summary
+
+So that’s Colima. It gives you a simple, lighter-weight VM for running containers on macOS and Windows with WSL. (Colima runs just fine on Linux, too—witness this walk-through!—albeit with one caveat: instead of running natively, your containers run inside a VM.)
+
+Colima is full-stop amazing on its own. But Flox makes it even, um, amazing-er, giving you an easy way to create and share a portable Colima environment for running containers … anywhere. Don’t believe me? Go ahead and `flox activate -s -r flox/colima` on your system and take it for a spin.
+
+Happy hacking!
+
+_Thanks to both Rok Garbas and Ross Turk for building this Colima environment! Collectively, Rok and Ross **are** Flox’s skunkworks platform engineering team. I’d be verklempt without ‘em!_
+
+
+
+## FAQ: Colima on Windows (via WSL2)
+
+**Is Colima officially supported on Windows?**
+
+Not officially. Colima documents macOS and Linux as targets; Windows isn't listed as a supported platform in the README. You can still use it successfully under WSL2, but you're in "works for me" territory.
+
+
+**Does Colima on WSL2 run a VM inside a VM?**
+
+Yes. Colima manages a Linux VM (through Lima). WSL2 itself runs in a lightweight VM on Windows, so you're effectively nesting Linux VMs. 
+
+
+**So…does it actually work?**
+
+[Yes](https://github.com/floxrox/colima-for-wsl2)! With KVM available and enabled, Colima runs surprisingly smoothly in a WSL2 distro with default settings. Where things get tricky is VM acceleration and edge-case setups: some WSL2 builds don't expose **`/dev/kvm`**, which can degrade performance or block the VM. 
+
+An alternative is to run Colima with QEMU's [TCG emulation](https://www.qemu.org/docs/master/devel/index-tcg.html); this generally works, but is slow. (See below for more.)
+
+
+**What practical caveats should I be aware of?**
+
+The first and most important is that _Colima doesn't officially run on Windows_. If it works, great; if it doesn't, oh well. With this out of the way, on modern WSL2 builds, using [a Flox environment](https://github.com/floxrox/colima-for-wsl2) that bundles all required dependencies, along with a defined Colima service and setup logic, Colima _does_ generally work just fine on WSL2. Check out this **[README.md](https://github.com/floxrox/colima-for-wsl2/blob/main/README.md)** for more.
+
+_Nested virt & KVM_. If **`/dev/kvm`** exists but you're not in the **`kvm`** group, acceleration fails. (Solution: run **`usermod -aG kvm $USER`**.) If **`/dev/kvm`** isn't available in your WSL2 distro, the VM may run unaccelerated or fail to start. Workarounds exist, but behavior varies across Windows/WSL versions.
+
+_Performance_. With KVM enabled and with the user added to the **`kvm`** group, performance is good. Without KVM, Colima falls back to TCG emulation, which is much slower but still workable for many dev tasks.
+
+_There's an experimental Lima driver just for Windows_. Lima offers an experimental **`vmType: wsl2`** that uses Windows' **`wsl.exe`**. It can help, but it's explicitly marked experimental and doesn't support many Lima options.
+
+
+**Quick start that usually works**
+
+**Option 1: Using the Flox environment (recommended)**
+
+The [Flox environment](https://github.com/floxrox/colima-for-wsl2) provides a reproducible, one-command setup with automatic KVM detection and configuration:
+
+```bash
+# Clone the repo
+git clone https://github.com/floxrox/colima-for-wsl2 colima
+cd colima
+
+# Activate and start (this handles everything)
+flox activate -s
+```
+
+The environment automatically:
+- Detects if KVM is available and configures accordingly
+- Falls back to TCG emulation if KVM isn't accessible
+- Sets up the Docker socket for seamless CLI usage
+- Manages the Colima service lifecycle
+
+See the [README](https://github.com/floxrox/colima-for-wsl2/blob/main/README.md) for full details.
+
+**Option 2: Manual installation**
+
+In your WSL2 distro (e.g., Ubuntu), install Colima and the Docker client (Colima supports Linux; install via your distro's package manager, Homebrew, Nix, or the release binaries).
+
+Run **`colima start`** and then **`docker run hello-world`**.
+
+If everything comes up, you're good. If you see errors about KVM or slow performance, you're likely hitting the **`/dev/kvm`** limitation mentioned above. Colima's **`README`** has the common flags for sizing the VM, e.g. **`colima start --cpu 4 --memory 8 --disk 60`**.
+
+
+**Can I use Lima's WSL2 driver instead?**
+
+Possibly. Advanced users sometimes wire Colima to a Lima instance configured with **`vmType: wsl2`**, but Lima's docs call this mode experimental and note feature gaps. Expect tinkering.
+
+
+**Is this a viable Docker Desktop alternative on Windows?**
+
+It can be—for some setups. If KVM is available and enabled in your WSL2 distro, Colima should be lightweight and fast enough for day-to-day container dev. That said, the best and most supported Windows options remain:
+
+- Docker Desktop with the WSL2 backend (official docs, polished integration).
+- Rancher Desktop (WSL2 integration, open source, Docker-compatible).
+
+
+**TL;DR guidance**
+
+If you want the easiest path: use the [Flox environment](https://github.com/floxrox/colima-for-wsl2) for automatic setup and configuration.
+
+If it already runs fine for you under WSL2: keep using it; size the VM with **`--cpu/--memory/--disk`** as needed.
+
+If you hit KVM/acceleration snags: consider Lima's **`vmType: wsl2`** (experimental) or switch to Docker Desktop/Rancher Desktop for a fully supported path.

@@ -1,0 +1,72 @@
+---
+title: 'Precision at Scale in Capital Markets: Deploying Hardened Flox NVIDIA CUDA Stacks in Minutes, Not Hours'
+altTitle: 'Precision at Scale in Capital Markets: Deploying Hardened Flox NVIDIA CUDA Stacks in Minutes, Not Hours'
+description: 'The Flox CUDA Kickstart Program gives teams validated, reproducible CUDA environments and slim GPU-specific builds for common serving workloads, with technical resources demonstrating simple, controlled promotion, one-step rollback, deterministic SBOMs, and other features.'
+metaDescription: 'The Flox CUDA Kickstart Program gives teams validated, reproducible CUDA environments and slim GPU-specific builds for common serving workloads, with technical resources demonstrating simple, controlled promotion, one-step rollback, deterministic SBOMs, and other features.'
+isPublished: true
+category: announcement
+author: Flox Team
+publishedDate: 16 March 2026
+thumbnail: '/images/blog/flox-nvidia-cuda-kickstart.webp'
+orderBy: 20260316
+---
+
+Today, Flox is announcing general availability of a streamlined, deterministic [NVIDIA CUDA](https://developer.nvidia.com/cuda) experience: the [Flox CUDA Kickstart Program](https://flox.dev/cuda-kickstart).
+
+The Flox CUDA Kickstart Program defines a reference architecture for deploying deterministic, reproducible CUDA-accelerated ML/AI environments on NVIDIA AI infrastructure at scale. An accompanying capital markets technical case study shows how firms use Flox to move CUDA workloads from research to production with controlled promotions, one-step rollbacks, and deterministic Software Bills of Materials (SBOMs) for accelerated CVE remediation.
+
+CUDA Kickstart provides access to validated Flox environments for common CUDA machine learning serving patterns (diffusion model serving, LLM inference, and others), plus slim, GPU-architecture-specific builds of PyTorch, vLLM, llama.cpp, and more. These reduce artifact size and image build times, accelerating rollout across GPU fleets. Teams can ship OCI images built from Flox environments or run them "uncontained" on Kubernetes. By making the declarative environment, not the container image, the unit of change, AI/ML teams can build and securely ship lightweight, portable CUDA stacks that work on any machine without conflicts.
+
+The program is the fruit of Flox's collaboration with NVIDIA, focusing on the Nix ecosystem, to strengthen the open infrastructure around CUDA. "NVIDIA is committed to meeting developers where they are. Our collaboration with Flox and Nix strengthens the open ecosystem around our CUDA-X offerings, making it faster and more reliable to deploy accelerated AI frameworks," said Ioana Boier, Global Head of Capital Markets Strategy at NVIDIA. "By simplifying how CUDA is delivered and deployed, we're helping enterprises build AI factories that run consistently across all platforms, so teams can focus on innovation, not integration."
+
+### The Birth of Flox at the D. E. Shaw Group
+
+Flox, a member of the [NVIDIA Inception program](https://www.nvidia.com/en-us/startups/) for startups, was born in financial services to build, ship, and run critical systems, including those that require CUDA-accelerated ML dependencies, without surprises.
+
+Flox grew out of the firm's longstanding investment in managing software complexity within a large-scale, research-driven environment. For a pioneering investment and technology development firm, the goal was simple but high-stakes: **Run the bits you test!**
+
+To meet that standard, the D. E. Shaw group built internal infrastructure around Nix to ensure correctness and consistency. Over time, that platform evolved into what is now Flox. In the process, the team surfaced the power and practical frictions of existing tooling, clarifying what a model for technical users across research and engineering domains would need to deliver.
+
+Flox emerged as the solution to make this rigorous, reproducible software development viable at scale. Led by Flox CEO Ron Efroni and CTO Michael Brantley (the original creator at the D. E. Shaw group), Flox was spun out to bring this institutional substrate to the rest of the world.
+
+"We're proud to have contributed to Flox's beginnings and delighted that it's grown into an independent platform," said **Neil Katz, Managing Director at the D. E. Shaw group**. "Watching Flox mature in ways that align with the broader NVIDIA CUDA ecosystem demonstrates its readiness and relevance to the sorts of challenges that we and other leading technologists face today."
+
+### Why the Environment is the Unit of Change
+
+Most ML/AI teams currently grapple with a "unit of change" problem. Containers and VMs give them a way to run conflicting CUDA stacks side by side on the same hardware (from laptops to workstations to GPU clusters), but at the cost of building and maintaining massive, multi-gigabyte container images.
+
+With Flox, the **environment itself becomes the unit of change**, putting teams closer to the hardware without the bloat:
+
+-  **Declarative & Portable:** Environments are defined in simple TOML and work across the entire SDLC.
+-  **Side-by-Side Isolation:** Teams can run different CUDA toolkit versions (e.g., CUDA 11.4 and 12.9) on the same machine simultaneously without them breaking one another.
+-  **Immutable Tracking:** Every stack is a versioned, hash-pinned artifact. You don't "hope" it works in production; you _know_ it will, because the bits are identical.
+
+![](/images/blog/unit-of-change.svg)
+
+### Scaling Speed With NVIDIA & Flox
+
+To scale its solution, **Flox collaborated with NVIDIA** and the Nix Foundation to remove the "patching tax" from AI development. The Flox Catalog now offers access to prebuilt, pre-patched CUDA dependencies for users of both Flox and Nix, built from canonical open source Nix build recipes maintained by the Nix CUDA team. This turns the delivery of CUDA dependencies into a secure, reproducible software supply chain. Teams get prebuilt, patched CUDA dependencies that work the same across laptops, workstations, and GPU clusters.
+
+Nix is used by more than 2,000 companies, with significant uptake in capital markets and other highly regulated industries. Of the 10 largest U.S. financial services firms ranked by assets, one-third use Nix. With over 10,000 contributors and at almost 1 PB of data, the Nix binary cache is one of the largest public software repositories on the internet: users download more than **3 PB** of Nix software each month.
+
+Historically, these users had to build CUDA packages and ML tooling from source, a process that takes hours and can produce inconsistent results. For example, downloading a prebuilt, CUDA-accelerated PyTorch wheel from the Flox Catalog takes **1m and 11s**; building the same wheel from source **takes 55x longer** (more than **65 minutes**) on a beefy 32-core AMD ThreadRipper system. On the same machine, compiling a complete PyTorch inferencing stack (CUDA 12.8, MAGMA, Triton, ONNX Runtime, and PyTorch) takes more than **two hours**.
+
+![](/images/blog/flox-build-vs-download.svg)
+
+Access to CUDA packages in the **Flox Catalog** changes this, providing easy access to pre-built, deterministic CUDA packages with five-plus years of history. This allows teams to:
+
+-  **Skip the Build:** Access pre-built, redistributed NVIDIA CUDA packages instantly.
+-  **Navigate Complexity:** Automatically resolve compatibility between the CUDA Toolkit, cuDNN, PyTorch, NVIDIA TensorRT, JAX, and other frameworks.
+-  **Audit Everything:** Generate deterministic SBOMs for every environment, ensuring full provenance of the AI supply chain.
+
+### The Way Forward for AI Infrastructure
+
+Modern ML stacks built on NVIDIA CUDA underpin research across every sector. But ML/AI teams working on more than one project frequently need to run different CUDA toolkit versions side by side: different CUDA and ML framework versions, pinned dependencies, and legacy and cutting-edge releases all competing for the same hardware. As CUDA stacks become more critical to operations, "it works on my machine" is no longer an acceptable standard.
+
+The Flox CUDA Kickstart Program takes what Flox, Nix, and the Nix CUDA team make possible and turns it into an adoption kit for CUDA at fleet scale. The program's reference architecture was forged in financial services. Pairing Flox with the NVIDIA CUDA platform, drawing on lessons first developed by technologists at the D. E. Shaw group, gives teams one place to define, control, and ship ML-accelerated CUDA stacks from development through production.
+
+Flox's collaboration with NVIDIA reflects the industry's shift toward reproducibility and auditability, especially in regulated sectors like financial services. Together, they're strengthening CUDA's integration into the Nix ecosystem to make NVIDIA platforms a first-class dependency for thousands of Nix users. CUDA is just the start—the long-term goal is to make the entire NVIDIA accelerated computing platform easy to install, version, and manage within Nix.
+
+If you're at [NVIDIA GTC](https://flox.dev/nvidia-gtc), we're at booth #4046; stop by to see Flox CUDA stacks in action. Or [book time with us](https://calendly.com/ben-flox/meet-flox-gtc) to discover how Flox can transform your NVIDIA CUDA-based AI/ML workloads.
+
+To learn more, explore [the Flox CUDA Kickstart discovery site](https://flox.dev/cuda-kickstart), or [check out FloxHub](https://hub.flox.dev/packages) to explore NVIDIA CUDA packages in the Flox Catalog.

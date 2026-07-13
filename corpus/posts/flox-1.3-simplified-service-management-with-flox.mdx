@@ -1,0 +1,229 @@
+---
+title: 'Flox 1.3: Simplified Service Management with Flox'
+altTitle: 'Flox 1.3: Simplified Service Management with Flox'
+description: 'It’s even easier to build beefy services like PostgreSQL into your dev environments now that Flox does the setup, teardown, and runtime management lifting for you.'
+metaDescription: 'It’s even easier to build beefy services like PostgreSQL into your dev environments now that Flox does the setup, teardown, and runtime management lifting for you.'
+isPublished: true
+category: news
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 22 August 2024
+thumbnail: '/images/blog/wall-switches.webp'
+orderBy: 20240821
+---
+
+Flox makes it easy to install and run virtually any kind of service in a dev environment.
+
+Need a local `nginx` reverse proxy? Or a Redis caching layer to mimic the one in your production environment? How about a local PostgreSQL or Kafka instance? Just fire up a terminal and `flox install` them.
+
+With the new service management capabilities shipping in Flox 1.3.0, this story gets even better!
+
+Starting and stopping services is now a cinch, because Flox takes care of all the background setup and teardown tasks for you. So instead of authoring logic to watchdog your services, you can just define the ones you need Flox to manage in a software manifest.
+
+But rather than _telling_ you, let’s _show_ you—by walking you through a couple of concrete examples.
+
+You’ll not only learn how service management works, but also how it makes Flox’s simple, intuitive approach to creating and sharing reproducible dev environments that much simpler.
+
+
+
+## A turn-key local LLM
+
+Flox’s [Ollama example environment](https://flox.dev/blog/llms-in-your-project-with-ollama-flox) makes it easy to run Llama, Mixtral, and other powerful LLMs locally.
+
+But our initial version of this environment shipped _without_ service management, which was still being built into Flox at the time. So achieving this behavior required authoring chunks of monitoring and control logic for the environment’s separate [`[hook]` and `[profile]` sections](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments). Here’s an excerpt from `[hook]`:
+
+```bash
+if [ -f "$autostart" ] || [ "${choice:0:1}" = "A" ] || [ "${choice:0:1}" = "Y" ] ; then
+      export OLLAMA_STARTED=1
+      tmp_procfile=$(mktemp)
+      echo "ollama: ollama serve" > "$tmp_procfile"
+      "$FLOX_ENV/bin/overmind" start -f "$tmp_procfile" -s "$OLLAMA_SOCKFILE" -D &>/dev/null
+
+```
+
+Using service management, you can achieve the same result—an `ollama serve` that starts when you `flox activate` your environment and terminates when you exit—with just a fraction of the logic. To wit:
+
+```toml
+[services.ollama]
+command = "ollama serve"
+```
+
+That’s it. That’s all you’ve gotta do. For existing users, the biggest change is primarily one of muscle memory: to start your service(s) at activation, you’ve got to use the `flox activate -s` command-line flag. (That’s short for `--start-services`.)
+
+You can check the status of your service(s) by using the new `flox services status` command:
+
+```
+flox [ollama-redux] daedalus@ethos:~/dev/ollama-redux$ flox services status
+NAME       STATUS            PID
+ollama     Running        314080
+```
+
+With service management, `ollama serve` automatically shuts down when you exit your environment, but you can also stop it manually—or start it back up again—should you need to:
+
+```
+flox [ollama-redux] daedalus@ethos:~/dev/ollama-redux$ flox services stop ollama
+✅ Service 'ollama' stopped
+
+flox [ollama-redux] daedalus@ethos:~/dev/ollama-redux$ flox services start ollama
+✅ Service 'ollama' started.
+```
+
+That is service management in a nutshell.
+
+But while a turn-key, ephemeral Ollama service is cool, a similar option for PostgreSQL would be amazing. So let’s pivot to Flox’s service management-enabled PostgreSQL example environment!
+
+
+## An on-when-you-need-it, off-when-you-don’t PostgreSQL environment
+
+Between them, Flox’s Graham Hudgins and Ross Turk created a kinda cool PostgreSQL example environment to showcase service management. For this use case, they didn’t even need to replace any “prior art” in the form of service setup/teardown scripting logic. And that’s a good thing! After all, authoring logic that (**a**) autostarts a PostgreSQL instance, (**b**) spins up a background (watchdog) task to monitor its operation and (**c**) reliably shut it down is _slightly_ more complicated than authoring shell traps. 
+
+Using this environment is as easy as pulling it from FloxHub and dusting off one’s SQL knowledge:
+
+```
+flox pull flox/postgres
+flox activate -s
+✅ You are now using the environment 'postgres'.
+To stop using this environment, type 'exit'
+
+✅ finished createdb on pgdb
+
+Use 'psql' to connect.
+
+flox [postgres] daedalus@ethos:~/dev/floxenvs/postgres$ psql
+psql (15.7)
+Type "help" for help.
+
+pgdb=# \dt
+Did not find any relations.
+pgdb=# CREATE TABLE foo (id SERIAL PRIMARY KEY, name VARCHAR(50)); CREATE TABLE bar (id SERIAL PRIMARY KEY, description TEXT);
+CREATE TABLE
+CREATE TABLE
+pgdb-# \dt
+       List of relations
+ Schema | Name | Type  | Owner  
+--------+------+-------+--------
+ public | bar  | table | pguser
+ public | foo  | table | pguser
+(2 rows)
+```
+
+Beneath this surface sheen of simplicity, there’s a lot of scaffolding built into this service-enabled environment. Let’s take a look at its components.
+
+First, there’s the obligatory install section:
+
+```toml
+[install]
+postgresql_15.pkg-path = "postgresql_15"
+gum.pkg-path = "gum"
+```
+
+Next, the requisite `services` entry:
+
+```toml
+[services.postgres]
+command = "postgres"
+```
+
+We use the `[vars]` section in the environment’s `manifest.toml` to define a local user and database, and configure PostgreSQL so it listens on a local port. 
+
+Note: Instead of hardcoding `PGUSER` and `PGPASS` in your environment’s `manifest.toml`, you could instead opt to retrieve them from a secrets manager like 1Password at runtime. Flox activation hooks [give you an easy way to securely inject PGUSER, PGPASS, and other secrets into the environment](https://flox.dev/blog/adding-1password-secrets-to-flox-environments) when they’re needed.
+
+```toml
+[vars]
+
+# PostgreSQL database settings - port, username, password
+PGPORT = "5432"
+PGUSER = "pguser"
+PGPASS = "pgpass"
+PGDATABASE = "pgdb"
+```
+
+The [hook] section performs setup and configuration tasks that don’t involve starting and monitoring the PostgreSQL service, like specifying data directories and initializing a new database instance using `initdb`, if one doesn't already exist.
+
+```toml
+[hook]
+
+on-activate = '''
+
+  #
+  # Get our environment set up
+  #
+
+  # If PGDIR is not set, $PWD will be used
+  if [ -z "$PGDIR" ]; then
+    PGDIR="$PWD"
+  fi
+
+  # These tell postgres where to store data and connection socket
+  export PGDATA=$PGDIR/postgres_data
+
+  #
+  # First-time setup for PostgreSQL
+  #
+
+  if [ ! -d $PGDATA ]; then
+    gum spin --spinner dot --title "Running initdb in $PGDATA" \
+      -- initdb $PGDATA --username $PGUSER -A md5 \
+      --pwfile=<(echo $PGPASS) --auth=trust
+    echo "✅ completed initdb in $PGDATA"
+  fi
+'''
+```
+
+If you forget to `flox activate -s` then you can manually start your services within an activated environment:
+
+```
+daedalus@ethos:~/dev/postgres$ flox activate
+✅ You are now using the environment 'postgres'.
+To stop using this environment, type 'exit'
+
+✅ completed initdb in /home/daedalus/dev/postgres/postgres_data
+✅ completed configuration of /home/daedalus/dev/postgres/postgres_data/postgresql.conf
+
+flox [postgres] daedalus@ethos:~/dev/postgres$ psql
+psql: error: connection to server on socket "/tmp/.s.PGSQL.5432" failed: No such file or directory
+        Is the server running locally and accepting connections on that socket?
+
+flox [postgres] daedalus@ethos:~/dev/postgres$ flox services start
+✅ Service 'postgres' started.
+```
+
+Even though I started `postgresql` manually, as soon as I quit my environment, it ceases to exist. Flox automatically cleans it up.
+
+```
+flox [postgres] daedalus@ethos:~/dev/postgres$ procs | grep postgres
+ 987820 daedalus        │ pts/3 0.0 0.0 00:00:00 │ /bin/bash --noprofile --rcfile /home/daedalus/dev/postgres/.flox/run/x86_64-linux.postgres/activate.d/bash
+ 987890 daedalus        │       0.0 0.0 00:00:00 │ /nix/store/fpqmpvabkld200j0f6crj1x9q3by8202-flox-watchdog-1.2.3/bin/flox-watchdog --pid 987820 --logs /home/daedalus/dev/postgres/.flox/cache/watchdog.987820.log --socket /run/user/1000/flox.f5072c7d.sock --hash f5072c7d --registry /home/daedalus/.local/share/flox/env-registry.json
+ 988553 daedalus        │       0.0 0.0 00:00:00 │ /nix/store/pwy5hbrbmkwip12g8blsl9f20s8n6rj6-process-compose-1.9.0/bin/process-compose up -f /home/daedalus/dev/postgres/.flox/run/x86_64-linux.postgres/service-config.yaml -u /run/user/1000/flox.f5072c7d.sock -L /tmp/tmp.TeSvnxTrTZ --tui=false
+ 988578 daedalus        │       0.0 0.0 00:00:00 │ postgres
+ 988603 daedalus        │       0.0 0.0 00:00:00 │ postgres: checkpointer
+ 988604 daedalus        │       0.0 0.0 00:00:00 │ postgres: background writer
+ 988611 daedalus        │       0.0 0.0 00:00:00 │ postgres: walwriter
+ 988612 daedalus        │       0.0 0.0 00:00:00 │ postgres: autovacuum launcher
+ 988613 daedalus        │       0.0 0.0 00:00:00 │ postgres: logical replication launcher
+ 990680 daedalus        │ pts/3 0.0 0.0 00:00:00 │ grep postgres
+
+flox [postgres] 1 daedalus@ethos:~/dev/postgres$ exit
+exit
+
+1 daedalus@ethos:~/dev/postgres$ procs | grep postgres
+ 991305 daedalus        │ pts/3 0.0 0.0 00:00:00 │ grep postgres
+```
+
+You can use service management in Flox to build as many services as you need into your environments, without authoring logic to set them up or tear them down. Plus, Flox environments are easy to work with, especially in the local context, because you get direct access to your system’s settings and resources.
+
+Think of this article as Service Managment (SM) 101. For SM 202, we’ll be showcasing a Floxified retrieval-augmented generation (RAG) stack. You won’t wanna miss that!
+
+
+## One giant leap for reproducible software development
+
+Service management is a great demonstration of how rapidly Flox is maturing. Just six months ago, [you couldn’t install as many different software packages and versions](https://flox.dev/blog/flox-1.1-time-travel-across-100k-nix-packages). You didn’t have a reproducible way to [use software that wasn’t already in Flox Catalog](https://flox.dev/blog/extending-flox-with-nix-flakes) in your projects. And you couldn’t [easily share Flox environments with your team members](https://flox.dev/blog/why-we-built-flox).
+
+Flox got a whole lot more powerful in just a few months!
+
+How powerful will Flox be six months from now? Why wait to find out​? Flox is free to use and it’s great for everything from quick-and-dirty proofs-of-concept on your local system to reproducible runtimes in CI and production. Plus, you can get started in [fewer than five minutes](https://flox.dev/docs/).
+
+[Download](https://flox.dev/docs/install-flox/) Flox today and put it to the test!
+
+
+

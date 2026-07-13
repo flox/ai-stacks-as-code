@@ -1,0 +1,59 @@
+---
+title: "Announcing the Flox Open Beta"
+altTitle: "Announcing the Flox Open Beta"
+description: >-
+    Harness the power of Nix. Today we’re thrilled to release the flox CLI beta to the public as an open source project
+    and announce a Series A funding round led by NEA.
+metaDescription: "Today we’re thrilled to release the flox CLI beta to the public as an open source project and announce a Series A funding round led by NEA."
+isPublished: true
+category: news
+publishedDate: 7 February 2023
+thumbnail: /images/blog/flox-logo-padded.png
+orderBy: 8
+---
+
+Today we’re thrilled to release the flox CLI beta to the public as an open source project and announce a Series A funding round led by NEA, with participation from Hetz Ventures, Addition, and angels such as Thomas Dohmke (GitHub CEO), Guy Podjarny (Snyk founder), and James Turnbull (former VP Docker, CTO Sotheby's). You can try out the flox CLI [here](https://flox.dev/docs) and check out the repo on [GitHub](https://github.com/flox/flox).
+
+### Why flox
+
+Nix offers us opportunities to advance the state of dev tooling in significant ways, but it remains difficult to learn and implement whether as a solo developer, a small team or a large company. <i>flox’s mission is to provide seamless, reliable and delightful workflows built on top and around Nix, allowing you to experience the powers of Nix without the steep learning curve.</i>
+
+### Environments with wings
+
+The flox CLI is your interface to a set of tools for developing, building, and shipping code. What does this mean specifically?
+
+With <b>isolated, portable environments</b>, you can run different versions of any program without fear of breaking your system. You can swap in or out of any environment, seamlessly switching contexts with perfect isolation. While you can replicate this with some effort with Nix, flox provides an imperative (and delightful) CLI experience that will seem more familiar to most developers.
+
+Since they are defined as code these environments can be <b>shared via git</b>. This means two machines of the same type can share the same environment, across Linux distributions and in or out of a container. It means improved collaboration across and between teams, but also better tracking of your development environments: you can pull an env into your context with a “flox pull”, just like you would pull a repository with “git pull”. No need for cloud VMs, or shared terminal sessions–everyone recreates the same bits on their machines and is free to start coding with minimal setup hassle.
+
+We think these foundational features will change the way people manage their machines. But that’s just the beginning.
+
+If you want to provide an environment to build and develop a project from, you can <b>bundle a build environment</b> with your source code. A developer can just checkout your branch and instantly get working, without having to run a [container](https://i.imgur.com/3eTKEZp.jpg).
+
+Finally, you can <b>release your software</b> to the world with the “publish” command, in whatever location or format you prefer–no lock-in whatsoever. For example, you could render your environment as a container runtime for use with Docker, Kubernetes, or Nomad, or publish your artifact to the flox Catalog.
+
+These tools, used together, yield a powerful paradigm for managing environments, projects, and the release lifecycle. Check out the [docs](https://flox.dev/docs), and let us know what you think!
+
+### flox ❤️ Nix
+
+We want to highlight our relationship with the Nix project and community. In the past year flox dedicated time to support, empower and sometimes lead efforts across the Nix community. We think Nix has had an important impact on software engineering practice and that this is the moment for that impact to be celebrated and to bring Nix-based technologies into common usage.
+
+Nix is in our DNA. As an explicit part of our culture, we will continue to support Nix, the many amazing tools that are and will be built on it and the community through direct contributions to the NixOS Foundation, open source, sponsorships, evangelizing and organizing events.
+The “no bullshit” version of what we want to say is: flox is nothing without the Nix community. And as a company that wants to bring Nix to the world, we need to work hand in hand with the community. We will continue to do so with integrity and transparency.
+
+### What’s Next
+
+We are already working on the next launch, with many exciting features coming this year. For a quick sneak peek into our short term roadmap, we will be improving the CLI with all your feedback and improving build environments for projects and containerization.
+
+We know the flox model supercharges large organizations, particularly if they have strict compliance and security requirements, so we’ve started working with a few organizations to iterate on the platform further. Expect more enterprise features to roll out in the coming months.
+
+### Onwards
+
+We’re excited to have everyone play and build with flox. We’d especially like to thank our brilliant advisors and beta users who’ve helped shape the product. If this sounds like something you would want to work on, we’re [actively hiring](https://angel.co/company/flox-dev)! If you have any questions, comments, or feedback, head to the [Discourse](https://discourse.flox.dev) and give us a shout.
+
+Thanks!
+
+[Get Started](https://flox.dev/docs) |
+[GitHub](https://github.com/flox) |
+[Discourse](https://discourse.flox.dev) |
+[Twitter](https://twitter.com/floxdevelopment)

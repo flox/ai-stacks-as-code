@@ -1,0 +1,178 @@
+---
+title: 'Psst: Want a Pretty + Polished + Powerful SQL IDE for Your Terminal?'
+altTitle: 'Psst: Want a Pretty + Polished + Powerful SQL IDE for Your Terminal?'
+description: 'Harlequin not only has an extremely pretty terminal UI, it’s got an oh-so-pretty terminal UX, too, with point-and-click mouse support, command-completion capabilities, and other goodies.'
+metaDescription: 'Harlequin not only has an extremely pretty terminal UI, it’s got an oh-so-pretty terminal UX, too, with point-and-click mouse support, command-completion capabilities, and other goodies.'
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: harlequin
+author: Steve Swoyer
+publishedDate: 15 November 2024
+thumbnail: '/images/blog/room-with-tables.webp'
+orderBy: 20241115
+---
+
+When my friend [Mark Madsen](https://www.linkedin.com/in/markmadsen/) messaged asking, “u heard about this SQL TUI tool called harlequin? does ur 🐱alog have this 🔥?”, my first response was: “What’s a [TUI](https://en.wikipedia.org/wiki/Text-based_user_interface)?”
+
+Seriously, though, once I looked into what [Harlequin](https://harlequin.sh/) does, I was hooked. As for Mark’s second question, I didn’t for a second doubt the answer: “It’s in there. It _has_ to be in there.”
+
+Harlequin is, indeed, in there. And Mark’s questions set the stage for this package guide, featuring [Harlequin](https://github.com/tconbeer/harlequin)—straight from the Flox Catalog. Read on to find out how you can get and share a portable, reproducible SQL editor environment—with no containers or VMs!
+
+## Getting It
+
+Let’s kick things off by [installing Flox](https://flox.dev/docs/install-flox/). If you haven’t yet done this, you can easily [download](https://flox.dev/get/), install, and play along at home. Second, let’s grab Flox’s [PostgreSQL example environment](https://flox.dev/environments/). We’re going to need a database to query against, and (as Han Solo might put it) PostgreSQL’ll do nicely.
+
+```
+mkdir postgres && cd postgres
+flox pull --copy flox/postgres
+```
+
+The `flox pull --copy` command makes a local copy of the `postgres` environment, which is hosted on [FloxHub](https://flox.dev/blog/write-once-take-anywhere-home-away-from-home-with-floxhub/). We're copying `postgres` rather than activating it as a FloxHub environment (using `flox activate -r`) because we need to add `harlequin` and other packages to it. The `postgres` environment is managed (by Flox), so it's [locked](https://flox.dev/docs/concepts/environments/?h=lock#manifest-lock-floxenvmanifestlock). If we add packages to it, change environment variables, or add new services, everyone who runs it using `flox activate -r` would get those changes.
+
+OK, now we’ve got to install Harlequin and its PostgreSQL adapter. We’ll install a compatible Python version, too, just to rule out the possibility of dependency conflicts with our local Python installation.
+
+Flox makes this easy enough:
+
+```
+flox install harlequin python312Full python312Packages.harlequin-postgres
+✅ 'python312Full' installed to environment 'postgres'
+✅ 'harlequin' installed to environment 'postgres'
+✅ 'harlequin-postgres' installed to environment 'postgres'
+```
+
+Awesome. Now let’s light this candle! We’ll start the `postgres` environment using the `flox activate -s` switch, which tells Flox to spin up any services defined in its declarative [manifest](https://flox.dev/docs/concepts/manifest/?h=manifest).
+
+```
+✅ You are now using the environment 'flox/postgres (remote)'.
+To stop using this environment, type 'exit'
+
+✅ Initialize PostgreSQL (/tmp/.tmpyJXAm1/postgres/data)
+✅ Configure PostgreSQL (/tmp/.tmpyJXAm1/postgres/postgresql.conf)
+✅ Database 'pgdb' created
+
+     ╔═══════════════════════════════════════════════╗
+     ║                                               ║
+     ║  Start PostgreSQL in the background:          ║
+     ║  👉 flox services start                       ║
+     ║  👉 flox activate --start-services            ║
+     ║                                               ║
+     ║  Try to connect to PostgreSQL:                ║
+     ║  👉 psql                                      ║
+     ║                                               ║
+     ╚═══════════════════════════════════════════════╝
+```
+
+This puts me into a subshell where I can access and use the software Flox just installed. Now I’m ready to run Harlequin!
+
+To get right to the fun part, I’ll skip the steps where I create and populate my database. If you’re interested in what these involved, jump ahead to **Housekeeping Notes**.
+
+## Using It
+
+We'll use Harlequin to query against a database containing information about [_The Simpsons_](https://en.wikipedia.org/wiki/The_Simpsons)—stuff like episode names, numbers and descriptions, guest stars, directors, writers, and so on.
+
+To run Harlequin, all you’ve gotta do is plug the defaults from the Flox PostgreSQL environment into a [connection string](https://en.wikipedia.org/wiki/Data_source_name) and run it in your terminal:
+
+```
+harlequin -a postgres -h 127.0.0.1 -p 15432 -U pguser --password pgpass -d pgdb
+```
+
+(**Programming note**: You could easily [alias this](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/) connection string in your Flox environment—or have it [run automatically](https://flox.dev/docs/?h=hook#add-shell-hooks) when you activate your environment.)
+
+As you can see, Harlequin not only has an extremely pretty terminal UI, it’s got an oh-so-pretty _terminal UX_, too. For one thing, it supports point-and-click mouse interaction, something that still amazes me whenever I encounter it; for another, it provides command- and keyword-completion capabilities, as shown below.
+
+This isn’t just one of the prettiest terminal tools I’ve ever used, it’s one of the most useful, too.
+
+![](/images/blog/harlequin-1.png)
+
+The idea with this first query is just to verify that my database actually works. So I’m starting with something basic, like which episodes comprise Season 2 of _The Simpsons_.
+
+![](/images/blog/harlequin-2.png)
+
+Booyah! It works! Now I’ll try something just a mite more advanced: in which episode did the immortal Richard Starkey guest star?
+
+![](/images/blog/harlequin-3.png)
+
+How about the White Stripes? I know Jack White and Meg White guest-starred in an episode, although I can’t remember if they were credited as the White Stripes. Which episode was it?
+
+![](/images/blog/harlequin-4.png)
+
+Now that I think on it, _The Simpsons_ sure had scads of guest stars. How many episodes featured multiple stars? Searching for this on IMDB is … well, I have no idea how I’d do that using its basic search interface.
+
+With our PostgreSQL _Simpsons_ database, it’s easy:
+
+![](/images/blog/harlequin-6.png)
+
+One last query, just to dust off my SQL: can we list episodes in which _specific_ guests starred together?
+
+![](/images/blog/harlequin-7.png)
+
+Yes we can!
+
+## Sharing It
+
+I can also use Flox to easily share what I’ve created with … anybody, including my friend Mark, who—as an old-school software engineer-turned-data-architect—is reflexively skeptical of any technology promising to do everything Flox does. I can either push my `postgres` repo to GitHub or use the **`flox push`** command to push it to FloxHub. Because Mark hitherto has resisted the Call of Flox, I’ll opt for the GitHub method.
+
+First I’ll `git init` a repo in my project directory, then I’ll run `git add .` and `git commit`. Next, I’ll use `gh` to create a corresponding GitHub repo and connect it to my local repo. Finally, I’ll `git push` my Floxified repo to GitHub. Sound familiar? It should: it’s the same workflow we use whenever we create a new GitHub repo!
+
+If I _really_ want to make things easy, I could add my `get-floxxed.sh` script to my GitHub repo. This automatically downloads and installs the latest version of Flox. From Mark’s perspective, all he’d need to do is `git clone` my repo and run `get-floxxed.sh`. I could even configure this script to prompt him:
+
+“Do you want me to create a ‘harlequin` alias you can use to activate this environment?”
+
+If Mark were already an inveterate Flox user like me, this would be even easier. I could just tell him to run...
+
+```
+flox pull --copy barstoolbluz/postgres
+```
+
+...and he’d get a portable, reproducible version of my environment.
+
+## Making It Your Own
+
+I built extra packages (like jq and jless) into _my_ version of the `postgres` environment so Mark has everything he needs to transform and load data into his local PostgreSQL instance. I also added some logic that automatically creates and activates a Python virtual environment (venv), just in case he needs to do some of this stuff using Python. In addition, the environment now looks for and parses a `requirements.txt` file and, if it finds one, [automatically installs](https://flox.dev/blog/using-flox-to-create-portable-reproducible-python-environments/) any Python dependencies.
+
+```
+daedalus@askesis:~/dev/postgres$ flox activate -s --mode run
+✅ You are now using the environment 'postgres'.
+To stop using this environment, type 'exit'
+
+✅ Database 'pgdb' already exists
+
+⚡️ Activating existing venv in /home/daedalus/dev/postgres/.flox/cache..done.
+
+     ╔═══════════════════════════════════════════════╗
+     ║                                               ║
+     ║  Start PostgreSQL in the background:          ║
+     ║  👉 flox services start                       ║
+     ║  👉 flox activate --start-services            ║
+     ║                                               ║
+     ║  Try to connect to PostgreSQL:                ║
+     ║  👉 psql                                      ║
+     ║                                               ║
+     ╚═══════════════════════════════════════════════╝
+```
+
+In the `profile` section of my `postgres` environment's [manifest](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/), I 've aliased `harlequin` to the correct database connection string, so connecting to the local PostgreSQL database instance is as simple as can be. Mark has a massive collection of scholarly PDFs he’s always struggling to organize, so I went ahead and created a mock data model for importing, managing, and searching metadata from these. He can use Harlequin to perform this entire process, from running the DDL that creates database objects, to dropping the existing databases (if he wants to), to populating the `researchpapersdb` database itself.
+
+Speaking of which, in the screenshot below, I’ve already run `CREATE DATABASE ResearchPapersDB;`, which defined the database of the same name that you see in Harlequin's left-hand pane. Now I've highlighted `USE ResearchPapersDB;` and can run that command by clicking the `Run Selection` button. From there, creating the tables and other schema objects defined in the DDL is as easy as highlighting each statement in Harlequin’s query editor and clicking `Run Selection`. A SQL guru like Mark should have no problem with this!
+
+![](/images/blog/harlequin-8.png)
+
+## Housekeeping Notes
+
+I sourced the dataset for my _Simpsons_ database from this [GitHub repo](https://github.com/colinxfleming/simpsons_data). It’s a little dated, and it’s missing some essential guest stars (Hello!? [The Ramones](<https://en.wikipedia.org/wiki/Rosebud_(The_Simpsons)>)!? [Thomas Pynchon](https://en.m.wikipedia.org/wiki/All%27s_Fair_in_Oven_War)?! [Johnny Cash](<https://en.m.wikipedia.org/wiki/El_Viaje_Misterioso_de_Nuestro_Jomer_(The_Mysterious_Voyage_of_Homer)>)?!) but it’s nicely formatted JSON and working with it was a pleasure. My thanks to its creator!
+
+I did have to do some prep work on this dataset, but this wasn’t an altogether un-fun activity. The quotes (`”` and `”`) in the JSON weren’t escaped, so I needed to fix that. And I also had to convert the dataset's JSON objects into a newline-delimited format so I could get PostgreSQL to process it. On the whole, [pretty standard, really](https://getyarn.io/yarn-clip/6a432808-0710-4674-8340-ebef6599e346).
+
+Once this was done, I was able to delegate the following operations to PostgresSQL’s database engine:
+
+- Import JSON data directly as JSONB into a raw/temporary PostgreSQL table;
+- Transform the JSONB and then load the resulting tabular structure into a relational table.
+
+Believe it or not, this was actually fun!
+
+## Summary
+
+So that’s Harlequin. Pretty neat, huh? Pretty _and_ neat. Even better, Harlequin isn’t just “free” as in F/OSS, but “free” as in free of charge. This last is amazing! To be honest, I would happily _pay_ for a tool like this. I’m both humbled and amazed by the quality of the open source software that people like [Harlequin’s maintainer](https://tedconbeer.com/) and the [community supporting it](https://github.com/tconbeer/harlequin/graphs/contributors) gift to us.
+
+Happy Hacking!

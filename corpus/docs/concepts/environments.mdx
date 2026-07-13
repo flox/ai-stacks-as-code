@@ -1,0 +1,109 @@
+---
+title: "What is a Flox environment?"
+description: "Everything you need to know about Flox environments."
+---
+
+An environment is a shell that provides a collection of
+**environment variables**, **software packages**, and **activation scripts** that
+are run when entering the shell.
+Environments provide packages that take precedence over your existing packages
+without removing access to personalizations not provided by the environment.
+Flox environments layer on top of your system so that you can use the
+environment's software when it's active,
+while still using your personal shell aliases, IDE, tools, and
+kitted out text editor.
+
+See the [creating an environment guide](/tutorials/creating-environments) to create your first
+environment.
+
+## Environment uses
+
+1. **Path environment**: An environment stored in a local directory.
+    - This environment is self contained in the `.flox` directory and can be
+reproduced by sharing the directory in version control or some other file
+sharing mechanism.
+    - Path environments are created with [`flox init`](/man/flox-init),
+referred to with the `--dir/-d` option on most CLI commands,
+and are commonly used for self-contained projects or different subprojects
+within a monorepo.
+
+2. **Centrally managed environment**: An environment stored remotely on
+[FloxHub](/concepts/floxhub).
+
+    - Centrally managed environments are created by running [`flox push`](/man/flox-push)
+on a path environment.
+     You can connect a new project directory with an existing centrally managed environment with [`flox pull ...`](/man/flox-pull) or you can activate the environment directly with [`flox activate -r ...`](/man/flox-activate) (which uses a local cached copy) for instant use.
+    - Centrally managed environments enable multiple projects or systems to consume a
+shared environment that is versioned with [generations](/concepts/generations).
+They are commonly used as base environments for projects of similar tech stacks,
+for reproducing issues on specific systems, or to quickly share tools.
+    - To disconnect a centrally managed environment from FloxHub, run [`flox pull --copy`](/man/flox-pull) instead of `flox pull`.
+    This will turn the environment back into a path environment.
+
+See the [sharing guide](/tutorials/sharing-environments) for a more thorough walk through about
+sharing and working with different types of environments.
+
+## Environment files
+
+A Flox environment stores its metadata, declarative manifest, and manifest lock
+file in a `.flox` directory wherever the [`flox init`](/man/flox-init) command was
+run.
+All of these files can be stored in version control when working with path environments.
+
+Let's look closer at the files that were generated.
+
+### `manifest.toml`
+
+The manifest is a declarative specification for the environment which is [TOML](https://toml.io/en/v1.0.0) formatted.
+
+The best way to edit the manifest is by running [`flox edit`](/man/flox-edit) which will launch your default editor and run validation when you save changes.
+
+See [`manifest.toml`](/man/manifest.toml) for a complete description of the manifest format and the [customizing environments guide](/tutorials/customizing-environments) to walk through examples.
+
+```toml title=".flox/env/manifest.toml"
+version  = 1
+
+[install]
+nodejs.pkg-path = "nodejs_24"
+```
+
+### `manifest.lock`
+
+The lock file serves as a snapshot of the specific package versions and their dependencies that were built and activated at a particular point in time.
+Flox manages this file for you.
+
+```json title=".flox/env/manifest.lock"
+{
+  …
+  "packages": [
+    {
+      "install_id": "nodejs",
+      "version": "24.0.1",
+      "system": "aarch64-darwin",
+      "outputs": {
+        "dev": "/nix/store/by9av8x8vmk8lpw4cxhhxfbf7s1h4xzx-nodejs-24.0.1-dev",
+        "libv8": "/nix/store/li49fpxxlgzaz20sahhfj6n8cbkqi7m1-nodejs-24.0.1-libv8",
+        "out": "/nix/store/naafq480zhq05xbi2d3kzpnna2rdqsfb-nodejs-24.0.1"
+      },
+      …
+    }
+  …
+  ]
+}
+```
+
+### `pkgs`
+
+[Nix expression builds](/concepts/nix-expression-builds) are stored in the directory `.flox/pkgs`.
+
+### `env.json`
+
+A metadata file that contains the name of the environment and the environment's
+version. Flox manages this file for you.
+
+```json title=".flox/env.json"
+{
+  "name": "example-project",
+  "version": 1
+}
+```

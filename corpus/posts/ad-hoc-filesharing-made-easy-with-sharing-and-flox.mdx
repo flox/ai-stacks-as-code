@@ -1,0 +1,60 @@
+---
+title: 'Ad Hoc Filesharing Made Easy with Sharing and Flox'
+altTitle: 'Ad Hoc Filesharing Made Easy with Sharing and Flox'
+description: "Ever find yourself shelled into a remote server and you just want to grab a few files without all the scp-hopping? The sharing package is built for you."
+metaDescription: "Ever find yourself shelled into a remote server and you just want to grab a few files without all the scp-hopping? The sharing package is built for you."
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: sharing
+author: Ross Turk
+publishedDate: 7 February 2025
+thumbnail: '/images/blog/fence-ladder.webp'
+orderBy: 20250207
+---
+
+One of my common workflows contains a particularly annoying task. It needs to be done right at the end of the process for producing artwork - just like the ladder leaning on the fence you see above!
+
+This process involves shelling into a remote server, one with CUDA cores, and generating an image using our [AI modeling environment](https://flox.dev/blog/ml-modeling-with-flaim-and-hugging-face-diffusers/). Once the image has been generated, the tedious part begins. I have to get my image from the remote server to my laptop, where I'm preparing the pull request.
+
+It's not a big deal. It's not **hard**, it's just an obnoxious schlep at the end of a creative experience. This used to mean I would fumble through these steps:
+
+* opening a new shell term or tab
+* scp-ing the file from the remote server to my local system
+* opening the image to view it in full size
+
+I no longer do any of this because of a simple package called [`sharing`](https://github.com/parvardegr/sharing). 
+
+## Sharing is caring
+
+The `sharing` package is designed to make it easy to spin up a web server with the contents of your current directory.
+
+To get it, run `flox install sharing` in your favorite environment. I have it in my [default environment](/docs/tutorials/default-environment/), but you might prefer it as part of a discrete toolset. The best part: this doesn't affect your current Node setup at all - in fact, you don't even need to have Node installed. Flox takes care of it all behind the scenes and gives you the tool you asked for.
+
+Once it is installed, just run `sharing` along with a path, often `.` for the current directory.
+
+![](/images/blog/sharing.webp)
+
+It provides you with a URL you can visit to browse its contents, and it even gives you a QR code so you can view them from your phone.
+
+I can view my remote files, download the ones I want, and get on with my day. If I find that it's binding to the wrong network interface, I can give it a hint with `--ip` - e.g., `--ip 100.92.14.35`.
+
+![](/images/blog/sharing-browser.png)
+
+## Sharing as a one-liner
+
+Don't want to install `sharing` into your environment permanently? Just want to use it once without affecting your current project or its dev stack?
+
+Try the Flox sharing environment, which can be run as a one-liner:
+
+```
+% flox activate -r flox/sharing -- sharing .
+```
+
+This will activate the `flox/sharing` environment and run `sharing` in the current directory. When you're done, you can key in a spry `^C` and be restored to your previous shell environment.
+
+## Flox makes work feel like play
+
+Using any of the 150,000 packages in the Flox Catalog is as easy as a `flox install` command, and they can be installed into environments that are hackable, stackable, and shareable. It's the best way to get new stuff, and you can [download it right here](/download/) at flox.dev.
+
+

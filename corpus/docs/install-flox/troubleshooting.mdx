@@ -1,0 +1,404 @@
+---
+title: "Troubleshooting installation"
+description: "How to diagnose and fix common Flox installation issues"
+---
+
+If you run into problems installing Flox,
+this page will help you diagnose what went wrong and find a solution.
+
+## Finding install logs
+
+The first step in debugging a failed installation is to find the install logs.
+The location depends on your operating system.
+
+### macOS
+
+The macOS system installer logs to `/var/log/install.log`.
+
+The install log contains logs from installations of other installed macOS packages, so to get just the lines relevant to Flox, run this script:
+
+```bash
+awk '
+/com\.floxdev\.flox/ {
+  if (first == 0) first = NR
+  last = NR
+}
+{ lines[NR] = $0 }
+END {
+  if (first && last && first <= last) {
+    for (i = first; i <= last; i++) print lines[i]
+  }
+}' /var/log/install.log
+```
+
+### Linux
+
+On Linux the Flox installer writes a log file to `/tmp` with a timestamped
+filename:
+
+```text
+/tmp/flox-installation.log.<timestamp>
+```
+
+For example:
+
+```text
+/tmp/flox-installation.log.1773188428
+```
+
+List matching files to find it:
+
+```bash
+ls -al /tmp/flox-installation.log.*
+```
+
+## Previous Nix installation
+
+The most common cause of a failed Flox installation is a previous Nix installation on the system.
+Although the Flox installer attempts to install over an existing Nix
+installation, it's possible for a prior installation to end up in a non-standard
+state that the Flox installer doesn't know how to handle.
+
+### Solution: manually cleanup previous installation state
+
+In some cases, it may be possible to workaround an error in the installation log
+for your system (`/var/log/install.log` or `/tmp/flox-installation.log.*`).
+This might involve manually removing parts of the pre-existing Nix installation.
+
+### Solution: remove the previous Nix installation
+
+The most surefire way to get back to a clean state is to completely remove the prior installation.
+Note that this will completely remove `/nix/store`, so all Nix packages will
+have to be re-downloaded or re-built.
+
+#### Flox uninstaller
+
+If you have a partial Flox installation, you can run Flox uninstallation.
+
+
+<Tabs>
+  <Tab title="MacOS (Pkg)">
+
+  <Warning>
+    **The following commands will completely remove Nix and the contents of `/nix/*` from the system.**
+
+
+  </Warning>
+
+  Be sure to back up the system and/or extract any important Nix-related
+  files and packages before continuing.
+
+  1. Ensure no running processes are using `/nix`.
+
+  1. Run:
+
+      ```
+      sudo /usr/local/share/flox/scripts/uninstall
+      ```
+
+  Regardless of the current state, brew can be used to perform a full clean up:
+  ```
+  brew uninstall --force --zap flox
+  ```
+
+  We recommend rebooting your system after uninstalling Flox.
+  </Tab>
+  <Tab title="MacOS (Homebrew)">
+
+  <Warning>
+    **The following commands will completely remove Nix and the contents of `/nix/*` from the system.**
+
+
+  </Warning>
+
+  Be sure to back up the system and/or extract any important Nix-related
+  files and packages before continuing.
+
+  <Note>
+    **You may be asked if the terminal has permission to modify contents of the disk.**
+
+
+  </Note>
+
+  Run:
+
+  ```
+  brew uninstall flox
+  ```
+
+  To remove all traces of flox including user preferences uninstall with:
+
+  ```
+  brew uninstall --zap flox
+  ```
+
+  In the case of recovering a partial install, a force and zap can help:
+  ```
+  brew uninstall --force --zap flox
+  ```
+
+  We recommend rebooting your system after uninstalling Flox.
+  </Tab>
+  <Tab title="Debian">
+
+  For use on Debian, Ubuntu, and other Debian-based distributions.
+
+  <Warning>
+    **The following command will completely remove Nix and the contents of `/nix/*` from the system.**
+
+
+  </Warning>
+
+  Be sure to back up the system and/or extract any important Nix-related
+  files and packages before continuing.
+
+  ```
+  sudo apt-get purge flox
+  ```
+
+  We recommend rebooting your system after uninstalling Flox.
+  </Tab>
+  <Tab title="RPM">
+
+  For use on RedHat, CentOS, Amazon Linux, and other RPM-based
+  distributions.
+
+  <Warning>
+    **The following command will completely remove Nix and the contents of `/nix/*` from the system.**
+
+
+  </Warning>
+
+  Be sure to back up the system and/or extract any important Nix-related
+  files and packages before continuing.
+
+  ```
+  sudo yum remove flox
+  ```
+
+  We recommend rebooting your system after uninstalling Flox.
+
+  <Accordion title="Output on success:">
+
+    ```
+    $ sudo yum remove flox
+    Updating Subscription Management repositories.
+    Unable to read consumer identity
+
+    This system is not registered to Red Hat Subscription Management.
+    You can use subscription-manager to register.
+
+    Dependencies resolved.
+    ======================================================================
+        Package       Architecture    Version              Repository   Size
+    ======================================================================
+    Removing:
+        flox          x86_64          1.4.3-1625910780     @@System     109 M
+
+    Transaction Summary
+    ======================================================================
+    Remove  1 Package
+
+    Freed space: 109 M
+    Is this ok [y/N]: y
+    Running transaction check
+    Transaction check succeeded.
+    Running transaction test
+    Transaction test succeeded.
+    Running transaction
+        Preparing        :                                               1/1
+        Running scriptlet: flox-1.4.3-1625910780.x86_64                  1/1
+    floxadm uninstall complete
+
+        Erasing          : flox-1.4.3-1625910780.x86_64                  1/1
+        Running scriptlet: flox-1.4.3-1625910780.x86_64                  1/1
+        Verifying        : flox-1.4.3-1625910780.x86_64                  1/1
+    Installed products updated.
+
+    Removed:
+        flox-1.4.3-1625910780.x86_64
+
+    Complete!
+    ```
+  </Accordion>
+  </Tab>
+</Tabs>
+#### Nix uninstaller
+
+If you have a prior Nix installation but haven't installed Flox, follow the
+uninstallation instructions for your existing Nix installation method:
+
+<Tabs>
+  <Tab title="Determinate Nix Installer">
+
+  If Nix was installed with the
+  [Determinate Nix Installer](https://github.com/DeterminateSystems/nix-installer),
+  run:
+
+  ```
+  /nix/nix-installer uninstall
+  ```
+
+  Then re-run the Flox installer.
+  </Tab>
+  <Tab title="Other Nix installations">
+
+  For Nix installations that were not made with the Determinate Nix Installer,
+  follow the
+  [official Nix uninstall instructions](https://nix.dev/manual/nix/stable/installation/uninstall)
+  for your platform.
+
+  Then re-run the Flox installer.
+  </Tab>
+</Tabs>
+## Common problems
+
+### Orphaned Nix build users (macOS)
+
+On macOS, a previous Nix installation may have created system users
+named `_nixbld1` through `_nixbld32`.
+If these users were not fully removed during uninstallation,
+the Flox installer's post-install script can fail because it expects to create
+these users with specific UIDs.
+
+This is particularly common with Nix installations that are two or more years old
+(prior to macOS 15).
+See [NixOS/nix#10892](https://github.com/NixOS/nix/issues/10892) for background.
+
+#### Symptoms
+
+The install log (`/var/log/install.log`) contains an error like:
+
+```text
+It seems the build user _nixbld8 already exists, but with the UID '308'.
+```
+
+#### Solution
+
+Remove the orphaned build users and then re-install Flox.
+
+1. Delete the orphaned build users:
+
+    ```
+    for i in $(seq 1 32); do sudo dscl . -delete /Users/_nixbld$i 2>/dev/null; done
+    ```
+
+2. If the `/nix` APFS volume is still mounted, remove it:
+
+    ```
+    sudo diskutil apfs deleteVolume /nix
+    ```
+
+3. Re-install Flox following the instructions on the [Install](/install-flox/install) page.
+
+### Homebrew uninstall did not fully clean up (macOS)
+
+If you previously installed Flox via Homebrew and the uninstallation did not
+complete cleanly (for example, the `/nix` volume could not be unmounted),
+you may need to force a full cleanup before re-installing.
+
+#### Solution
+
+```bash
+brew uninstall --force --zap flox
+```
+
+After rebooting, re-install Flox following the instructions on the
+[Install](/install-flox/install) page.
+
+### Flox builds from source when installed as a Nix flake input
+
+If you consume Flox as a flake input in your NixOS or nix-darwin configuration,
+you may find that Nix builds Flox from source instead of fetching it from the
+Flox binary cache.
+There are two common causes.
+
+#### Using `follows` for nixpkgs
+
+If your flake input for Flox uses `inputs.nixpkgs.follows = "nixpkgs"`,
+the resulting store paths will differ from the ones in the Flox binary cache
+because the cache was built against the nixpkgs revision pinned in the
+[Flox flake.lock](https://github.com/flox/flox).
+
+##### Solution
+
+Remove the `follows` directive so that Flox uses its own pinned nixpkgs:
+
+```nix
+# flake.nix
+{
+  inputs = {
+    flox.url = "github:flox/flox";
+    # Do NOT add: flox.inputs.nixpkgs.follows = "nixpkgs";
+  };
+}
+```
+
+The trade-off is an extra copy of nixpkgs in your Nix store,
+but Flox's dependencies and yours will coexist without collisions.
+
+#### Flox binary cache not in `substituters`
+
+Even with the correct Nix configuration files,
+the Flox binary cache (`cache.flox.dev`) may appear only in
+`trusted-substituters` and not in `substituters`.
+Nix only queries caches listed in `substituters` (or `extra-substituters`)
+during builds.
+The `trusted-substituters` setting only controls which caches
+non-root users are *permitted* to add via `extra-substituters` —
+it does not cause Nix to query those caches on its own.
+
+##### Diagnosis
+
+```bash
+nix config show | grep substituters
+```
+
+If `cache.flox.dev` appears in `trusted-substituters` but **not** in
+`substituters`, Nix will never query it and will fall back to building
+from source.
+
+##### Solution
+
+Add the Flox cache to `extra-substituters` so that it is merged into
+`substituters` and actually queried during builds.
+For example, in your NixOS or nix-darwin `nix.settings`:
+
+```nix
+nix.settings = {
+  extra-substituters = [ "https://cache.flox.dev" ];
+  extra-trusted-public-keys = [
+    "flox-cache-public-1:7F4OyH7ZCnFhcze3fJdfyXYLQw/aV7GEed86nQ7IsOs="
+  ];
+};
+```
+
+Or directly in `/etc/nix/nix.conf`:
+
+```ini
+extra-substituters = https://cache.flox.dev
+extra-trusted-public-keys = flox-cache-public-1:7F4OyH7ZCnFhcze3fJdfyXYLQw/aV7GEed86nQ7IsOs=
+```
+
+Verify the change took effect:
+
+```bash
+nix config show | grep substituters
+```
+
+`cache.flox.dev` should now appear in the `substituters` line.
+
+## Reporting issues
+
+If your issue is not covered here, ask for help in our
+[Slack](https://go.flox.dev/slack)
+or [open an issue on GitHub](https://github.com/flox/flox/issues/new/choose),
+filling out the `Install failure` Issue template.
+
+Please include:
+
+- Your operating system and version
+- The installation method you used (Pkg, Homebrew, Debian, RPM, etc.)
+- The full install log output (see [Finding install logs](#finding-install-logs)
+  above)
+- Any error messages you encountered

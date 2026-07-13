@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Flox Community Slack
+    url: https://go.flox.dev/slack
+    about: This repo doesn't use GitHub issues. Ask questions and report doc problems in the Flox Community Slack.

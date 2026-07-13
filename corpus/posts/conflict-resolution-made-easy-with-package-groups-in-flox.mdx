@@ -1,0 +1,316 @@
+---
+title: "Conflict Resolution Made Easy with Package Groups in Flox"
+altTitle: "Conflict Resolution Made Easy with Package Groups in Flox"
+description: "Flox Package Groups give you an easy way to manage dependency conflicts, enabling you to create powerful fit-for-purpose dev environments you can take with you—anywhere."
+metaDescription: "Flox Package Groups give you an easy way to manage dependency conflicts, enabling you to create powerful fit-for-purpose dev environments you can take with you—anywhere."
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 19 August 2024
+thumbnail: "/images/blog/containers-on-a-counter.webp"
+orderBy: 20240819
+---
+
+I love that I can use Flox to install legacy or bleeding-edge versions of software packages and core system libraries, even if I can’t satisfy their dependencies on my local system.
+
+This is a lifesaver when I’m building software for other platforms. _Or_ when I want to install cool new tools (or toys) that conflict with stuff on my system. _Or_ when I need to build fit-for-purpose environments that make Very Hard things possible—and take them with me wherever I go.
+
+The catch is that Flox also needs to manage its own package-level dependencies. Sometimes, to avoid certain kinds of dependency conflicts, it will refuse to install a specific version of a package.
+
+The solution to this problem is to isolate fussy or finicky packages in distinct [**Package Groups**](https://flox.dev/docs/concepts/manifest/?h=package+groups#installing-packages-to-package-groups). This blog explores how Flox Package Groups work, showing you how you can use them to manage different kinds of package-level conflicts in your Flox environments.
+
+## Example #1: Creating a traveling K8s toolkit
+
+Let’s say I’m going on vacation and I want to keep noodling on a Golang-based microservice I’ve been refactoring. I can’t take my org’s production K8s cluster with me, but I _can_ bring along a close facsimile—a K8s cluster on my laptop—thanks to [Kubernetes in Docker (`kind`)](https://github.com/kubernetes-sigs/kind) and Flox.
+
+In fact, I can build almost everything I need for this use case into a Flox environment that runs anywhere. Thus giving me a portable toolkit I can take with me on my (wait for it) **vk8tn**!
+
+First, let’s get the yucky stuff out of the way. I’m gonna need basic tools for managing my local K8s cluster—`kubectl` for sure. Like most organizations, mine is still running an older version of K8s: 1.29.2, from almost a year ago. I’ll need a `kubectl` client that’s as close to this as possible, so I can feel confident it’ll be compatible with my org’s `prod` instance. Thankfully, Flox Catalog makes this trivially easy. Let’s just go ahead and `flox install` _exactly_ the `kubectl` client I need:
+
+```
+daedalus@protos:~/dev$ mkdir vk8tn && cd vk8tn && flox init
+✨ Created environment 'vk8tn' (x86_64-linux)
+
+Next:
+  $ flox search <package>    <- Search for a package
+  $ flox install <package>   <- Install a package into an environment
+  $ flox activate            <- Enter the environment
+  $ flox edit                <- Add environment variables and shell hooks
+
+daedalus@protos:~/dev/vk8tn$ flox install kubectl@1.29.2
+✅ 'kubectl' installed to environment 'vk8tn'
+
+daedalus@protos:~/dev/vk8tn$ flox list
+kubectl: kubectl (1.29.2)
+```
+
+But I’m not quite done! I might as well install a few other cool K8s tools, starting with essential stuff like [`helm`](https://github.com/helm/helm), but also super-useful utilities like [`stern`](https://github.com/stern/stern), or the incomparable [`k9s`](https://github.com/derailed/k9s). Just like before, I’ve got to grab a version of `stern` that corresponds to my specific version of `kubectl`, as well as specific versions of `helm` and `k9s` that likewise follow K8s versioning best practices. After I install all three I’ll—
+
+```
+daedalus@protos:~/dev/vk8tn$ flox install stern@1.29.0 k9s@0.32.5 kubernetes-helm@3.15.3
+❌ ERROR: resolution failed: Resolution constraints are too tight.
+```
+
+In Greek tragedy, that abrupt cutting-off-in-mid-sentence is what’s known as “aposiopesis.”
+
+It was the equivalent of the record-scratching sound you hear in movies or TV series—you know, when something totally unexpected happens. “Constraints are too tight?” What does this mean?
+
+## Flox Package Groups explained
+
+Basically, Flox is telling us it can’t resolve how to install all of the specified package versions into the same environment, because at least one has dependencies that conflict with one or more of the others. So does this mean—to paraphrase a well-known [`apt`](https://wiki.debian.org/Apt) error message—Flox is “unable to correct problems and I have held broken packages?”
+
+No! I can use Flox Package Groups to deal with issues like this.
+
+The logic behind Package Groups is simple enough. Basically, we want the tools we use together to be from the same era of software. That way we know they’ll work together.
+
+To give you an extreme example, building/running a binary that needs to link against a version of `glibc` from 2018 (say, v2.28) is very different from building/running against `glibc` v2.40, which was released just last month. The challenge is to use sets of packages that both share libraries and are [ABI](https://en.wikipedia.org/wiki/Application_binary_interface)-compatible _because they’re derived from the same era_. Flox does this work for you, automatically figuring out which packages are compatible with which. Under its covers, Flox is partly powered by Nix—the proven open source package manager—and [Nixpkgs](https://github.com/NixOS/nixpkgs) is the upstream for Flox Catalog.
+
+## Creating Package Groups in a Flox environment
+
+Flox enables a completely declarative approach to installing, versioning, and managing software. The Flox CLI declares packages for us in `manifest.toml`, the software manifest and configuration artifact that lives inside every Flox environment. So putting `kubectl` into its own Package Group and reinstalling the other packages I need _should_ be sufficient to fix this problem.
+
+All I’ve got to do is type `flox edit` and I can easily start modifying the `[install]` section of my `manifest.toml`. Right now, it looks like this:
+
+```
+[install]
+kubectl.pkg-path = "kubectl"
+kubectl.version = "1.29.2"
+```
+
+Putting `kubectl` into its own Package Group is easy enough:
+
+```
+[install]
+kubectl.pkg-path = "kubectl"
+kubectl.version = "1.29.2"
+kubectl.pkg-group = "kubectl"
+```
+
+When I use `flox edit` to make changes, Flox rebuilds and validates my environment in real time:
+
+```
+⠋ Building environment to validate edit
+```
+
+If everything checks out, I get the following message:
+
+```
+✅ Environment successfully updated.
+```
+
+Okay. Isolating `kubectl` in its own Package Group should do the trick. Now let’s reinstall the oth—
+
+```
+daedalus@protos:~/dev/vk8tn$ flox install stern@1.29.0 k9s@0.32.5 kubernetes-helm@3.15.3
+❌ ERROR: resolution failed: Resolution constraints are too tight.
+```
+
+There’s that error again! When you think about it, however, this makes sense. If I could use just _any_ versions of `helm`, `k9s`, or `stern` in my environment, Flox could easily find releases that coexist with one another. But if I need _specific_ versions of tools or libraries, there's a greater likelihood of dependency conflicts. 
+
+Why? Because each version _is a snapshot of a point in time_ in that tool or library’s development. Let me say a little bit about that.
+
+## Software versioning made simple
+
+Think of all the tools in a Flox environment as analogous to an exposure in photography: the longer the duration of the exposure,  the more information (change) it captures. Environments containing a large number of tools, each pinned to specific versions, are like long exposures lasting for hours: both encompass so large a slice of time that dependency conflicts (or blurring movements) become inevitable. 
+
+In cases like this, it makes sense to separately install each tool and see which ones trigger a “constraints are too tight” error. Another viable option is just to create separate Package Groups for each one.
+
+Off-screen, I did just that, zeroing in on `k9s`, which I put into its own Package Group, called `k9s`. But the latest version of Helm also refused to install unless I put it, too, into a separate Package Group. So this is what I ended up with:
+
+```
+[install]
+kubectl.pkg-path = "kubectl"
+kubectl.version = "1.29.2"
+kubectl.pkg-group = "kubectl"
+
+kubernetes-helm.pkg-path = "kubernetes-helm"
+kubernetes-helm.version = "3.15.3"
+kubernetes-helm.pkg-group = "helm"
+
+stern.pkg-path = "stern"
+stern.version = "1.29.0"
+
+k9s.pkg-path = "k9s"
+k9s.version = "0.32.5"
+k9s.pkg-group = "k9s"
+```
+
+I now have a declarative software manifest that I can amend as my requirements change. I can easily resolve dependency conflicts by isolating fussy packages into discrete package groups. And I can define as many different package groups as I need, which means I can create rich environments that include tools, libraries, frameworks, etc. that would otherwise refuse to coexist in a conventional system environment, or would need to be composed as part of a complicated multi-container runtime.
+
+With that, I’m ready to take my K8s toolkit with me on my vk8tn.
+
+All I need is a build environment to go along with it.
+
+## Example #2: A portable Golang build environment for K8s
+
+Before signing off for vacation, I’d been refactoring my org’s API gateway service, using Go v1.22.5. I can easily get this version of Go from Flox Catalog, but—based on prior experience—I gotta wonder: is Go v1.22.5 gonna play nicely in my environment? Let's `flox install` and find out:
+
+```
+flox [vk8tn] daedalus@protos:~/dev/vk8tn$ flox install go@1.22.5
+❌ ERROR: resolution failed: Resolution constraints are too tight.
+```
+
+The good news is that I now know there’s an easy fix for this: I can just put `go` into its own Package Group. In fact, it's a good practice to always put related software build tools into their own Package Group, separating them from  tools you use to bootstrap, manage, or provide core services for your environment.
+
+For example, I also need to install `ko` (a.k.a. “KOntainerize”), a neat tool I rely on to build and deploy Go stuff on K8s. I'll put this into a separate Package Group, `build`, too. Here’s the snippet from my `manifest.toml`.
+
+```
+[install]
+go.pkg-path = "go"
+go.version = "1.22.5"
+go.pkg-group = "build"
+ko.pkg-path = "ko"
+ko.version = "0.15.4"
+ko.pkg-group = "build"
+```
+
+The irony is that `ko` isn’t at all fussy and doesn’t need to be isolated in a distinct Package Group. But it does make sense to keep related build tools together, not least because they're usually version-compatible and (for this reason) tend to share the same libraries and ABIs. 
+
+Speaking of which, I need to build other Go stuff into my Flox environment, like `golangci-lint`, `golangci-lint-langserver`, and `delve`. Spoiler alert: I won’t need package groups for any of them either, but I’ll put them all into my `build` Package Group, too. Once I do that, I should be good to go.
+
+But why do I feel like I’m forgetting something? I got my `vk8tn` management toolkit. I got my Go build environment. What am I forgetting? Oh. Yeah. K8s. I need a K8s cluster I can take with me.
+
+I need K8s a go-go. Or something like it.
+
+## Up, running, and building with K8s, Go, and Flox
+
+We need a Kubernetes cluster.
+
+The Flox Catalog has the latest version of `kind`, and (good news!) I don’t need to create a Package Group to install it in my environment. It also has `ko`, which I’ve already said isn’t fussy about dependencies. Between them, I can use `kubectl`, `ko`, and `kind` to automate just about everything for my `vk8tn` environment and workflow. This gives me a way to define a local replica of my prod K8s cluster, build and compile my Go code, and deploy it as a containerized service to `kind`/K8s. Here’s what the final `[install]` section of my environment’s `manifest.toml` looks like:
+
+```
+kubectl.pkg-path = "kubectl"
+kubectl.version = "1.29.2"
+kubectl.pkg-group = "kubectl"
+
+kubernetes-helm.pkg-path = "kubernetes-helm"
+kubernetes-helm.version = "3.15.3"
+kubernetes-helm.pkg-group = "helm"
+
+k9s.pkg-path = "k9s"
+k9s.version = "0.32.5"
+k9s.pkg-group = "k9s"
+
+lazydocker.pkg-path = "lazydocker"
+kind.pkg-path = "kind"
+gitFull.pkg-path = "gitFull"
+
+stern.pkg-path = "stern"
+stern.version = "1.29.0"
+
+kubent.pkg-path = "kubent"
+kubent.version = "0.7.2"
+
+go.pkg-path = "go"
+go.version = "1.22.5"
+go.pkg-group = "build"
+
+ko.pkg-path = "ko"
+ko.version = "0.15.4"
+ko.pkg-group = "build"
+
+golangci-lint.pkg-path = "golangci-lint"
+golangci-lint.pkg-group = "build"
+
+golangci-lint-langserver.pkg-path = "golangci-lint-langserver"
+golangci-lint-langserver.pkg-group = "build"
+
+delve.pkg-path = "delve"
+delve.pkg-group = "build"
+```
+
+I added [`lazydocker`](https://github.com/jesseduffield/lazydocker), a useful container management tool coded in Go, because I’m using `kind`. The rest of my environment consists of basic K8s management stuff and Go/software build tools.
+
+To put my environment through its paces, I’d first [initialize my Go project as usual](https://go.dev/blog/using-go-modules), putting the code for my API gateway service in my module’s project directory. Next, I’d spin up my `kind` “cluster”:
+
+```
+kind create cluster --name kind --config kind.yaml
+```
+
+Then I’d use `kubectl` to generate a `deployment.yaml` for running my service on `kind`/K8s. From there, I’d set up my environment for `ko` and `kind`, exporting the names of my Docker repo and K8s cluster. Finally, I’d hand off to `ko`, which compiles my app, builds my container, and pushes it to `kind`/K8s. (I created a bash script to do all of this for me. See Housekeeping Notes, below.)
+
+That’s basically it. Now let’s light this candle:
+
+```
+flox [vk8tn] daedalus@protos:~/dev/vk8tn/$ ./go-web-app-init.sh
+go: /home/daedalus/dev/vk8tn/go-web-app/go.mod already exists
+2024/08/12 23:58:57 Using base cgr.dev/chainguard/static:latest@sha256:5e9c88174a28c259c349f308dd661a6ec61ed5f8c72ecfaefb46cceb811b55a1 for deadalus/api-gateway-app
+2024/08/12 23:58:57 current folder is not a git repository. Git info will not be available
+2024/08/12 23:58:57 Building deadalus/api-gateway-app for linux/amd64
+2024/08/12 23:59:01 Loading kind.local/api-gateway-app-f3b978d534fa46f9ec51e8d05a9c3761:fc1fb673bc7d387a7883a2e7c6a0344b7537a9c3bbfe3ff4df8dadaac31cc137
+2024/08/12 23:59:03 Loaded kind.local/api-gateway-app-f3b978d534fa46f9ec51e8d05a9c3761:fc1fb673bc7d387a7883a2e7c6a0344b7537a9c3bbfe3ff4df8dadaac31cc137
+2024/08/12 23:59:03 Adding tag latest
+2024/08/12 23:59:03 Added tag latest
+deployment.apps/api-gateway-app created
+```
+
+Deployment worked as expected! Let’s use `kubectl` to check on the status of my app and pods:
+
+```
+flox [vk8tn] daedalus@protos:~/dev/vk8tn$ kubectl get deploy,pods
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/api-gateway-app   3/3     3            3           2m47s
+
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/api-gateway-app-789cd8d696-mm7jg   1/1     Running   0          2m47s
+pod/api-gateway-app-789cd8d696-t8gjw   1/1     Running   0          2m47s
+pod/api-gateway-app-789cd8d696-vlvcz   1/1     Running   0          2m47s
+```
+
+Everything looks good. That’s what I like to see!
+
+I’ve built `stern` into my environment, and if I were having problems with my pods—which I did, offscreen, repeatedly, while putting together this walk-through!—it’d give me an invaluable debugging tool. Instead I’ll use `k9s` (one of the cooler terminal tools I’ve used this year!) to give me an at-a-glance overview of the state and health of my K8s environment and workloads.
+
+![](/images/blog/k9s-screenshot.png)
+
+Success! My Golang API gateway service is up and running on my local K8s cluster.
+
+```
+git push
+```
+
+I ping `@here` in Slack about my new experiment. My teammates can reproduce the exact versions of each tool in my package groups:
+
+```
+git pull && flox activate
+```
+
+Now we can work on refactoring it, iteratively building, testing, and deploying it.
+
+You know, on the off chance I’m bored. While I’m on vacation.
+
+## Housekeeping Notes
+
+My [`kind.yaml`](https://kind.sigs.k8s.io/docs/user/configuration/) is a basic config file that defines a control-plane node and two worker nodes, each of which uses the same `kindest/node:v1.29.2` image. (This last is a `kind`-specific Docker image bundling everything you need to run a Kubernetes node in a `kind` cluster.) This way, I can spin up as many nodes as my org’s production cluster has, each running the same containerized version of Kubernetes.
+
+The bash logic I use to compile, containerize, and deploy my Go API gateway service is below.
+
+There isn’t much to it.
+
+```
+go mod init vk8tn/api-gateway-app
+
+kubectl create deploy -oyaml --dry-run=client \
+  api-gateway-app --image ko://deadalus/api-gateway-app --replicas 3 \
+  > deployment.yaml
+
+export KO_DOCKER_REPO=kind.local
+export KIND_CLUSTER_NAME=kind
+
+ko resolve -f deployment.yaml | kubectl apply -f -
+
+kubectl get deploy,pods
+```
+
+If I wanted to, [I could paste this as a function into the `[profile]` section of my environment’s `manifest.toml`](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments) and create an alias (say, `containerize`?) for it. That way, it would be available as a default “command” in my environment. Then I wouldn’t have to rely on shell scripts.
+
+## A Radical Approach to Building Software...That Isn’t Entirely New
+
+Flox enables a radical approach to portable, reproducible software builds—but it isn’t entirely new.
+
+Under its covers, Flox uses Nix-like concepts and methods to achieve portability, reproducibility, and platform-optimized performance. With Nixpkgs as its upstream, Flox offers more than 1 million software package and version combinations. When you `flox install` software on MacOS, you get ARM or x86-64 packages compiled, built, and optimized for MacOS. The same is true on ARM and x86-64 Linux systems.
+
+What is new and different about Flox is that it gives you the power of Nix without the steep learning curve. It ships as a single installable and has just a few commands. With [five minutes or fewer of prep time](https://flox.dev/docs/), you can use Flox to start building software. Curious? Intrigued? Skeptical? Put Flox to the test today! You can start by [downloading Flox here](https://flox.dev/docs/install-flox/)!
+
+_Note: Thanks to everyone at Flox, but, especially, to Leigh Capilli, Ross Turk, Michael Stahnke, and the mystagogical Tom Bereknyei. Along the way, old friends Dylan Storey and Larry “Catfish” Murdock offered invaluable assistance. K8s isn’t my bag, nor is Nix—yet!—and I rely on their help for … too much._

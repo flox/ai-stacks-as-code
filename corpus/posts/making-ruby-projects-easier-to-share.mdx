@@ -1,0 +1,234 @@
+---
+title: 'Making Ruby Projects Easier to Share'
+altTitle: 'Making Ruby Projects Easier to Share'
+description: 'Using Flox simplifies Ruby development by making it much easier to manage system-level dependencies, providing a consistent and reproducible Ruby dev environment across all platforms and architectures.'
+metaDescription: 'Using Flox simplifies Ruby development by making it much easier to manage system-level dependencies, providing a consistent and reproducible Ruby dev environment across all platforms and architectures.'
+isPublished: true
+category: guides
+author: Michael Stahnke
+authorKey: michael-stahnke
+publishedDate: 30 July 2024
+thumbnail: '/images/blog/ruby-in-a-treasure-chest.webp'
+orderBy: 20240730
+---
+
+If you’ve contributed to Ruby projects, you’re probably familiar with some of the difficulties of the Ruby ecosystem. Most of those difficulties have point solutions or a set of incantations you can execute to get around them.
+
+However, with Flox as your development environment manager, you can solve these difficulties just once, enabling all other project contributors to benefit from your solution.
+
+## Intro and Background
+
+I’ve written a lot of [Ruby](https://www.ruby-lang.org/en/) over the years and I enjoy it even today. But the bane of my existence is implicit dependencies from [RubyGems](https://rubygems.org/). Today I’m going to walk through some examples and show you how—with the power of Flox—you can ensure your dependencies are available in your Ruby environment.
+
+Most commonly, a Ruby project needs Ruby. That’s easy. There have been tools in this space for years (`system ruby`, [`rvm`](https://rvm.io/), [`rbenv`](https://rbenv.org/), etc). With a [Rails](https://rubyonrails.org/) application, you’re going to also need [Node.js](https://nodejs.org/en)— even if it’s just for asset compilation. For other projects, you get to the point where you need to run something on [`event_machine`](https://rubygems.org/gems/eventmachine), or use [`hiredis`](https://rubygems.org/gems/hiredis). But, what really gets to most Rubyists is the installation of the [`nokogiri`](https://rubygems.org/gems/nokogiri) library. That’s where you encounter difficulties again and again. (Somehow all Ruby projects evolve to the point of needing `nokogiri`.)
+
+This irrationally angered me time and time again. A [Gemfile](https://bundler.io/guides/gemfile.html) can’t express the native system libraries that `nokogiri` needs to work. (In this case it’s [`libxslt`](http://xmlsoft.org/libxslt/index.html) and [`libxml2`](https://gitlab.gnome.org/GNOME/libxml2), but you also need [`make`](https://www.gnu.org/software/make/) and a compiler). However, if you need to use some other gem that requires native extensions, the exercise to figure out what libraries are needed is left to the end-user.
+
+The issues with `nokogiri` are mostly solved, thanks to the availability of pre-compiled gems. However, the frustration Rubyists used to experience with `nokogiri` was actually a symptom of a bigger problem in the Ruby ecosystem. For example, libraries like the `pg gem` or `mysql2 gem` still cause dependency conflicts because they _aren't_ pre-compiled to include system-level library dependencies.
+
+And for extra fun, the names of the packages you need to install so you can compile native, system-level extensions for these and other gems tend to vary widely across disparate Linux distributions and MacOS operating systems. Depending on the platform, you might need a `-dev` or a `-devel` package to get shared objects and header files. Nothing in the project or Gemfile informs you of this, so you go through attempted installations, have errors, use Google and iterate. The only saving grace is if the author happens to have a decent README.
+
+## Enter Flox
+
+You can use Flox to easily add system-level library dependencies for your projects, and, if you need to, you can even pin projects to specific versions of Ruby. This kind of challenge isn’t unique to Ruby, by the way: for instance, in the Node.js ecosystem, you can’t use [`package.json`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json) files to express native system libraries. On the other hand, the Node community has produced its own solutions (like [`nvm`](https://github.com/nvm-sh/nvm) and [`asdf`](https://asdf-vm.com/guide/getting-started.html)) to manage these dependencies.
+
+Flox gives you the same Ruby versioning capabilities as `rbenv` or `rvm`, and also makes it easy to define system-level dependencies for different platforms. Even better, it gives you a way to build everything you need—libraries, dependencies, and other tools—into isolated environments that are portable and reproducible.
+
+To aid in that easy consumption, a single producer needs to spend a bit of effort to create the proper developer environment—one that is portable, cross-platform, reproducible, and contains everything a developer needs to work on that project. The effort required could vary quite a bit based on the complexity of your project, but it only has to be paid by the environment creator, not end-users or developers. Any other contributor on that project will be able to use the Flox environment and have it Just Work™.
+
+## First Example
+
+To illustrate this problem set, I’ll start with a small client I’ve authored in Ruby to post to [Mastodon](https://mastodon.social/explore). The client uses `event_machine` (admittedly in a contrived way) so we can show the power of expressing dependencies for a native gem extension. It will post a toot and provide the URI where the toot is available via callback.
+
+Fear not, I'll also show you a larger, **More Complex Example** below. You can skip ahead to that if you like.
+
+First, let's outline the general steps you need to take to set up and use a Flox environment for your Ruby project:
+
+- [Get Flox](https://flox.dev/docs/install-flox/);
+- Create a project directory and type `flox init`;
+- Install your packages;
+- Run `flox activate` to enter into your environment.
+
+My `stahnma/toot-client` example includes a pre-built Flox environment. To use it you just need to do the following:
+
+- Get an access key for the mastodon server you wish to use;
+- Set the `EM_ACCESS_KEY` environment variable;
+- Clone the project;
+- Run `flox activate` to enter into your environment;
+- `bundle`;
+- type `toot “your message to the masses”`.
+
+Let’s dig into my `stahnma/toot-client` environment a bit more to explore how this works and what's happening inside the Flox environment.
+
+First, how do you obtain a Mastodon access key? If you have a Mastodon account in the Fediverse, you can get a key by going to `Preferences -> Development -> New application`. The scope can be read/write.
+
+Clone the project. Use the GitHub repo below:
+
+```
+$ git clone https://github.com/stahnma/toot-client .
+```
+
+Activate your Flox environment:
+
+```
+$ flox activate
+```
+
+From here, Flox allows for the workflow you’d normally use when authoring a Ruby project. What’s new in this case is that the versions of Ruby, OpenSSL, Clang, and Make are all supplied via Flox. No longer do you need to directly worry about the idioms of difference between `gnumake` and BSD `make`, or if the version of OpenSSL you compile against on Mac is the same that a person on Linux will use.
+
+After you `flox activate`, you can use normal Ruby ecosystem tools, such as `bundler` to install required dependencies. You may think this sounds pretty much like how you always work, and it is! The only difference is you’ve now made sure you have the right versions of all the libraries and tools you need, and that they are attached to your project.
+
+```
+$ bundle
+$ toot "An example toot that uses Flox"
+Toot posted! URI: https://mastodon.social/users/floxdemo/statuses/112855589814094906
+```
+
+Okay. We have posted. Thus far, we’ve pulled a project via `git` and run `flox activate`. From there, we simply started doing our normal Ruby development tasks.
+
+This example is a bit contrived, but it illustrates that a Flox environment encompasses not just the Ruby ecosystem, but also other tools. Let’s peek at what is actually in that environment.
+
+```
+$ flox list
+clang: clang (wrapper-16.0.6)
+gnumake: gnumake (4.4.1)
+openssl: openssl (3.0.14)
+ruby: ruby (3.1.5)
+```
+
+There’s not a bunch. Each of these packages comes from the Flox catalog, which is based on [`nixpkgs`](https://github.com/NixOS/nixpkgs). If you’ve never heard of Nix or `nixpkgs`, that’s OK. The main takeaway is that it’s a cross-platform package system that contains _more than one million_ software package and version combinations—and that it’s the upstream of the Flox catalog.
+
+The Ruby package here contains `ruby`, but also the headers and `bundler`, along with all the other things that come from Ruby upstream. This hasn’t broken out the Ruby ecosystem into a handful or more of packages like Red Hat or Debian would do. The `openssl` package contains all the headers and development files as well.
+
+## A More Complex Example
+
+Alright, the last example was relatively straightforward and simple, which is helpful, but it also doesn’t completely demonstrate the total power of what we could do with Flox in a Ruby ecosystem.
+
+I’ve taken a larger, more popular, more complex project, the Mastodon server, and decided to make a Flox environment for it. Mastodon consists of a Rails application and some Node.js components as well. It requires a [PostgreSQL](https://www.postgresql.org/) database and it needs a [Redis](https://redis.io/) instance for queues. There are four kinds of significant components that are needed. Also their development scripts use [Overmind](https://github.com/DarthSim/overmind), so we’ll include that.
+
+Immediately, you’ll see that this environment has a lot more going on than the one for the toot-client. In this environment, I’m going to include `postgresql`, because now I can include a known-good version and setup method. I’m going to include `redis` as well. I’ve included some other required libraries because the 34 (!!) native gem extensions needed by this Rails app compile against those.
+
+```
+$ flox list
+clang: clang (wrapper-16.0.6)
+foreman: foreman (0.87.2)
+gnumake: gnumake (4.4.1)
+icu: icu (icu4c-74.2)
+imagemagick: imagemagick (7.1.1-35)
+libidn: libidn (1.42)
+libxml2: libxml2 (2.12.7)
+libxslt: libxslt (1.1.41)
+libyaml: libyaml (0.2.5)
+openssl: openssl (3.0.14)
+overmind: overmind (2.5.1)
+pkg-config: pkg-config (wrapper-0.29.2)
+postgresql: postgresql (15.7)
+redis: redis (7.2.5)
+ruby: ruby (3.1.5)
+yarn-berry: yarn-berry (4.3.1)
+```
+
+I took a bit of time to make an environment that would allow Mastodon development. To be perfectly honest, this isn’t very straightforward and sometimes requires some iteration. The folks working on this project have clearly done a lot of work to make it so that it works in a Mac environment or with Docker containers, but they still make a lot of inherent assumptions that people end up having to work around as they get set up for development.
+
+What I’ve tried to do is make a single Flox environment so that once you pull Mastodon, you activate it and you have everything you need to get started developing. I took advantage of some features of Flox environments that I haven’t yet covered—for instance, you can add your own hooks, environment variables/settings, scripts and aliases. You can also add instructions to the consumer explaining what is happening with all those things via different sections of the `manifest.toml`.
+
+To see this in action go ahead and grab my fork of Mastodon.
+
+```
+$ git clone https://github.com/stahnma/mastodon
+```
+
+As of this writing there is exactly one commit difference between upstream and my fork, and that is the addition of the Flox environment.
+
+I’ve set up some helpful things to see once you activate the environment. The activation could take a bit of time to download the packages needed for the environment, but fear not, they’re isolated from your system packages and even other Flox environments. They’re only available to the environment if it’s been activated.
+
+```
+$ flox activate
+✅ You are now using the environment 'mastodon'.
+To stop using this environment, type 'exit'
+
+Initializing postgresql database...
+The files belonging to this database system will be owned by user "stahnma".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.UTF-8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /Users/stahnma/development/mastodon/data/postgres_data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... America/Chicago
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+
+To manage the postgresql server, run:
+  pg_ctl -D /Users/stahnma/development/mastodon/data/postgres_data -l /Users/stahnma/development/mastodon/data/log/postgres.log <start|stop|restart>
+
+
+To manage redis:
+   start: redis-server --dir /Users/stahnma/development/mastodon/data/redis --logfile /Users/stahnma/development/mastodon/data/redis/log --pidfile /Users/stahnma/development/mastodon/data/redis/redis.pid --daemonize yes
+   stop:  redis-cli shutdown
+
+
+You can now run 'mastodon-setup' to start the services and setup the database.
+This will start the postgresql server, redis server, install the gems and yarn packages, setup the database and start the mastodon server.
+
+
+If you've set up mastodon before, you can run 'bin/dev' to start working.
+
+
+To reduce on-screen output upon activation, set the FLOX_QUIET environment variable to any value.
+```
+
+Wow, that’s a lot to look at. I added quite a bit of detail so any consumer of this environment gets some helpful assistance right away.
+
+Ultimately, to begin working on changes to Mastodon, a user simply needs to run `mastodon-setup`.
+
+That is a shortcut that starts the PostgreSQL database, starts Redis, installs the RubyGems, installs the Node.js packages and performs database migrations. It will produce a LOT of output that is not included here.
+
+Then, you can run `bin/dev` and have a running instance of Mastodon to do development against. When you’re done developing on Mastodon, stop Redis and PostgreSQL, and type `exit`.
+
+## Everything's In the Manifest
+
+One of the cool and powerful parts of this exercise was that I was able to put a Flox environment around Mastodon while modifying zero Mastodon files. The Flox environment in my project directory consists of a single folder, `.flox`, containing a few files and subfolders.
+
+```
+$ git diff --name-only origin/main
+.flox/.gitignore
+.flox/env.json
+.flox/env/manifest.lock
+.flox/env/manifest.toml
+```
+
+The listed files live inside the `.flox` subfolder in my project directory. The packages I `flox list`-ed earlier live in a folder called `/nix` in the root of my filesystem. Creating a Flox environment entails creating symlinks to those packages—not copying files.
+
+The Flox `manifest.toml` file defines all of the packages, libraries, and other dependencies I need to compile 34 native Ruby extensions, along with working PostgreSQL and Redis services. I can share my environment just by copying the `.flox` subfolder, or by `flox push`-ing it to FloxHub. When I share my environment with a colleague who’s new to Flox, it might take a bit of time to download the packages they need, but thereafter their environment will activate in milliseconds. My Mastodon environment is also reproducible, running and behaving the same way on any supported OS or hardware.
+
+If I were an upstream author of Mastodon, I'd probably tweak a few things to better support a cross-system setup. But since I'm not, it's fine. I can work with what I have and collaborate just fine with my team. Obviously, if this were a software offering we developed on our own, we'd have more flexibility to make it more inherently portable across platforms.
+
+## Service Management
+
+One thing that might puzzle you is why I talked about “starting” and “stopping” PostgreSQL or Redis on the command line—or why my environment prints a message to the console when it's activated telling you how to do that. This current setup takes advantage of helpers and aliases within the Flox environment to give you an example of what’s available today.
+
+However, very soon Flox will offer service management capabilities that automatically handle starting and stopping PostgreSQL, Redis and other services. Ultimately, we’d like to move away from using helpers and shell aliases, to the point where setup and teardown tasks like these are no longer the user’s responsibility.
+
+So stay tuned and join our community [Slack](https://go.flox.dev/slack) to know first!
+
+## Summary
+
+If you’ve made it this far, you’ve seen:
+
+- Shortcomings in the dynamic language ecosystems (Ruby and a bit of Node.js)
+- Flox environments tied into projects that contain all dependencies, including native, system-level requirements—not just the libraries of a specific language.
+- Use of `flox activate` to ensure a smooth experience for contributors.
+- A bit of where we’d like to head next with service management.
+
+[Download Flox today](https://flox.dev/docs/install-flox/) and give it a try. If you need some help or have feedback, hit us up on our community [Slack](https://go.flox.dev/slack).

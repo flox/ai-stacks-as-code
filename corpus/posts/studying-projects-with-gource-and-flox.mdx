@@ -1,0 +1,62 @@
+---
+title: 'Studying Projects with Gource and Flox'
+altTitle: 'Studying Projects with Gource and Flox'
+description: "Using Gource, you can get a unique sense for your project's history. It gives you a way to visualizes your Git repository's history as an animated tree of commits, contributors, and file changes."
+metaDescription: "Using Gource, you can get a unique sense for your project's history. It gives you a way to visualizes your Git repository's history as an animated tree of commits, contributors, and file changes."
+isPublished: true
+isPopularPackage: true
+packageCategory: development
+packageName: gource
+author: Ross Turk
+publishedDate: 06 Dec 2024
+thumbnail: '/images/blog/telescope.webp'
+orderBy: 20241206
+---
+
+They say that a picture is worth 1,000 words. Well, a video is a ton of pictures happening real fast…so a _video_ is worth a whole lot _more words_, right?
+
+What if I told you about a way to take your project's Git history and turn it into a video? You'd have a way of visualizing the story of your project as the equivalent of _millions and millions_ of words. That, dear reader, is the efficiency we aim to provide in these package guides.
+
+This week our package is [`gource`](https://github.com/acaudwell/Gource), and we've made it easy to automate the importing of [avatars](https://github.com/acaudwell/Gource/wiki/Gravatar-Example) with a Flox one-liner environment. That'll make sure `gource` is filled with friendly faces.
+
+## Gource shows you what you can't read
+
+Having a project's Git history in video form isn't just something to go “oooo” at; it's _useful_.
+
+There are a lot of things you miss by reading a `git log`.
+
+- You can't experience the long pauses between bursts of activity, which are a big part of the breathing pattern of a vibrant project.
+- You can't identify the lopsided nature of people and files, where a few people invariably tend to jump around the filesystem while the rest stay within a few “neighborhoods”.
+- You can't see a project sprout as new subsystems necessitate the creation of new directories, and new contributors join.
+
+Installing Gource with Flox is as easy as `flox install gource`. You can run it from within a Git project folder and you will (after a short time) see a new window pop up with an animated graph of your project, with files and people as nodes and file changes as lines. You can speed things up with `+` and slow them down with `-`.
+
+I recommend, though, running `gource` using the `flox/gource` environment on FloxHub.
+
+```
+% flox activate -r flox/gource
+```
+
+The Gource Flox environment will let you know if you aren't in a directory with a Git project. If it finds one, though, it will populate a `.git/avatars` folder with pictures for each of the project's contributors.
+
+```
+% flox activate -r flox/gource                     1 ↵
+✅ You are now using the environment 'flox/gource (remote)'.
+To stop using this environment, type 'exit'
+
+✅ Created venv
+✅ Installed gitfaces
+\ Downloading avatars to .git/avatars
+```
+
+This might take a while, depending on the size of your project. Once it finishes, you should see the Gource window.
+
+![Gource running on flox/flox](/images/blog/gource-on-flox.webp)
+
+## Making tools into one-liners
+
+This is what Flox does best. It makes great tools like `gource` available, but it also makes it easy to combine them with Python modules like `gitfaces` and create hooks to automate tasks.
+
+Then, the whole thing—software and automation—can be pushed to FloxHub and invoked as a one-liner from anywhere.
+
+Try it with `gource`, and then view the Flox environment manifest with `flox list -c -r flox/gource` and see how simple it is.

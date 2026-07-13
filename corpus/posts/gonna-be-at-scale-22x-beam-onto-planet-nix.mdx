@@ -1,0 +1,95 @@
+---
+title: 'Gonna be at Scale 22x? Beam on to Planet Nix!'
+altTitle: 'Gonna be at Scale 22x? Beam on to Planet Nix!'
+description: "Kelsey Hightower will be one of two dozen speakers beaming onto Planet Nix, the annual gathering of Nix users and developers that’s co-located with SCALE in Pasadena, Calif., from March 5th-7th."
+metaDescription: "Kelsey Hightower will be one of two dozen speakers beaming onto Planet Nix, the annual gathering of Nix users and developers that’s co-located with SCALE in Pasadena, Calif., from March 5th-7th."
+isPublished: true
+category: news
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 18 February 2025
+thumbnail: '/images/blog/planet-nix.webp'
+orderBy: 20250218
+---
+
+On [Stardate 78641.1](https://trekguide.com/Stardates.htm) Kelsey Hightower will be one of two dozen speakers beaming onto [Planet Nix](https://planetnix.com/), the annual gathering of Nix users and developers that’s co-located with [SCALE](https://www.socallinuxexpo.org/scale/22x) in Pasadena, Calif., running from March 5th through 7th.
+
+You probably know Kelsey as an early, influential champion of Kubernetes who helped demystify that platform and played a significant role in its adoption. Today he’s no less respected for his practical takes on DevOps and cloud-native systems, offering insights that reliably cut through hype, complexity, and distraction. 
+
+Even though he’s relatively new to Nix, Kelsey brings deep, credible experience in software engineering and DevOps, with thoughtful, considered takes on the interplay between tools, teams, practices, and systems. 
+
+Kelsey’s at his best when he’s grappling with the organizational, socio-technical aspects of software engineering. In a [fireside chat](https://planetnix.com/schedule/) with NixOS Foundation President Ron Efroni, Kelsey will offer his observer’s perspective on the state of Nix, talking about what Nix gets right, where it might be falling short, and how internalizing lessons from past approaches to managing complexity in software engineering—both their successes and, especially, failures—could help shape Nix’s evolution.
+
+
+
+## Using Nix to replace Docker
+
+One of the most provocative talks on Planet Nix—or at _any_ conference this year—is sure to be “Docker Was Too Slow, So We Replaced It: Nix in Production,” presented by [Aneesh Agrawal](https://www.socallinuxexpo.org/scale/22x/presentations/docker-was-too-slow-so-we-replaced-it-nix-production), a member of the technical staff with AI powerhouse Anthropic. 
+
+The backstory is this: Anthropic had pushed the container model to its limits, using images 25 GB and larger in production. Agrawal and his team kept running up against the inescapable bottlenecks of container workflows: the latency of sequential pulls, overhead of deploying large container artifacts, and so on.
+
+So they made the decision to go all in on Nix, building a custom tool called `nix-sidecar` to take over Docker’s role in their workflow. Now Anthropic relies on Nix to define, build, and distribute its runtime environments as closures, with `nix-sidecar` fetching the required store paths directly from a multi-level, replicated [binary cache](https://nixos.wiki/wiki/Binary_Cache) hierarchy. This completely avoids the bottlenecks inherent in pulling and unpacking large container images. 
+
+Anthropic still relies on Kubernetes to orchestrate production workloads, but uses `nix-sidecar` to provision the required closures directly onto Kubernetes nodes, so they can be mounted into or accessed by pods. In other words, instead of relying on a container runtime (like Docker or containerd) to pull and unpack an image, the workloads within the pods run using the closures provisioned by `nix-sidecar`.
+
+
+
+## Incremental Builds: Making Nix a best-in-class option for CI
+
+John Ericson, a software engineer with Obsidian Systems, will give a talk on Sandstone, a Haskell build tool that uses Nix to achieve fully incremental builds with minimal evaluation overhead.
+
+Sandstone makes use of [dynamic derivations](https://github.com/NixOS/rfcs/blob/master/rfcs/0092-plan-dynamism.md), which enables the Nix build system to generate and evaluate build units dynamically. This makes it possible to respond in a fine-grained way to changes _during the build process itself_. For example, if a Nix expression gets updated, or a source input (like a Haskell module or Git revision) changes, the build tool rebuilds only the parts of the project affected by these changes, rather than the entire project.
+
+Ericson’s talk explores how Sandstone builds on Nix’s existing capabilities as a full-scale build system to better support incremental builds and fine-grained dependency management across local development, CI, and production. By making use of both dynamic and [content-addressed](https://nixos.wiki/wiki/Ca-derivations) derivations (CA-derivations), Sandstone promises to position Nix as a best-in-class CI build solution. For the record, CA-derivations identify both derivations and their outputs by hashing their content—i.e., inputs, dependencies, and build instructions—rather than relying on their position in a static build graph.
+
+In CI workflows, then, CA-derivations enable reliable binary caching across runners; minimize unnecessary rebuilds by isolating changes to affected derivations; and better support distributed or parallelized builds.
+
+
+
+## Diving deep into integration testing with Nix
+
+If integration testing is your thing, Planet Nix speaker Jacek Galowicz has just the session for you. He’ll be conducting [a deep-dive workshop](https://www.socallinuxexpo.org/scale/22x/presentations/mastering-nixos-integration-tests-advanced-techniques-fast-and-robust-multi) on advanced techniques for writing deterministic, multi-VM integration tests with the NixOS Integration Test Driver, a framework for writing and running multi-VM system tests in NixOS. It was first created to provide a way of testing NixOS configurations, services, and networking setups in a fully sandboxed, deterministic environment.
+
+During his session, Galowicz will cover topics like simulating complex networked environments, using interactive mode to inspect and debug test runs in real time, and structuring tests to reduce flakiness. (The bad—not [the experimental](https://wiki.nixos.org/wiki/Flakes)—kind.) He’ll also demonstrate how the NixOS Integration Test Driver, which enables automated, reproducible system tests and helps sustain a high package-per-maintainer ratio in `NixOS/nixpkgs`, can be used for testing _any_ Nix-based project. 
+
+
+
+## Tuning Nix, plus 1001 ways to build and package Nix software
+
+Plenty of other software engineering- and build-related talks are on tap for Planet Nix, including one by Nix CUDA maintainer [Connor Baker](https://nixos.org/community/teams/cuda/), who’s conducted exhaustive research into how Nix performs evaluations. His talk will explore the challenges involved in benchmarking this process deterministically, covering factors like disk access, file system caches, environment variables, and the impact of the Nix daemon and garbage collection on performance.
+
+In addition, Baker will examine advanced techniques for improving Nix evaluation speed, including compiling Nix with aggressive optimization flags or disabling garbage collection altogether.
+
+Nix creator Eelco Dolstra, co-founder of [Determinate Systems](https://determinate.systems/people/eelco-dolstra/)—a company focused on building tools and infrastructure to improve accessibility and usability of Nix—will give a talk on [configurable flakes](https://www.socallinuxexpo.org/scale/22x/presentations/configurable-flakes). This extension enables flakes to accept command-line arguments while preserving core behaviors like discoverability, hermetic evaluation, and evaluation caching. Eelco’s talk promises to touch on the broader roadmap for flakes, too.
+
+Elsewhere, Matteo Fusi, a software engineer at ARM, will talk about [python-nix](https://www.socallinuxexpo.org/scale/22x/presentations/python-nix-yes-it-possible), a library for creating Nix packages _in Python_ instead of authoring Nix expressions. This fork builds on work presented by [Tweag](https://github.com/tweag/python-nix) at [NixCon 2023](https://talks.nixcon.org/nixcon-2023/talk/8BJU9K/), refining the API to improve usability and moving away from using raw REPL calls and basic Python dictionaries for representing Nix expressions. 
+
+
+
+## Because Nix is unapologetically fun, too
+
+If you enjoy the fun and excitement of using and building with Nix, Confluent’s Farid Zakaria—[this](https://fzakaria.com/) Farid, not [that one](https://fareedzakaria.com/)—has a talk for you. 
+
+He’ll use real-world examples to showcase what Nix can do and why it’s worth adopting. Whether he’s [talking about](https://fzakaria.com/2024/09/26/bazel-knowledge-reproducible-outputs.html) rule-based build tools like Bazel or purely functional build systems like Nix, Zakaria is a teacher at heart. He always focuses on the concrete, practical aspects of technology in a way that’s informative and accessible.
+
+A talk from technology tinkerer Tim Golden promises to be no less [fun and informative](https://www.socallinuxexpo.org/scale/22x/presentations/building-linux-scratch-nix). When Golden isn’t volunteering with mountain search and rescue teams, he’s pursuing his masters in computer science and experimenting with Linux and Nix. His talk explores how you can use Nix to build a [Linux from Scratch](https://www.linuxfromscratch.org/) (LFS) system—e.g., by defining the LFS system configuration declaratively with Nix while building a staged, self-hosting bootstrap within Nix’s isolated build environment. 
+
+Golden’s talk will go deep into the thorny challenges involved in building an LFS system with Nix, like managing derivation dependencies (build outputs that become inputs to other builds in Nix’s dependency graph) and handling filesystem hierarchy compliance (FHS) constraints. You can check out his [NixLFS repository](https://github.com/cloudripper/NixLFS) to get a sense for the scope of his project.
+
+
+
+## Chasing the final frontier at Planet Nix
+
+If you find yourself in Pasadena between March 5th and 7th—whether for SCALE or because you’re still recovering from [Cheeseburger Week](https://www.pasadenarestaurantweek.com/)—you won’t want to miss Planet Nix.
+
+Want more?
+
+-  Catch platform engineer Victor Fuentes as he [talks about]((https://www.socallinuxexpo.org/scale/22x/presentations/tvix-store-production) how [Replit](https://github.com/replit) uses [Tvix](https://tvix.dev/) to back its Nix local-overlay stores, enabling content-addressed deduplication while preserving compatibility with Nix’s path-based store semantics.
+
+-  Or catch [Nixtagogue](https://en.wikipedia.org/wiki/Mystagogue) Tom Bereknyei—prolific contributor to `NixOS/nixpkgs`, member of the [Nix marketing team](https://en.wikipedia.org/wiki/Mystagogue), and (full disclosure!) lead engineer with Flox—[talking about](https://www.socallinuxexpo.org/scale/22x/speakers/thomas-bereknyei) how to use non-`/nix/store` prefixes, like `/opt/store`, for evaluation, builds, and caching—and configuring multiple Nix stores to share and modify store paths, _even when builds in one store depend on another_.
+
+-  Or drop in for Rickard Nilsson’s talk on [remote Nix builds](https://www.socallinuxexpo.org/scale/22x/presentations/remote-nix-builds), which promises to be a can’t-miss session. He’ll examine how remote builds work—or don’t—in practice, as well as explore the possibilities they unlock. (Nilsson plans to lift the covers on the Nix builder protocol, too.
+
+-  Or just come for the zaniness, like [Morgan Jones’](https://github.com/numinit) talk about how he and a team of compatriots created a mesh network of Nix binary caches in the most demanding environment known to human-kind—[the DEF CON 32 show floor](https://www.socallinuxexpo.org/scale/22x/presentations/adventures-mesh-networking-def-con-nixos). 
+
+This recap is just a taste of what’s on tap, a sampling of two dozen talks that explore emerging innovations in the Nix ecosystem and highlight use cases that go to the very limits of what is possible with Nix.

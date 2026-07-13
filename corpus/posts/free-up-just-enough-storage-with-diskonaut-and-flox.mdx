@@ -1,0 +1,101 @@
+---
+title: 'Free Up Just Enough Storage with Diskonaut and Flox'
+altTitle: 'Free Up Just Enough Storage with Diskonaut and Flox'
+description: 'Diskonaut is a terminal-based tool for visualizing disk usage as an interactive treemap, making it easier to identify large files and folders. Flox makes it easy to get and run.'
+metaDescription: 'Diskonaut is a terminal-based tool for visualizing disk usage as an interactive treemap, making it easier to identify large files and folders. Flox makes it easy to get and run.'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: diskonaut
+author: Steve Swoyer
+publishedDate: 11 February 2025
+thumbnail: '/images/blog/doors-of-perception.webp'
+orderBy: 20250211
+---
+
+Some of us have a weakness for [TUI](https://en.wikipedia.org/wiki/Text-based_user_interface) disk tools.
+
+Whether it’s classic TUI file managers, like [MidnightCommander](https://github.com/MidnightCommander/mc) and [Ranger](https://github.com/ranger/ranger), or disk-space management tools like [ncdu](https://code.blicky.net/yorhel/ncdu), [duf](https://github.com/muesli/duf), [dust](https://github.com/bootandy/dust), [gdu](https://github.com/dundee/gdu), or disk navigation and search tools like [broot](https://github.com/Canop/broot) and [fzf](https://github.com/junegunn/fzf)—we just can’t get enough. If you’re one of us, raise your hand. Don’t be shy.
+
+That’s a great setup for this featured package entry.
+
+It’s [diskonaut](https://github.com/imsnif/diskonaut), a TUI tool for visualizing disk usage as an interactive treemap, so it's easier to identify large files and folders. Diskonaut is reminiscent of GUI-based tools like [GrandPerspective](https://grandperspectiv.sourceforge.net/) for macOS—or the earlier [KDirStat](https://kdirstat.sourceforge.net/) for Linux—but runs in a TUI, not a GUI. (A modern alternative to KDirStat is [QdirStat](https://github.com/shundhammer/qdirstat), which we might could cover at some point for FPF.)
+
+If you find yourself struggling with over-sized project directories, orphaned local LLMs, little-used games, and other disk hogs, `diskonaut` could be a lifesaver.
+
+## Getting It
+
+I’m going to assume you’ve already [downloaded](https://www.flox.dev/get) and installed Flox.
+
+You can get `diskonaut` in one of two ways:
+
+- Initialize a Flox environment in a new project folder and install `diskonaut` from the Flox Catalog;
+- Pull or remotely activate our **`a-perfect-shell`** environment from [FloxHub](https://hub.flox.dev/flox/a-perfect-shell).
+
+Let’s briefly cover both methods.
+
+With the **first**, you’d initialize a new Flox environment by `cd`-ing into a project directory and running **`flox init`**. This done, you’d run **`flox install diskonaut`**, followed by **`flox activate`** to start your environment.
+
+With the **second**, you have two options:
+
+- Running **`flox pull flox/a-perfect-shell`** creates a locked local clone of this environment in a new project directory. Running **`flox pull --copy flox/a-perfect-shell`** creates an _unlocked_ local clone you can modify.
+- Typing **`flox activate -r flox/a-perfect-shell`** activates a FloxHub environment and puts you in a Flox subshell. When you exit, the session ends (but the local copy of the environment remains cached for next time). You can activate a FloxHub environment from any directory.
+
+When you install `diskonaut` manually or pull **`a-perfect-shell`** from FloxHub, you need to run **`flox activate`** to use it. With remote activation and **`flox activate -r`**, you start out in a live subshell session.
+
+## Using It
+
+Let’s say you’ve got—and I’m just spit-balling here—2 TB of local storage. And let’s say some obscene proportion of said storage—spitballing again, how about 99.8%?—is usually maxed out.
+
+Downloading a new LLM, installing a new game, pulling a container from DockerHub—these and other activities always involve finding and deleting (newly) unloved files that are hogging precious disk space.
+
+Otherwise, you’ll get this error. You've come to _dread_ this error:
+
+```
+No space left on device
+```
+
+Whenever you see this message, you fire up `diskonaut`, usually starting in your home directory:
+
+```
+cd ~ && diskonaut
+```
+
+It takes a moment for diskonaut to scan your home directory and its subfolders. Once it’s finished you see:
+
+![](/images/blog/diskonaut-1.png)
+
+You press the `-` or `+` keys to zoom in or out of your view—i.e., to show more or fewer directories in the disk-tree view.
+
+You use the `ARROW` keys to position the cursor on panes in the GUI to highlight them.
+
+![](/images/blog/diskonaut-2.png)
+
+And pressing `ENTER` descends into that directory.
+
+![](/images/blog/diskonaut-3.png)
+
+Descending into the `comfy_ui` directory reveals that (not surprisingly) `models` is the largest dir.
+
+![](/images/blog/diskonaut-4.png)
+
+Deleting this directory is as easy as highlighting it and pressing `BACKSPACE`.
+but we don’t actually want to do this, because we use [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with some frequency.
+
+Instead, let’s descend into `zed`, a project directory for building the [Zed editor](https://github.com/zed-industries/zed) from source. We’ve already built `zed`, so from our perspective `zed`-the-project-directory can indeed be made dead. Using the `ARROW` keys to select `zed` and pressing `BACKSPACE` surfaces a warning prompt:
+
+![](/images/blog/diskonaut-5.png)
+
+Approving the delete operation (by pressing `y`) does one other neat thing: diskonat logs the space that's freed up by deleting a file or folder in its “freed:” counter in the top-left of the TUI screen:
+
+![](/images/blog/diskonaut-6.png)
+
+Alllll right. Just 32 GB more space to free up before you can download the 70-billion-parameter version of DeepSeek R1!
+
+## Summary
+
+On this and on other occasions, diskonaut helped save the day. There are other tools that help you identify oversized files and folders, but diskonaut is probably the easiest and most efficacious.
+
+Flox gives you access to over 150,000 packages—and millions of historical package/version combinations!—that, like `diskonaut`, can easily be **`flox install`**-ed from the command-line, or defined declaratively in the Flox environment manifest. From so simple a beginning, you can use Flox to create rich runtime environments with built-in services, secrets management, automations, aliases, functions, and other features.
+
+Happy hacking!

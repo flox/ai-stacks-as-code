@@ -1,0 +1,27 @@
+schema-version = "1.13.0"
+
+[install]
+## core python
+python3.pkg-path = "python3"
+python3.version = "3.13.13"
+
+## other essentials
+git.pkg-path = "git"
+jq.pkg-path = "jq"
+ripgrep.pkg-path = "ripgrep"
+just.pkg-path = "just"
+uv.pkg-path = "uv"
+
+[vars]
+ENV_NAME = "ai-base"
+
+
+[options]
+systems = [
+   "aarch64-darwin",
+   "aarch64-linux",
+#   "x86_64-darwin",
+   "x86_64-linux",
+]
+# Uncomment to disable CUDA detection.
+# cuda-detection = false

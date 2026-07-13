@@ -1,0 +1,101 @@
+---
+title: 'Playbook 1: Inventory the Runtime Contract'
+description: 'Inventory the real runtime contract from docs, scripts, CI, containers, and team habits before standardizing.'
+isPublished: true
+isUnlisted: true
+publishedDate: '2026-05-27'
+thumbnail: '/images/blog/wizard-or-witches-hat.webp'
+author: Steve Swoyer
+category: 'guides'
+---
+
+## Playbook 1: Inventory the Runtime Contract
+
+Don’t start with an ambitious platform-wide standardization effort. Pick a project that matters, changes often, and has been a source of recurrent pain: complicated local setup, slow onboarding, chronic “works on my machine” problems, CI failures, or repeated questions about which tools to install.
+
+The first step is to discover the runtime contract in the form in which it actually exists today: not in a single authoritative place, but broken up across README steps, shell scripts, CI YAML files, Dockerfiles, Compose files, package lockfiles, deployment manifests, and the everyday habits engineers rely on without thinking about them.
+
+The platform team’s job is to turn this implicit, inferred contract into an explicit inventory.
+
+
+### Start with the Evidence
+
+For the selected repo, inspect the artifacts that are supposed to describe how the project runs:
+
+-  README / docs: What do developers install by hand?
+-  CI config: What does automation install before tests run?
+-  Dockerfile: Which packages, language runtimes, libraries, and setup steps get built into images?
+-  Compose files: Which backing services does the project expect?
+-  Package lockfiles: Which language-level dependencies does the project pin?
+-  Shell scripts / Makefiles: Which commands do developers actually run?
+-  Deployment manifests: Which environment variables, services, ports, and runtime assumptions reach staging or production?
+-  Developer interviews: Which steps are undocumented? For example, which steps do experienced team members perform without thinking?
+
+**Note**: The last category is the trickiest. The most important runtime assumptions often live in muscle memory: “Oh, you need a newer **`make`**,” “That only works with **`libstdc++`**,” “You have to export this variable,” “The migration script assumes **`jq`** or **`wget`**,” or “That test only works if **`timeout`** is available.” These are not side notes. They are integral parts of the contract. This is consistent with agile discovery, which asks and seeks to answer: "What does the customer actually do, expect, assume, work around, forget to mention, or discover only when the system behaves differently?"
+
+One other note: As you inventory the contract, keep track of the artifacts used to encode it. Note any Dockerfiles, Compose files, devcontainer configs, image tags or digests, entrypoint scripts, service wrappers, and CI setup steps that currently define how the project runs. At this stage, the aim is not to map or translate these artifacts into Flox. The aim is to identify them, record what runtime assumptions they contain, and mark them for the mapping work described in **Playbook 3**.
+
+
+### Sort What You Find into Categories
+
+The inventory should capture both the runtime facts and the artifacts that prove these facts. Later playbooks decide which artifacts are to become declared entries in the Flox manifest; which are to remain service-boundary definitions; and which should be ignored as container, editor, or CI-only concerns.
+
+Think of this process as an archaeological dig. The aim isn't to design the new environment; it’s to excavate and understand the old one, uncovering the tools, scripts, service assumptions, undocumented habits, source artifacts, and other scattered shards that comprise project’s runtime contract.
+
+A useful first pass might look like this:
+
+```
+Project: payments-api
+
+Project runtime:
+- Node.js 24
+- Python 3.13
+- gcc
+- gnumake
+- pkg-config
+- PostgreSQL client libraries
+- kubectl
+- terraform
+
+Backing services:
+- PostgreSQL
+- Redis
+
+Environment variables:
+- PGHOST
+- PGPORT
+- REDIS_URL
+- APP_ENV
+
+Setup behavior:
+- create local cache directory
+- install language-specific packages
+- export database defaults
+- run migrations before first launch
+
+Commands:
+- test
+- lint
+- migrate
+- dev
+- deploy-plan
+
+Source artifacts to revisit:
+- Dockerfile
+- docker-compose.yml
+- .devcontainer/devcontainer.json
+- scripts/entrypoint.sh
+- .github/workflows/test.yml
+
+Local-only preferences:
+- editor
+- shell theme
+- terminal emulator
+- personal Git aliases
+```
+
+This distinction—between what belongs to the project environment, what belongs at the service boundary, and what is the prerogative of the individual engineer—is fundamental.
+
+The contract should standardize the things every contributor, CI runner, review job, agent, or deployment workflow needs in order to work with the project. These include packages, runtimes, CLIs, service clients, variables, hooks, aliases, commands, setup behavior, and build logic.
+
+But the inventory must also identify the artifacts that currently prove these facts: Dockerfiles, Compose files, devcontainer configs, shell scripts, CI YAML files, deployment manifests, and docs. Finally, the contract must make explicit what it **does not** standardize: editors, terminals, shell themes, personal Git aliases, local debugging preferences, etc.

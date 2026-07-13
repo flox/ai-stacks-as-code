@@ -1,0 +1,65 @@
+---
+title: 'Using Flox and jless to Automate All Kinds of Tasks'
+altTitle: 'Using Flox and jless to Automate All Kinds of Tasks'
+description: 'Jless is a big time-saver when you need to work with JSON and jq, and is just a generally helpful tool. Plus, you can build jless-powered workflows into Flox environments to automate all kinds of tasks.'
+metaDescription: 'Jless is a big time-saver when you need to work with JSON and jq, and is just a generally helpful tool. Plus, you can build jless-powered workflows into Flox environments to automate all kinds of tasks.'
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: jless
+author: Michael Stahnke
+publishedDate: 27 September 2024
+thumbnail: '/images/blog/jless-than-zero.webp'
+orderBy: 20240927
+---
+
+This is a new series for us! To kick things off, I wanted to share a tool I only recently discovered. [Jless](https://jless.io/) is a [terminal pager](https://en.wikipedia.org/wiki/Terminal_pager) in the spirit of `more` or `less`, but specifically designed for JSON documents. It pretty-formats the JSON, which makes it much more readable, but my favorite feature is that it also displays the `jq` filter for highlighted items.
+
+This filter gives you a way to reference that specific part of the JSON structure using `jq` syntax. It’s a big time-saver when you’re looking for some quick automation, and it’s just generally helpful.
+
+You can check it out yourself by `flox install`-ing it. You might also want `jq`, along with `curl`, just in case. No problem! You can get all of these (and much more) from the Flox Catalog:
+
+```
+flox install jless jq curl
+✅ 'jless' installed to environment 'grab-all-the-things'
+✅ 'jq' installed to environment 'grab-all-the-things'
+✅ 'curl' installed to environment 'grab-all-the-things'
+```
+
+Speaking of `curl`, let’s use it to fetch a list of public repos from GitHub and then pipe the output to `jless`, which automatically formats the raw JSON into a prettified, readable format.
+
+```
+curl https://api.github.com/repositories | jless
+```
+
+![](/images/blog/the-thin-project-downloads-url.webp)
+
+As you can see, the view with `jless` is just much more intuitive and easier to navigate than with the raw JSON. Plus, `jless` lets you interact with the JSON data structures, scrolling through them and optionally expanding or collapsing nested objects.
+
+In the above screenshot, I’ve highlighted the `downloads_url` of the [Thin project](https://github.com/macournoyer/thin/), so jless shows me the `jq` filter string in the bottom highlight bar. With that filter string, I can easily extract, manipulate, or query specific parts of the JSON data. For example, if I wanted to do something with automation, I might:
+
+```
+$ curl -s https://api.github.com/repositories  | jq '.[18].downloads_url'
+"https://api.github.com/repos/macournoyer/thin/downloads"
+```
+
+Or how about this example, which fetches data from [NASA's “Astronomy Picture of the Day” API](https://apod.nasa.gov/apod/astropix.html), downloads the corresponding image, and embeds the image's title and description as Exif metadata. This script depends on `exiftool`, which you can easily install via the Flox Catalog.
+
+```
+#!/bin/bash
+
+curl -s "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY" | tee response.json | jless
+
+read -p "Download the image and embed Exif metadata? (y/n): " choice
+
+if [ "$choice" == "y" ]; then
+    jq -r '.hdurl' response.json | xargs curl -O
+    jq -r '.title, .explanation' response.json > metadata.txt
+    exiftool -overwrite_original -title="$(sed -n '1p' metadata.txt)" -description="$(sed -n '2p' metadata.txt)" "$(basename $(jq -r '.hdurl' response.json))"
+    rm metadata.txt response.json
+fi
+```
+
+You can automate this by [embedding it in the `[hook]` section](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/) of `manifest.toml`, the setup file that defines a Flox environment. Running `flox activate` triggers the bash logic, opening the NASA JSON data in jless and giving you the option to save the image. Just alias `flox activate` to a command—say, `nasa-foo`—and run it when you want to!
+
+That’s a quick tour of `jless`. Happy hacking!

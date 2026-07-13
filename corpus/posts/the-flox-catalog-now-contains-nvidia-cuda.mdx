@@ -1,0 +1,111 @@
+---
+title: 'The Flox Catalog Now Contains NVIDIA CUDA'
+metaTitle: 'The Flox Catalog Now Contains NVIDIA CUDA'
+description: 'Teams can now easily build and deploy portable CUDA runtimes—including software like the CUDA Toolkit, Tensorflow, TensorRT, PyTorch, OpenCV, and other packages—that run anywhere, at any time.'
+metaDescription: 'Teams can now easily build and deploy portable CUDA runtimes—including software like the CUDA Toolkit, Tensorflow, TensorRT, PyTorch, OpenCV, and other packages—that run anywhere, at any time.'
+isPublished: true
+publishedDate: 10 September 2025
+author: Steve Swoyer
+authorKey: steve-swoyer
+thumbnail: /images/blog/cuda-in-flox.webp
+orderBy: 20250910
+---
+
+Flox, the Nix Foundation, and NVIDIA are teaming up to make it easier for teams working with the [NVIDIA CUDA GPU compute framework](https://developer.nvidia.com/cuda-toolkit) to build and ship CUDA-accelerated stacks.
+
+Teams can now easily build and deploy portable CUDA runtimes—including software like the NVIDIA CUDA Toolkit, Tensorflow, NVIDIA TensorRT, PyTorch, OpenCV, and other packages—that run _anywhere_, at _any_ time. Not only that, they can easily install selected _historical versions_ of CUDA packages—essential for supporting existing production workloads—alongside _alternative CUDA package versions_ on the same system, at the same time.
+
+The best part? All of this just works. Without changes to your global system state. Without containers or VMs.
+
+<iframe
+  width="750"
+  height="422"
+  src="https://www.youtube-nocookie.com/embed/bZNFSA_xoGY?si=pCyuyR_U0LM_s_cb"
+></iframe>
+
+If this sounds a lot like Arthur C. Haley’s definition of magic, let me introduce you to the “magic” of Nix, the open source package and environment manager that doubles as a deterministic build system.
+
+Or the “magic” of Flox, open source software that gives you access to the same software—plus the same portability and reproducibility guarantees—as Nix, with intuitive semantics and a familiar, easy-to-use UI.
+
+Both enable teams to ship the GPU-accelerated stacks they build and test locally to CI and production. Using either Nix or Flox, teams can build GPU-accelerated software on Linux or macOS—for CUDA or Metal—share what they build with one another, push their environments to CI, and even deploy them to prod.
+
+If this sounds incredible to you, read on to learn more about Nix, Flox, and the promise of reproducible, deterministic environments—not just for CUDA, but for any language, toolchain, or framework you work with.
+
+## What’s Happening
+
+Working jointly with the Nix team that works with CUDA (and the Nix community as a whole) we are bringing NVIDIA CUDA to the Flox Catalog!
+
+Flox is one of four commercial open source vendors that have been licensed to redistribute precompiled, prepatched packages that include NVIDIA’s CUDA binaries and libraries. Flox’s CUDA-accelerated packages are built using canonical recipes defined and maintained by the Nix CUDA team. For users of Flox and Nix, packages with CUDA dependencies will be available for use _as soon as they’re downloaded_: they no longer need to be built from source.
+
+For packages like **[cudaPackages.tensorrt](https://hub.flox.dev/packages/base/cudaPackages.tensorrt)**, **[opencv](https://hub.flox.dev/packages/base/opencv)**, or even **[ffmpeg-full](https://hub.flox.dev/packages/base/ffmpeg-full)** with CUDA acceleration, building from source could take _hours_. And building a full CUDA-accelerated machine learning (ML) stack—with dependencies like **`tensorrt`**, **[pytorch](https://hub.flox.dev/packages/base/python313Packages.pytorchWithCuda)**, **`opencv`**, **[xgboost](https://hub.flox.dev/packages/base/xgboostWithCuda)**, **[cudnn](https://hub.flox.dev/packages/base/cudaPackages.cudnn)**, and other packages—could take _days_.
+
+That’s why we’re glad to be partnering with NVIDIA and the Nix Foundation to make this possible.
+
+Being able to download and install precompiled, prepackaged CUDA dependencies addresses an acute pain point for open source users. Not only does it make it easier and faster to download and run CUDA-accelerated packages, but—with Nix and Flox—it unlocks the ability to build and ship reproducible CUDA stacks. Nix and Flox build packages so that they’re always deterministic products of the declarative inputs used to create them. This means the same inputs always produce the same package. Anytime. Anywhere.
+
+Let’s briefly explore what’s happening, how it’s different from the status quo, and why it matters.
+
+## What This Is—and Why It’s Different
+
+First, what you’re seeing today is **early access**. The combinatorial explosion of CUDA packages and [Nix derivations](https://nix.dev/tutorials/nix-language.html#derivations) means there’s no way we can test every possibility ourselves. Over the next few weeks we’ll be shipping improvements, but the feedback you share—especially if you’re running CUDA in production—will tell us which paths matter most. If something breaks, if a package is missing, if you need support: [reach out to us](https://discourse.flox.dev/)!
+
+Today Nix users rely on the Nix binary cache to install pre-built packages, saving time and resources otherwise spent building software from source. However, due to licensing restrictions, the Nix community cannot redistribute pre-compiled proprietary binaries and libraries. This means users must build these from source when needed.
+
+The Flox Catalog uses Nixpkgs as its upstream, sampling once a day to capture and build any packages that change. These built packages live in the Flox Catalog’s binary cache. Previously, when Flox clients installed packages with CUDA dependencies, they, like Nix clients, had to build these packages from source and/or patch binaries that linked against CUDA due to the same licensing restrictions. They couldn’t get them pre-built/prepatched from the Flox Catalog’s binary cache.
+
+Now when a Flox CLI client fetches a CUDA-accelerated package, like [TensorRT](https://developer.nvidia.com/tensorrt), they get a prebuilt package that includes NVIDIA’s bits. Even better, _Nix_ clients can add Flox’s binary cache to their list of [substituters](https://nix.dev/manual/nix/2.26/package-management/binary-cache-substituter) and get the same experience. The CUDA-accelerated packages you get from Flox’s binary cache are built from the same [upstream definitions](https://nixos.org/guides/nix-pills/04-basics-of-language.html) in Nixpkgs; the only difference is that Flox is authorized to redistribute them … so users no longer have to build from source.
+
+## What This Isn’t—and What’s Still the Same
+
+If you’re a user of the Flox CLI, you can pull CUDA-accelerated user space packages from the Flox Catalog.
+
+To run them, you’ll need to install [NVIDIA’s official CUDA driver stack](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/) on Linux. (On Windows with WSL2, installing NVIDIA’s [WDM-certified display driver](https://www.nvidia.com/en-us/drivers/) typically unlocks CUDA acceleration.) Once done, you can pull the precise versions of the CUDA-accelerated packages you need—including the CUDA Toolkit—from the Flox Catalog, and they’ll run against the driver version currently registered with your kernel.
+
+If you use the [Nix package manager](https://nixos.wiki/wiki/Nix_package_manager) (which is different from NixOS), you can pull CUDA-accelerated packages by adding Flox’s binary cache to your **`extra-substituters`** in **`nix.conf`**. Bear in mind that the same limitation applies: viz., you’ll get user-space packages from Flox, but you’ll still need to install NVIDIA’s official driver stack separately.
+
+Just drop the following into **`nix.conf`**:
+
+```
+extra-substituters = https://cache.flox.dev
+extra-trusted-public-keys = flox-cache-public-1:7F4OyH7ZCnFhcze3fJdfyXYLQw/aV7GEed86nQ7IsOs=
+```
+
+Why use NVIDIA’s official drivers? Your Linux distribution may ship CUDA-enabled drivers in its repos, but these often trail (far behind) current-stable. For workloads like ML, AI, multimedia, or HPC, you usually need the latest CUDA Toolkit _and_ CUDA driver releases. The Flox Catalog gives you access to the latest CUDA-accelerated _applications and libraries_—but they’ll only run if your CUDA driver supports them.
+
+## One Difference: CUDA Drivers on NixOS
+
+If you’re using [NixOS](https://nixos.org/), you will already be building NVIDIA drivers and apps from Nixpkgs, and adding the Flox binary cache to your configuration (as above) _can_ translate to faster `nixos-rebuild` invocations, but _only if you happen to be substituting a derivation that we've already built_. The Flox binary cache is built from selected revisions from the Nixpkgs `nixos-unstable` branch, so you will increase the chances of a "cache hit" by similarly using that branch, or you can maximize your chances by pinning your system to one of the exact `github:flox/nixpkgs/{unstable,staging,stable,lts}` branches that we build from.
+
+To sum up:
+
+- Flox or Nix (non-NixOS) users can pull CUDA-accelerated user-space packages from Flox’s binary cache, but must install NVIDIA’s official driver stack separately.
+
+- NixOS users can pull CUDA drivers _and_ user-space packages from Flox’s binary cache by adding it as an `extra-substituter`, and can then maximize the chances of a cache hit by pinning `nixpkgs` to one of `github:flox/nixpkgs/{unstable,staging,stable,lts}` (recommended) or `github:NixOS/nixpkgs/nixos-unstable`.
+
+## About the Flox Binary Cache
+
+Flox maintains its own binary cache consisting of packages built from the official Nixpkgs repository’s build recipes (i.e., Nix expressions). These are used to produce Nix Archive (`.nar`) files—analogous to the `.deb` and `.rpm` used by the Debian and Fedora projects, respectively—along with their associated metadata. The Flox Catalog consumes this metadata and gives Flox CLI users a way to discover, explore, and install pre-built packages from the Flox binary cache. In other words, Flox operates its own mirror of Nixpkgs, but this is for the purposes of _build automation_; Flox _does not_ modify canonical upstream Nixpkgs definitions.
+
+This is a “fork” only in the most pedantic sense. The purpose of mirroring and refreshing from Nixpkgs is to allow the Flox Catalog and Flox binary cache to stay current with upstream changes. Plus, by maintaining its own binary cache, Flox can build and distribute both current and historical versions of Nix packages—not just fully open source software, but also packages (like CUDA) subject to licensing restrictions. Flox users can then easily search for and install them alongside current ones.
+
+## Why Not Use the Nix Binary Cache?
+
+If the recipes Flox uses to build CUDA-accelerated packages come from upstream Nixpkgs, why can’t the Nix community build and package these to begin with? Why can’t the Nix binary cache serve up pre-built CUDA-accelerated packages? The answer lies in the licensing restrictions that commercial vendors tend to place on proprietary software when it’s used with open source projects.
+
+NVIDIA’s licensing terms require an unambiguous, legally accountable entity to sign agreements and manage compliance. Flox provides the corporate structure, legal resources, and liability coverage necessary for this kind of partnership. The Nix Foundation, as a mission-oriented, community-driven non-profit, has a structure that—at this point in time—can’t easily be brought into alignment with NVIDIA’s legal requirements.
+
+## Making CUDA Development Portable, Reproducible, and Repeatable
+
+Modern software engineering is complex, spanning all languages and toolchains. Managing these software and hardware resources can be challenging. That's where Nix and Flox come in.
+
+Nix lets you build portable dev environments and packages that run the same anywhere. Flox offers the same reproducibility guarantees as Nix, but with intuitive semantics and a familiar, easy-to-use interface. You can use either to create and ship CUDA stacks that just work anywhere.
+
+Now you can get prebuilt CUDA-accelerated software packages—including the NVIDIA CUDA Toolkit—from Flox. Even better, you can install separate, otherwise conflicting versions of CUDA-accelerated packages on the same system, at the same time. You can even use multiple versions in the same runtime environment.
+
+In the context of GPU deployed applications this helps to:
+
+- Achieve full reproducibility. CUDA stacks built with Flox on one system are guaranteed to run consistently on others.
+- Seamlessly manage CUDA versions. Flox enables different frameworks to use their required CUDA toolkits, allowing them to coexist without conflict in the same environment.
+- Ensure robust and stable setups. Flox simplifies installing CUDA dependencies and resolves conflicts, leading to reliable development environments.
+- Simplify CI runner maintenance. Keeping CUDA-capable CI runners up-to-date becomes a streamlined process with Flox.
+- Boost dev velocity. With Flox, GPU-accelerated workloads can run efficiently as soon as builds succeed, preventing development stalls.

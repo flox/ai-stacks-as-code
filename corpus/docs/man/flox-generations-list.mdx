@@ -1,0 +1,81 @@
+---
+title: "flox generations list"
+---
+
+## NAME
+
+flox-generations-list - show all environment generations that you can
+switch to
+
+## SYNOPSIS
+
+```text
+flox [<general-options>] generations list
+     [-d=<path> | -r=<owner/name>]
+     [-u]
+     [-t | --json]
+     [--no-pager]
+```
+
+## DESCRIPTION
+
+Show all environment generations that you can switch to.
+
+For environments pushed to FloxHub, every modification to the
+environment creates a new generation of the environment.
+
+`flox generations list` prints all generations of the environment,
+including which generation is currently live.
+
+## OPTIONS
+
+`--tree`, `-t`  
+Render generations as a tree
+
+`--json`  
+Render generations as JSON (mutually exclusive with `-t`).
+**Attention:** the output is not guaranteed to be stable.
+
+`--no-pager`  
+Explicitly disable paged output
+
+### Environment Options
+
+If no environment is specified for an environment command, the
+environment in the current directory or the active environment that was
+last activated is used.
+
+`-d`, `--dir`  
+Path containing a .flox/ directory.
+
+`-r`, `--reference`  
+A FloxHub environment, specified in the form `<owner>/<name>`.
+
+`-D`, `--default`  
+Use your default environment (`<your-user>/default`). When
+unauthenticated in an interactive context, you will be prompted to log
+in. In non-interactive contexts (e.g., scripts or CI), this flag will
+fail with an error when authentication is missing.
+
+`-u`, `--upstream`  
+Operate on the environment on FloxHub, rather than a local reference.
+
+### General Options
+
+`-h`, `--help`  
+Prints help information.
+
+The following options can be passed when running any `flox` subcommand
+but must be specified *before* the subcommand.
+
+`-v`, `--verbose`  
+Increase logging verbosity. Invoke multiple times for increasing detail.
+
+`-q`, `--quiet`  
+Silence logs except for errors.
+
+## SEE ALSO
+
+[`flox-generations-history`](/man/flox-generations-history),
+[`flox-generations-rollback`](/man/flox-generations-rollback),
+[`flox-generations-switch`](/man/flox-generations-switch)

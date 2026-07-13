@@ -1,0 +1,157 @@
+---
+title: 'Get Warm and Fuzzy Search in Your Shell with fzf and Flox'
+altTitle: 'Get Warm and Fuzzy Search in Your Shell with fzf and Flox'
+description: "Need to find just the right file—fast? Fzf filters search results dynamically as you type, enabling super-fast incremental search. It's a cinch to install and use in a workflow with Flox."
+metaDescription: "Need to find just the right file—fast? Fzf filters search results dynamically as you type, enabling super-fast incremental search. It's a cinch to install and use in a workflow with Flox."
+isPublished: true
+isPopularPackage: true
+packageCategory: terminal
+packageName: fzf
+author: Bill LeVine
+publishedDate: 11 October 2024
+thumbnail: '/images/blog/fuzzy-magnifying-glass.webp'
+orderBy: 20241011
+---
+
+
+It’s that time of the week again, Fun Packages Friday, in which we introduce and highlight a neat piece of software in the Flox Catalog, powered by Nixpkgs. 
+
+This week’s "package" is actually a two-fer. We'll primarily focus on [fzf](https://github.com/junegunn/fzf), short for “fuzzy finder,” but we'll also briefly bring in a [PTBNL](https://en.wikipedia.org/wiki/Player_to_be_named_later): a package-to-be-named-later.
+
+Fzf is a CLI tool that allows you to search through a list of items by typing part of the text. It filters the results dynamically as you type, enabling super-fast incremental search. The “fuzzy” part of the search experience means you don’t have to type the exact string you’re looking for, just enough for fzf to filter the closest matches.
+
+I love it because I can usually anticipate exactly how much I’ll need to type to find what I want.
+
+Let's give it a run. The following examples assume we’re using an existing Flox environment. If you don’t know what creating one of these involves, check out Flox’s [quick start guide](https://flox.dev/docs/).
+
+```
+flox install fzf
+✅ 'fzf' installed
+```
+
+The basic use case for fzf is finding files. Just `cd` into a directory, run `fzf`, and then start typing:
+
+```
+  proj_overview_report
+  proj_client_meeting_notes
+  proj_system_architecture_plan
+  proj_sales_forecast_2024
+  proj_network_security_audit
+  proj_Q3_financial_summary
+  proj_team_training_schedule
+  proj_new_feature_implementation
+  proj_HR_policy_update
+  proj_data_migration_strategy
+  proj_user_feedback_analysis
+  proj_cloud_infrastructure_blueprint
+  proj_product_launch_strategy
+  proj_vendor_contract_review
+  proj_IT_risk_assessment
+  proj_annual_performance_review
+  proj_employee_onboarding_checklist
+  proj_marketing_campaign_strategy
+  proj_technical_support_guidelines
+  proj_operations_optimization_plan
+  proj_customer_satisfaction_report
+  proj_compliance_audit_summary
+  proj_budget_allocation_proposal
+  proj_key_initiatives_roadmap
+> proj_stakeholder_communication_plan**
+  25/2702──────────────────────────────────────────────────────────────
+  proj
+```
+
+The code block above shows what happens when you type `proj` after first navigating to `/mnt/nfs/docs` and running `fzf`. Notice the greater-than cursor (**`>`**) in the code block? You use that to select the file you want. We’ve got 25 results, but we can narrow this output down by typing multiple terms separated by spaces. In the code block below, typing `proj risk` narrows things down to just the file we need.
+
+```
+> proj_IT_risk_assessment
+  1/2702──────────────────────────────────────────────────────────────
+  proj risk
+```
+
+If you want to match on an exact term, just enclose it in single quotes. And if you’re in a huge directory with tens of thousands of files, you can exclude terms by prefixing them with bangs (`!`):
+
+```
+  proj_client_meeting_notes
+  proj_sales_forecast_2024
+  proj_network_security_audit
+  proj_team_training_schedule
+  proj_new_feature_implementation
+  proj_user_feedback_analysis
+  proj_cloud_infrastructure_blueprint
+  proj_IT_risk_assessment
+  proj_employee_onboarding_checklist
+  proj_technical_support_guidelines
+  proj_budget_allocation_proposal
+> proj_key_initiatives_roadmap
+  25/2702──────────────────────────────────────────────────────────────
+  proj !report !plan !summary !review !strategy
+```
+
+fzf is cool on its own, but it’s even more powerful combined with other commands. For example, you can use fzf as part of a command to find and open a file in your preferred editor. Either of the following works:
+
+```
+vim "$(fzf)"
+fzf | xargs -o vim
+```
+
+Both commands run `fzf`, allowing you to browse the current directory using its interactive, ncurses-like terminal UI. Once you select the file you want, it automatically opens in `vim`.
+
+Liking it so far? Let's use fzf for some more advanced stuff, like command completion and search history! You might already use `CTRL+R` to do a [reverse-i-search](https://askubuntu.com/questions/74631/how-do-i-search-my-command-line-history-for-commands-i-used-before) through your command history in bash or zsh.
+
+But fzf takes this to a completely different level! Reverse-i-search helps you find commands that contain the exact string you type, but fzf uses fuzzy matching to dynamically filter your command history in real time, so you can find what you need even if you only remember part of a command. In addition, you can use fzf to scroll through results once you’ve filtered them, so it’s much faster to locate the command you’re looking for.
+
+For example, in the same Flox environment where you installed fzf, type **`flox edit`** to view that environment's [manifest](https://flox.dev/blog/mastering-hooks-and-profiles-for-reproducible-flox-environments/) using Flox's built-in editor. Then paste the following logic into the `[profile]` section:
+
+```
+bash = '''
+ # Setup fzf shortcuts and tab completion
+ eval "$(fzf --bash)"
+'''
+```
+(This assumes you’re using bash. If you’re using zsh, you’d swap `zsh` in for `bash` above, natch.)
+
+Now when you hit `CTRL-R` you get fuzzy searching of your command history!
+
+```
+  1036 kubectl describe pod etcd-5c55bdbcf-ssh66
+  1037 kubectl logs etcd-5c55bdbcf-ssh66
+  1039 kubectl exec -it etcd-5c55bdbcf-ssh66 -- /bin/sh
+  1040 kubectl get pods
+  1041 kubectl logs debug-etcd
+  1042 kubectl describe pod debug-etcd
+  1051 ko resolve -f deployment.yaml | kubectl apply -f -
+  1054 kubectl delete pods --all --all-namespaces
+  493/493 +S ──────────────────────────────────────────────────────────────
+> kubectl
+
+```
+
+Even better, fzf also sets up some shortcuts that use `**[Tab]` as a trigger for the same. Try `cd **[Tab]`, or if you want to get to something you know is under your `$HOME` directory, try `cd ~/**[Tab]`. Now try `ssh **[Tab]`... magical! There's lots of other shortcuts and stuff to play with as it's very configurable.
+
+With that kind of searching power, you may want to increase the size of your command history in your bash or zsh config file. I use these values:
+
+```
+HISTSIZE = "5000"
+HISTFILESIZE = "8000"
+```
+
+Fzf just has a ton of functionality, including the ability to make multiple selections! Try running `fzf -m` and then scroll through the list hitting `[Tab]` to select multiple files from the list. Or try this with `git add $(fzf -m)` the next time you have to find just those two files you need to commit on their own.
+
+There's even a preview window you can invoke with `fzf --preview="cat {}"`!
+
+![](/images/blog/fuzzy-git-repo.png)
+
+I mentioned above that this article is a two-fer. So let's bring in our PTBNL, another really fun packaged called `bat`, to make that preview window even prettier! `Bat` is a colorized replacement for `cat`... or a “cat clone with wings,” as the project [describes itself](https://github.com/sharkdp/bat).
+
+```
+flox install bat && fzf --preview="bat --color=always {}”
+```
+
+You can try it out by searching for and previewing source code, markdown, yaml, and other file types!
+
+![](/images/blog/fuzzy-git-repo-with-color.png)
+
+All that's a lot to type, but if you like what you see, check out the [fzf project page](https://junegunn.github.io/fzf/) for all kinds of ways to integrate fzf into various workflows!
+
+Happy hacking.

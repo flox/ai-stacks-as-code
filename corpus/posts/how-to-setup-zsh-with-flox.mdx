@@ -1,0 +1,196 @@
+---
+title: 'How to Set Up Zsh with Flox'
+description: 'flox can help you install and configure your Zsh and more'
+metaDescription: 'flox can help you install and configure your Zsh and more.'
+isPublished: false
+category: guides
+publishedDate: 23 June 2023
+thumbnail: /images/blog/shell-city.webp
+orderBy: 18
+---
+
+If you're a developer or **a power user**, you probably spend a lot of time in
+your terminal. And while bash is perfectly functional, there are some
+alternatives out there that can make your terminal experience even better.
+
+One of those alternatives is [Zsh][1]. In this post we will look how you can:
+
+- install Zsh,
+- install Zsh plugins,
+- and configure _everything_ using flox.
+
+## Install Zsh
+
+```console
+$ flox install zsh -e dotfiles
+```
+
+Let's explain what just happened:
+
+- The `flox install zsh` command installed the `zsh` package.
+
+- The `-e dotfiles` argument specified an environment (we gave it a name
+  `dotfiles`) where `zsh` was installed. Because the environment did not yet
+  exist, it was automatically created for us.
+
+And, yes, you are assuming correctly! With `flox` you can have multiple
+environments. You can switch between them, layer one over the other, and more.
+
+## Start Zsh
+
+Installing a package into an environment with `flox` does not yet make it
+available (unless you install it into the `default` environment). In order
+to use the package that was just installed (eg. `dotfiles` in our case) we need
+to **activate the environment**.
+
+```console
+$ which zsh
+zsh not found
+$ flox activate -e dotfiles
+$ which zsh
+/Users/rok/.local/share/flox/environments/local/aarch64-darwin.zsh/bin/zsh
+$ exit
+```
+
+You can see above that upon activation of the `dotfiles` environment we now
+have access to the `zsh` binary. Now we are getting somewhere! But what would
+be really cool is if we could get a new zsh session automatically when we
+activate the `dotfiles` environment. With flox, there is a way. Let's do this:
+
+```console
+$ flox edit -e dotfiles
+```
+
+This command will open a flox environment file for us to edit. Make sure
+your `EDITOR` environment variable is set to the editor of your choice.
+
+Then, make sure the `dotfiles` environment configuration looks like the following:
+
+```nix title="Zsh environment configuration"
+{
+  packages.nixpkgs-flox.zsh = {};
+
+  shell.hook = ''
+    # Our home for Zsh configuration
+    export ZDOTDIR=$HOME/.dotfiles
+    mkdir -p $ZDOTDIR
+
+    # Start Zsh session
+    exec zsh --no-globalrcs
+  '';
+}
+```
+
+Let's explain this configuration for those new to the Nix language:
+
+- `packages.nixpkgs-flox.zsh = {};` is what `flox install zsh -e dotfiles`
+  added to our environment configuration when we ran it earlier.
+
+- `shell.hook` is where we add shell commands to be executed. The `''` (two
+  single tick marks) allows us to write a multi-line shell script.
+
+- `export ZDOTDIR=$HOME/.dotfiles` will tell Zsh where to look for its
+  configuration. This is needed to isolate our Zsh environment.
+
+- `exec zsh --no-globalrcs` is where we spawn the new Zsh session.
+
+```console
+$ flox activate -e dotfiles
+machine% exit
+```
+
+Once we activate the `dotfiles` environment again it will spawn a new Zsh
+session for us. It will probably warn us that there is no exiting Zsh
+configuration, but that is going to change soon.
+
+## Install and configure your first Zsh plugin
+
+We all want things to look nice especially if we - a power terminal users - are
+going to look at it constantly. For this reason we are going to look [how to
+install a `powerlevel10k` theme][3].
+
+```console
+$ flox search powerlevel10k
+unstable.meslo-lgs-nf       Meslo Nerd Font patched for Powerlevel10k
+unstable.zsh-powerlevel10k  A fast reimplementation of Powerlevel9k ZSH theme
+$ flox install zsh-powerlevel10k -e dotfiles
+```
+
+- The `flox search powerlevel10k` command searches the flox catalogs ([nixpkgs
+  catalog][4] in particular) to find the name of the package containing
+  `powerlevel10k`.
+
+- The `flox install zsh-powerlevel10k -e dotfiles` command installs
+  `zsh-powerlevel10k` into our `dotfiles` environment.
+
+To activate this environment, we need to call it from the `~/.dotfiles/.zshrc`
+configuration file. It should contain this line:
+
+```zsh filename="~/.dotfiles/.zshrc"
+source $FLOX_ENV/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+```
+
+The `$FLOX_ENV` variable is only present inside a flox environment and will point
+to the latest generation of the environment. But what's a generation, you ask?
+With every change to the environment (e.g., install, uninstall, configure, ...),
+a new version of it is automatically created. And, again, you assume correctly:
+just as you are able to switch between flox environments you are also able to
+**switch between different generations of a single environment**. But we will
+have to look at that some other time.
+
+With the changes in `~/.dotfiles/.zshrc`, we will be greeted with the `powerlevel10k`
+configuration wizard upon our next activation of the `dotfiles` environment.
+
+After answering all all the questions that the `powerlevel10k` configuration wizard
+asked me, here is how my Zsh session looks:
+
+![Initial bash session](/images/blog/only-bash.jpg 'My initial bash session')
+![Zsh session without powerlevel10k](/images/blog/only-zsh.jpg)
+![Zsh session with powerlevel10k](/images/blog/zsh-with-powerlevel10k.jpg)
+
+## Login to new Zsh automatically
+
+```shell title="~/.profile"
+eval "$(flox activate -e dotfiles)"
+```
+
+With the above in your `~/.profile`, our newly-created `dotfiles` environment
+will be activated upon logging into your shell. Depending on your how your
+system is configured, you might need to put this line in either `~/.zshrc`,
+`.~/.bashrc`, or some other file.
+
+## Zsh is just the beginning
+
+I hope this post will give you an idea how you can use flox to **create an
+amazing developer experience**.
+
+As you might suspect, we have only scratched the surface with this example Zsh
+integration. In the same way we integrated Zsh with flox, we can integrate any
+other tool that you are already using.
+
+And this is exactly what we are going to do!
+
+In our next blog posts, we're going to look how to further extend this example to
+integrate some of the following tools: [fzf][6], [direnv][7], [tmux][8],
+[neovim][9], and more. If you want us to investigate a specific tool, [let us
+know][10] and we'll try to show how to manage it with flox.
+
+[Also please let us know in the discourse][5] if you have trouble getting any
+of the examples to work. We will gladly help you out.
+
+---
+
+_Author:_
+
+Rok Garbas, Software Engineer
+
+[1]: https://www.zsh.org
+[2]: http://flox.dev/docs/install-flox
+[3]: https://github.com/romkatv/powerlevel10k
+[4]: https://flox.dev/blog/nixpkgs
+[5]: https://discourse.flox.dev
+[6]: https://github.com/junegunn/fzf
+[7]: https://direnv.net
+[8]: https://github.com/tmux/tmux
+[9]: https://neovim.io
+[10]: https://twitter.com/floxdevelopment

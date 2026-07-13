@@ -1,0 +1,48 @@
+---
+title: "Migrating from asdf to Flox"
+altTitle: "Migrating from asdf to Flox"
+description: "Leveling up your version manager. asdf is a popular version manager, helping developers manage the 
+languages and versions required for a specific project. But there are a few drawbacks to asdf. We can deliver on the asdf 
+model and take it a few steps further with flox."
+metaDescription: "Teams love asdf because it helps make juggling different language versions transparent and simple."
+isPublished: false
+category: guides
+publishedDate: 28 November 2022
+thumbnail: "/images/blog/flock-sunset.jpg"
+orderBy: 5
+---
+
+asdf is a popular version manager, helping developers manage the languages and versions required for a specific project. So you can have asdf look at a project directory and ensure that all your dependencies are on the expected version. You can also manage globally installed versions of these tools. asdf ‘s success comes from a fairly clean developer experience, coupled with support for multiple languages: NodeJS, Ruby, Elixir, and Erlang.
+
+There are a few drawbacks to asdf. First, any tool other than the language still must be installed the usual, imperative way, and it’s up to you to configure the rest of your development environments appropriately. It would be convenient to be able to define more than just our base language versions. Second, defining environments this way means we must leave a ".tool-versions" file in every directory. This is very convenient in project directories and repos, but not so much for arbitrary environments. How might we switch from running an environment to another in any local directory?
+
+Still, this gets very far in smoothing out the developer experience! Especially for a team trying to stay on the same page: use asdf, and check global/local/current to see what you’re running. But this is almost 2023. <i>Can we do better</i>?
+
+## Enter the Environment
+
+<b>We can deliver on the asdf model and take it a few steps further with flox.</b> We’re going to start by creating "environments" which give us this asdf-style tool versioning we like.
+
+Let’s start by defining an environment to use like "asdf current". Taking Elixir tooling as an example, we can run <code>flox install -e elixirEnv elixir postgresql</code> to get an environment in which we might build a Phoenix application. We could also create a separate environment for an older version of Elixir with <code>flox install -e elixir12Env elixir_1_12</code>, for example. We installed packages to different environments imperatively, and we can activate them with <code>flox activate -e elixirEnv</code>, for example. This is like asdf, except you have access to all of nixpkgs to source packages to add to your environment.
+
+What about <code>asdf global</code> to set global versions of things? flox provides a "default" environment which can be activated and deactivated like any other. In fact, the "-e" flag used above defaults to "default" so you can just type <code>flox install elixir</code> to install elixir to your default environment. Easy.
+
+But where asdf really shines is in project environments. You can just include a <code>.tool-versions</code> file in a project directory and anyone can attempt to match your versions via asdf. With flox, the ".tool-versions" file can be replaced two different ways. The easiest is to use "direnv" and add a <code>. &lt; (flox activate -e myProjectEnv)</code> to your .envrc file. This way, whenever you enter your project directory, you also enter a project environment.
+
+The second way is to provide an environment for your project via the several package builders flox provides. Run "flox init" in your project directory, select the appropriate builder, and run <code>flox develop</code>. Done – you’re now running your project in an isolated environment with the exact dependencies required, not just the language versions. You can then commit this added flox metadata to your repo and <i>anyone</i> can use it to recreate your environment.
+
+What happened here? In a way, the walls between global/local/current have dissolved. <b>Environments should be portable, isolated, and transparent, and so a flox env can be invoked anywhere.</b> But digging deeper, what does it mean to install something in this case? All it means is that you’re associating a built dependency with an environment. It also means you can run something without installing it! Run <code>flox activate -e flox-examples/demo -- sl</code>. You’re executing a binary on your local machine, but installed to no user environment.
+
+## Environments with wings
+
+As a final demo of how much further we can take this idea, consider that the data which defines an environment is simply metadata. It’s JSON, a predetermined format with the hashes of the dependencies which are inputs into our environment, nothing more. That means we can share these. If you run <code>flox push</code>, you will push your default environment to a git repo (by default called "floxmeta") in your github/lab organization. Someone else can come along and <code>flox pull</code> your environment down. For teams, this means a consistent, reproducible, versioned fleet of environments, cutting down on coordination costs and greatly improving visibility into one’s stack.
+
+Teams love asdf because it helps make juggling different language versions transparent and simple. But we can extend this user experience into more powerful domains. Under the hood, flox uses Nix to handle user environments and enable a much larger vista for dependency management solutions. <b>We now have a portable, deterministic environment, based on the [largest repository of software](https://flox.dev/blog/nixpkgs-the-big-recipe-book-of-open-source) in the public domain, architecture independent and reproducible.</b> And much more to come…
+
+Sign up for the beta [here](https://flox.dev/beta)!
+
+
+<hr />
+
+<i>About the author:</i>
+
+Julien Urraca, Developer Relations

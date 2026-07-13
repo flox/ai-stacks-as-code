@@ -1,0 +1,708 @@
+---
+title: 'Reproducible NVIDIA CUDA Environments Across Your SDLC'
+altTitle: 'Reproducible NVIDIA CUDA Environments Across Your SDLC'
+description: 'Get portable, reproducible CUDA environments and stacks with Flox. CUDA stacks you build locally travel as-is across your SDLC. Pull or clone them into runners in CI, then deploy them as containers, VMs, or lambdas to prod.'
+metaDescription: 'Get portable, reproducible CUDA environments and stacks with Flox. CUDA stacks you build locally travel as-is across your SDLC. Pull or clone them into runners in CI, then deploy them as containers, VMs, or lambdas to prod.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 10 January 2026
+thumbnail: '/images/blog/brain-in-a-vat.webp'
+orderBy: 20250916
+---
+
+You can now [use Flox to get the NVIDIA CUDA Toolkit](https://hub.flox.dev/flox/cuda-samples) plus all your CUDA runtime dependencies.
+
+You can even install separate, conflicting versions of CUDA dependencies side-by-side on the same system, at the same time—including historical versions of conflicting dependencies. Need the latest CUDA Toolkit for cutting-edge PyTorch—along with CUDA Toolkit 12.4 for working with TensorFlow? Just **`flox install`** them both … at the same time.
+
+## What is the NVIDIA CUDA Toolkit?
+
+[NVIDIA CUDA is a development toolkit](https://flox.dev/docs/tutorials/cuda/) that allows software systems to access GPU cycles to enhance their processing capabilities. This toolkit is at the heart of AI systems that require the power of GPUs to run effectively. However, the low-level nature of CUDA development presents significant challenges in hardware and software compatibility.
+
+[That’s where Flox can help](https://flox.dev/cuda). Flox makes it surprisingly straightforward to manage the complex matrix of compatible NVIDIA CUDA, Python, native libraries, and other ML/AI dependencies. This article will show how you can use Flox to build portable, reproducible CUDA environments and CUDA-accelerated ML/AI stacks. 
+
+## Getting Started with CUDA and Flox
+
+First, [sign up for Flox](https://hub.flox.dev) to search for and discover **`flox-cuda`** packages.
+
+If you've already signed up, but your [FloxHub](https://hub.flox.dev) token has expired, just run the following command:
+
+```
+$ flox auth login
+Go to https://auth.flox.dev/activate?user_code=GBFZ-WQVM in your browser
+
+Your one-time activation code is: GBFZ-WQVM
+
+✅ Authentication complete
+✅ Logged in as barstoolbluz
+```
+
+Now when you search for CUDA packages, Flox’s pre-built CUDA packages will appear in your results.
+
+
+## 1. Building a Reproducible CUDA Environment with Flox
+
+**Part 1** of this guide walks you through how to build a basic Flox-CUDA development environment.
+
+All of Flox’s prebuilt CUDA-accelerated packages are prefixed with **`flox-cuda`**. To install the NVIDIA CUDA Toolkit, for example, search for **`cudatoolkit`** and look for the **`flox-cuda`** prefix.
+
+-  To refine your search, use the **`--all`** switch; e.g., **`flox search cudatoolkit --all`**; combine this with **`grep`** to filter search results.
+-  To search for _specific versions_ of a package, use the **`flox show`** command; e.g., **`flox show flox-cuda/cudaPackages.cudatoolkit`**.
+-  The **`flox-cuda`** packages will always be at the top of the results returned for any search term. 
+
+
+### 1.1. Installing the CUDA Toolkit
+
+Let’s start by searching for a specific version of the CUDA Toolkit, v12.8:
+
+```
+$ flox search cudatoolkit --all | grep Wrapper
+flox-cuda/cudaPackages.cudatoolkit                      Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_11.cudatoolkit                   Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_12.cudatoolkit                   Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_11_4.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+…
+flox-cuda/cudaPackages_11_8.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_12_0.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_12_1.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_12_2.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+… 
+flox-cuda/cudaPackages_12_6.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_12_8.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+flox-cuda/cudaPackages_12_9.cudatoolkit                 Wrapper substituting the deprecated runfile-based CUDA installation
+```
+_**Note:** Ellipses (**`…`**) in the output show that the search results have been shortened for readability._
+
+We use the CUDA wrapper packages rather than NVIDIA’s runfile installer because the runfile method is non-reproducible and "impure"—i.e., it expects to write to global system paths like **`/usr/local/cuda`**. The wrappers solve this by substituting the runfile installer with a packaging structure that safely and sanely integrates with [Nix](https://nixos.org/guides/how-nix-works/)—the open source software on which Flox is built. They provide access to the same components (compiler, libraries, and tools) while preserving reproducibility, cacheability, and enabling sandboxed builds.
+
+Let’s install the **`flox-cuda/cudaPackages_12_8.cudatoolkit`** package:
+
+```
+$ flox install flox-cuda/cudaPackages_12_8.cudatoolkit
+⚠️  The package 'cudatoolkit' has an unfree license, please verify the licensing terms of use
+⚠️  'cudatoolkit' installed only for the following systems: aarch64-linux, x86_64-linux
+```
+
+Now let’s install the NVIDIA CUDA Runtime API Library (CUDART), along with the GNU C Compiler. We’ll do this declaratively, using **`flox edit`** to make changes to the Flox environment’s manifest:
+
+```
+[install]
+cudatoolkit.pkg-path = "flox-cuda/cudaPackages_12_8.cudatoolkit"
+cudatoolkit.systems = ["aarch64-linux", "x86_64-linux"]	# cudatoolkit is available on these systems
+cuda_cudart.pkg-path = "flox-cuda/cudaPackages.cuda_cudart"	
+cuda_cudart.systems = ["aarch64-linux", "x86_64-linux"]	# cuda_cudart is available on these systems 
+cuda_cudart.priority = 2
+gcc.pkg-path = "gcc"		# nvcc invokes GCC to build ‘hello.cu’ code and link
+```
+
+Notice the **`cuda_cudart.priority`** definition? Section **1.3**, below, explores what this is and why it's useful. For now, let’s go ahead and compile a CUDA-specific `Hello World` example:
+
+```
+#include <stdio.h>
+
+// A simple CUDA kernel
+__global__ void helloFromGPU() {
+    printf("Hello World from GPU thread %d!\n", threadIdx.x);
+}
+
+int main() {
+    printf("Hello World from CPU!\n");
+
+    // Launch kernel with 1 block of 5 threads
+    helloFromGPU<<<1, 5>>>();
+
+    // Wait for GPU to finish before exiting
+    cudaDeviceSynchronize();
+
+    return 0;
+}
+```
+
+Saving this as **`hello.cu`**, activating the Flox environment, and compiling it with **`nvcc`** just works:
+
+```
+$ nvcc hello.cu -o hello -Wno-deprecated-gpu-targets		# suppresses warnings about deprecated gpu architectures
+$ ./hello
+Hello World from CPU!
+Hello World from GPU thread 0!
+Hello World from GPU thread 1!
+Hello World from GPU thread 2!
+Hello World from GPU thread 3!
+Hello World from GPU thread 4!
+```
+
+The NVIDIA CUDA Toolkit wrappers in the Flox Catalog provide the essential dependencies required to compile and run CUDA programs. Typically, they include just the NVIDIA C Compiler (NVCC) and NVIDIA’s core math libraries. Fear not: _all_ components of the CUDA Toolkit are also available as separate packages in the Flox Catalog. The next section walks through how to search for and install these dependencies, too.
+
+
+
+### 1.2. Adding Essential CUDA Dependencies
+
+The CUDA Toolkit doesn’t include useful dependencies like CUDART, the [CUDA Deep Neural Network](https://developer.nvidia.com/cudnn) (cuDNN), [CUDA Solver](https://developer.nvidia.com/cusolver) (cuSOLVER), [CUDA Tensor](https://developer.nvidia.com/cutensor) (cuTENSORS), [CUDA Core Compute Libraries](https://nvidia.github.io/cccl/cpp.html) (CCCL), and others. You’ll need to define these separately in your Flox manifest.
+
+Let’s start by searching for the **`cuda_cudart`** package, which we teased in the section above.
+
+```
+$ flox search cudart --all | grep 12_8
+flox-cuda/cudaPackages_12_8.cuda_cudart  CUDA Runtime (cudart)
+```
+
+As expected, the Flox Catalog has the exact version that is required. Installing it results in a hiccup, however: 
+
+```
+$ flox install flox-cuda/cudaPackages_12_8.cuda_cudart
+… 
+  manifest> + /nix/store/psy9v2asypgl9ylg8cnzkixc7fv0snj0-coreutils-9.7/bin/cp '--no-preserve=mode' /nix/store/rxaiccd7cvffj163z16fk857wy3jm9bq-default.envrc /nix/store/nv0nl6rdq8jrq0vk30x29d01v5lglxjs-manifest/activate.d/envrc
+  building '/nix/store/gbw99m7xx47b993szqv9rs2zkpxjkyby-environment.drv'...
+  environment> ❌ ERROR: 'cuda_cudart' conflicts with 'cuda-merged'. Both packages provide the file 'LICENSE'
+  environment>
+  environment> Resolve by uninstalling one of the conflicting packages or setting the priority of the preferred package to a value lower than '5'
+```
+_**Note**: This is a truncated and abridged version of the complete error message._
+
+Oh snap! A dependency conflict—but not an insoluble one. The root issue is that both the **`cudatoolkit`** and **`cuda_cudart`** packages expect to install a `LICENSE` file to the same location in the same path.
+
+Two files cannot share the same pathname. This is an impossibility. But Flox has been engineered to deal with situations like this. We walk through how to manage dependency conflicts in the next section.
+
+
+
+### 1.3. Nimbly Negotiating CUDA Dependency Conflicts
+
+Flox has several switches you can flip to manage dependency conflicts. The first thing you can try is to isolate problem dependencies in their own [package groups](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox/). This is _usually_ enough to do the trick:
+
+```
+[install]
+cudatoolkit.pkg-path = "flox-cuda/cudaPackages_12_8.cudatoolkit"
+cudatoolkit.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_cudart.pkg-path = "flox-cuda/cudaPackages.cuda_cudart"
+cuda_cudart.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_cudart.pkg-group = "cuda-deps"
+gcc.pkg-path = "gcc"
+```
+
+In this case, however, package groups won’t work, because the problem isn’t conflicting libraries, but a pathname conflict. To understand why this happens, it’s useful to know a little bit about how both Flox and Nix work.
+
+When Flox and Nix build an environment, they create a directory tree of symbolic links in the environment’s path. This tree looks like the familiar directory structure you’d normally see under **`/usr`** on a Linux or BSD system, with subfolders like **`/bin`**, **`/etc`**, **`/lib`**, **`/share`**, and so on. Each symlink points to the location in the [Nix store path](https://nixos.org/guides/nix-pills/18-nix-store-paths.html) where its corresponding file lives. This allows multiple packages to coexist in one environment.
+
+A **symlink collision** happens when two packages contain a file with the same name in the same path.
+
+![](/images/blog/symlink-collision.svg)
+
+Fixing this is simple enough: just assign one of the two packages [a lower or higher priority value](https://flox.dev/docs/reference/command-reference/manifest.toml/#catalog-descriptors). When Flox evaluates an environment’s manifest, it resolves collisions by symlinking to the package with the lowest priority value. The **`cuda_cudart.priority`** definition in the manifest below shows what this looks like. 
+
+**Note:** For troubleshooting dependency conflicts, always run **`flox edit`** to make changes declaratively:
+
+```
+[install]
+cudatoolkit.pkg-path = "flox-cuda/cudaPackages_12_8.cudatoolkit"
+cudatoolkit.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_cudart.pkg-path = "flox-cuda/cudaPackages.cuda_cudart"
+cuda_cudart.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_cudart.priority = 6 # lower priority values take precedence; ‘6’ is higher than default
+gcc.pkg-path = "gcc"
+```
+
+After exiting the editor, Flox’s resolver evaluates the dependency graph to determine if the specified packages can coexist in the same environment; if they can’t, it surfaces an error and prompts you to re-edit the manifest. Packages have a default priority of **`5`**; setting **`cuda_cudart`** to **`priority = 6`** tells Flox to ignore its `LICENSE` file and use the one from the CUDA Toolkit instead. Saving and exiting **flox edit** shows the conflict has been resolved:
+
+```
+✅ Environment successfully updated.
+```
+
+The CUDA Toolkit wrapper gives you a solid foundation for CUDA development: you get NVCC, the CUDA runtime, and a spate of core CUDA libraries. You can also install additional CUDA packages—like CUDART, NVIDIA’s CUDA Core Compute Libraries (CCCL), cuDNN, cuTENSOR, and others—if you require them.
+
+If, however, you prefer to keep your Flox environment compact, with fewer dependencies and a reduced attack surface, you have the option of installing only the CUDA packages your project requires. For example, you might need NVCC but not NVIDIA’s core math libs, or you might _not_ need NVCC, but _do_ require CUDART, CCCL, cuTENSOR, and other packages. Scoping dependencies this way minimizes environment bloat and reduces the software supply chain risk introduced by shipping unnecessary packages.
+
+**Part 2** of this guide walks through how to do this.
+
+
+
+## 2. Designing Modular CUDA Environments
+
+The CUDA Toolkit wrappers available from the Flox Catalog do not install the complete CUDA Toolkit; rather, they provide the basic dependencies required to compile and run CUDA programs.
+
+This packaging choice reflects how Nixpkgs is designed and maintained. By separately installing required binaries (like NVCC) along with optional libraries (like CUDART, CCCL, cuTENSOR, or cuSOLVER), you can create CUDA environments that include _only the dependencies you need_—without installing the complete 8+ GB CUDA Toolkit. This keeps your Flox environments compact and performant.
+
+**Part 2** of this guide walks through how to build modular, fit-for-purpose CUDA dev environments, starting with the _sine qua non_ for CUDA dev: NVCC.
+
+```
+$ flox search nvcc
+flox-cuda/cudaPackages.cuda_nvcc       CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_11.cuda_nvcc    CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_12.cuda_nvcc    CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_11_4.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_11_5.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_11_6.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_11_7.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_11_8.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_12_0.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+flox-cuda/cudaPackages_12_1.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+
+Showing 10 of 25 results. Use `flox search nvcc --all` to see the full list.
+```
+
+To search for a specific version, pipe the output of **`flox search`** to grep:
+
+```
+$ flox search nvcc --all | grep 12_8
+flox-cuda/cudaPackages_12_8.cuda_nvcc  CUDA NVCC. By downloading and using the packages you accept the terms and conditions of the CUDA EULA
+```
+
+With Flox, you can install packages using either imperative...
+
+```
+$ flox install flox-cuda/cudaPackages_12_8.cuda_nvcc
+⚠️  The package 'cuda_nvcc' has an unfree license, please verify the licensing terms of use
+⚠️  'cuda_nvcc' installed only for the following systems: aarch64-linux, x86_64-linux
+```
+
+...or declarative methods, i.e., by editing the Flox environment’s manifest. Running **`flox edit`** brings up Flox’s built-in editor. Define CUDA dependencies in the **`[install]`** section, where all packages go.
+
+Spoiler alert: CUDART isn't the only CUDA package with conflicting dependencies. Several NVIDIA CUDA dependencies expect to create a `LICENSE` file in the same pathname. The **tl;dr** is that each of these packages will require custom priority values, starting with **`cuda_nvcc`**:
+
+```
+[install]
+cuda_nvcc.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_nvcc"
+cuda_nvcc.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_nvcc.priority = 1		# lower priorities take precedence over higher ones
+```
+
+A lightweight CUDA dev environment will almost certainly require CUDART. It may also require NVIDIA’s CCCL, which is useful for teams working with [Thrust](https://nvidia.github.io/cccl/thrust/), [CUB](https://docs.nvidia.com/cuda/cub/index.html), or [libcu++](https://nvidia.github.io/cccl/libcudacxx/). Other commonly used libraries are [cuBLAS](https://developer.nvidia.com/cublas), [cuSPARSE](https://developer.nvidia.com/cusparse), and [cuFFT](https://developer.nvidia.com/cufft), along with cuDNN, cuTENSOR, and cuSOLVER. 
+
+After installing each of these, the Flox environment’s manifest looks like this:
+
+```
+[install]
+cuda_nvcc.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_nvcc"
+cuda_nvcc.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_nvcc.priority = 1		# lower priorities take precedence over higher ones
+cuda_cudart.pkg-path = "flox-cuda/cudaPackages.cuda_cudart"
+cuda_cudart.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_cudart.priority = 2
+gcc.pkg-path = "gcc"
+cuda_cccl.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_cccl"
+cuda_cccl.systems = ["aarch64-linux", "x86_64-linux"]
+libcublas.pkg-path = "flox-cuda/cudaPackages.libcublas"
+libcublas.version = "12.8.4.1"
+libcublas.systems = ["aarch64-linux", "x86_64-linux"]
+libcufft.pkg-path = "flox-cuda/cudaPackages_12_8.libcufft"
+libcufft.systems = ["aarch64-linux", "x86_64-linux"]
+cudnn_9_11.pkg-path = "flox-cuda/cudaPackages_12_8.cudnn_9_11"
+cudnn_9_11.systems = ["x86_64-linux"]
+cutensor.pkg-path = "flox-cuda/cudaPackages.cutensor"
+cutensor.systems = ["aarch64-linux", "x86_64-linux"]
+libcusparse.pkg-path = "flox-cuda/cudaPackages_12_8.libcusparse"
+libcusparse.systems = ["aarch64-linux", "x86_64-linux"]
+gcc.pkg-path = “gcc”
+```
+
+It's possible to define all of these packages in a single Flox environment, just like we did with this one.
+
+However, Flox’s support for [layering](https://flox.dev/docs/tutorials/layering-multiple-environments/?h=layer) and [composing](https://flox.dev/docs/concepts/composition/?h=composing) environments gives you the ability to create fit-for-purpose CUDA environments that are both lightweight _and_ modular. This way you can construct rich CUDA dev and runtime environments from modular building blocks—without having to maintain a monolithic, one-size-fits-all environment.
+
+
+
+### 2.1. Layering Flox-CUDA Environments
+
+You can [layer Flox environments](https://flox.dev/blog/layering-and-composing-flox-environments/) on top of each other, so that each environment inherits the capabilities of those below it, while contributing its own.
+
+How does this work? Imagine that you’re collaborating on a GPU-accelerated C++ project. You’ve created a base Flox-CUDA environment with **`cuda_nvcc`**, **`cuda_cudart`**, and a few other packages. This is enough to build and run a simple kernel. But what happens when testing in CI surfaces a performance regression that only shows up with distributed workloads? This isn’t something your CUDA base environment was built for, and low-level debugging isn’t part of your day-to-day dev workflow. This is a perfect use case for layering! Just as you created a base Flox-CUDA environment with core dev tools, you (or your platform team) can also define a Flox environment for CUDA debugging tools. If or when you need to use these tools, you can pull this environment from FloxHub and dynamically layer it on top of your base environment.
+
+The nuts-and-bolts of layering environments is simple. First activate the base Flox-CUDA environment you use as part of your day-to-day workflow. Then, inside your project repo, run the following command:
+
+```
+flox activate -r floxrox/cuda-debugging
+```
+
+This command runs a temporary session of a FloxHub environment called **`cuda-debugging`**. It uses a Flox feature called [remote activation](https://flox.dev/docs/tutorials/sharing-environments/?h=remote+activation#directly-activating-a-remote-environment). FloxHub environments are cached locally after the first activation. The activation session is temporary—when you type **`exit`**, the session ends—but the cached environment remains for future use. To update to the latest version, run `flox pull -r floxrox/cuda-debugging`.
+
+The **`cuda-debugging`** environment is defined like any other Flox environment:
+
+```
+[install]
+cuda_sanitizer_api.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_sanitizer_api"
+cuda_sanitizer_api.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_gdb.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_gdb"
+cuda_gdb.systems = ["aarch64-linux", "x86_64-linux"]
+nsight_compute.pkg-path = "flox-cuda/cudaPackages_12_8.nsight_compute"
+nsight_compute.systems = ["aarch64-linux", "x86_64-linux"]
+nsight_compute.priority = 2
+nsight_systems.pkg-path = "flox-cuda/cudaPackages_12_8.nsight_systems"
+nsight_systems.systems = ["x86_64-linux"]
+cuda_cupti.pkg-path = "flox-cuda/cudaPackages_12_8.cuda_cupti"
+cuda_cupti.systems = ["aarch64-linux", "x86_64-linux"]
+cuda_cupti.priority = 7
+gdb.pkg-path = "gdb"            # included for host cpu debugging
+```
+
+When you layer environments, your prompt changes to reflect the hierarchy of layers:
+
+```
+flox [floxrox/cuda-debugging (remote) floxrox/cuda-base (remote)] $
+```
+
+In the example above, the remote **`cuda-debugging`** environment is layered atop the remote **`cuda-base`** environment. The contents of both environments are available in the layered stack. Here’s test output from **`nvcc`**, which lives in the **`cuda-base`** environment:
+
+```
+$ nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+```
+
+And here's **`cuda-gdb`**, which lives in **`cuda-debugging`**:
+
+```
+$ cuda-gdb
+NVIDIA (R) cuda-gdb 13.0
+Portions Copyright (C) 2007-2025 NVIDIA Corporation
+Based on GNU gdb 14.2
+Copyright (C) 2023 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This CUDA-GDB was configured as "x86_64-pc-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://forums.developer.nvidia.com/c/developer-tools/cuda-developer-tools/cuda-gdb>.
+Find the CUDA-GDB manual and other documentation resources online at:
+    <https://docs.nvidia.com/cuda/cuda-gdb/index.html>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word".
+(cuda-gdb)
+```
+
+
+### 2.2. Stacking Modular, Layered Flox-CUDA Environments
+
+Similarly, you can create full-featured CUDA stacks by layering fit-for-purpose Flox-CUDA environments one on top of another. Say that you’ve created a fit-for-purpose Flox environment for CUDA math libraries. Starting with your CUDA base environment, you could layer your CUDA math environment on top, either by design or on an ad hoc basis—just like you did with the **`cuda-debugging` environment above.
+
+```
+[install]
+libcublas.pkg-path = "flox-cuda/cudaPackages.libcublas"
+libcublas.version = "12.8.4.1"
+libcublas.systems = ["aarch64-linux", "x86_64-linux"]
+libcufft.pkg-path = "flox-cuda/cudaPackages_12_8.libcufft"
+libcufft.systems = ["aarch64-linux", "x86_64-linux"]
+libcurand.pkg-path = "flox-cuda/cudaPackages_12_8.libcurand"
+libcurand.systems = ["aarch64-linux", "x86_64-linux"]
+libcusolver.pkg-path = "flox-cuda/cudaPackages.libcusolver"
+libcusolver.systems = ["aarch64-linux", "x86_64-linux"]
+cutensor.pkg-path = "flox-cuda/cudaPackages.cutensor"
+cutensor.systems = ["aarch64-linux", "x86_64-linux"]
+libcusparse.pkg-path = "flox-cuda/cudaPackages_12_8.libcusparse"
+libcusparse.systems = ["aarch64-linux", "x86_64-linux"]
+nccl.pkg-path = "flox-cuda/cudaPackages.nccl"
+nccl.systems = ["aarch64-linux", "x86_64-linux"]
+```
+
+You can extend the logic of layering to the language- or toolchain-specific dependencies you use as part of CUDA dev. For example, you could layer a Flox environment for TensorFlow on top of your CUDA dev and CUDA math environments. Your TensorFlow dev environment might define the following essential packages:
+
+```
+[install]
+tensorflow.pkg-path = "flox-cuda/python3Packages.tensorflow"
+tensorflow.version = "python3.12-tensorflow-gpu-2.19.0"
+tensorflow.systems = ["x86_64-linux"]
+transformers.pkg-path = "flox-cuda/python3Packages.transformers"
+transformers.systems = ["x86_64-linux"]
+transformers.pkg-group = "python-dev"
+numpy.pkg-path = "flox-cuda/python3Packages.numpy"
+numpy.systems = ["aarch64-linux", "x86_64-linux"]
+scipy.pkg-path = "flox-cuda/python3Packages.scipy"
+scipy.systems = ["aarch64-linux", "x86_64-linux"]
+python312Full.pkg-path = "python312Full"
+pip.pkg-path = "python312Packages.pip"
+uv.pkg-path = "python312Packages.uv"
+setuptools.pkg-path = "python312Packages.setuptools"
+wheel.pkg-path = "python312Packages.wheel"
+pandas.pkg-path = "python312Packages.pandas"
+```
+
+When you layer Flox environments, you don’t need to worry about package groups or priority values. The logic of layering takes care of this for you: if conflicts between binaries, libraries, filenames, or env vars _do_ occur, the packages belonging to the top-most layer of the stack always win. The downside to this is that unless you _intentionally_ design Flox environments with layering in mind, you might get unpredictable results at runtime.
+
+If you need guaranteed, reproducible behavior at runtime, composition is the better choice.
+
+
+
+### 2.3. Composing Modular Flox-CUDA Environments
+
+Layering Flox-CUDA environments can lead to unpredictable results because the order in which environments get activated determines which libraries and environment variables take precedence, so conflicts or overrides only show up when you actually activate and use the layered stack.
+
+Alternatively, you can **[compose](https://flox.dev/docs/concepts/composition/?h=compose)** multiple Flox environments to design full-featured development or runtime stacks. Composition surfaces conflicts at creation time, so it’s useful when you want a predictable, reproducible set of CUDA libraries and need a guarantee they’ll coexist. 
+
+Suppose you want to create a composed Python stack for machine learning (ML). You might need:
+
+-  Your CUDA base environment with **`nvcc`**, **`cudart`**, **`cccl`**, and other packages;
+-  Your CUDA math and compute environment with **`cudnn_9_11`**, **`libcusolver`**, **`libcublas`**, etc.;
+-  A PyTorch environment with **`torch`**, **`torchvision`**, **`torchaudio`**, **`pytorch-lightning`**, etc.;
+-  A base Python environment, with a Python version, **`pip`**, **`setuptools`**, **`wheel`**, **`uv`**, etc.;
+-  A base environment with C/C++ compilers and related dependencies;
+-  An optional environment with NLP/Transformers packages.
+
+You can reuse existing Flox environments by defining them in the **`[include]`** section in the composing environment’s manifest. The composing environment can be either a completely new Flox environment or one of the environments in the bullet points above. For maximal modularity, consider creating a dedicated composing environment. The composing environment’s manifest might look like:
+
+```
+version 1
+
+[include]
+environments = [
+     { remote = "[floxrox/cuda-base](https://hub.flox.dev/floxrox/cuda-base)" },
+     { remote = "[floxrox/cuda-math](https://hub.flox.dev/floxrox/cuda-math)" },
+     { remote = "[floxrox/nlp-cuda](https://hub.flox.dev/floxrox/nlp-cuda)" },
+     { remote = "[floxrox/python-cuda-ml](https://hub.flox.dev/floxrox/python-cuda-ml)" },
+     { remote = "[floxrox/c-and-cxx-deps](https://hub.flox.dev/floxrox/c-and-cxx-deps)" },
+     { remote = "[floxrox/torch-cuda-ml](https://hub.flox.dev/floxrox/torch-cuda-ml/manifest)" }
+ ]
+```
+
+That’s it. The composing environment’s manifest defines six included manifests. You can click on the hyperlinks above to see which packages are included with each environment. By splitting a CUDA dev stack into modular environments (**`cuda-base`**, **`cuda-math`**, **`python-cuda-ml`**, etc.), you can:
+
+-  Simplify maintenance and upgrades. Each environment can be used on its own, so you can update or replace just the CUDA base, CUDA math libs, C/C++ dependencies, or PyTorch without rebuilding.
+
+-  Reuse many of the same **`[include]`**-ed manifests across several different ML projects instead of duplicating dependencies. For example, you could reuse **`cuda-base`**, **`cuda-math`**, **`python-cuda-ml`**, and **`c-and-cxx-deps`** by composing them with a **`cuda-tensorflow`** environment.
+
+-  Equip teams to maintain their own pieces while still working together in a shared, managed stack. For instance, the platform team manages **`cuda-base`** and **`cuda-math`**, along with (maybe) **`c-and-cxx-deps`**, the AI or ML engineering team manages **`torch-cuda-ml`**, **`python-cuda-ml`**, and **`nlp-cuda`**. 
+
+Composing Flox environments makes it fairly straightforward to create modular, cross-platform stacks. The next section walks through what these are and how they work.
+
+
+
+### 2.4. Composing Cross-Platform GPU-Accelerated Stacks
+
+Using the same tools, it’s simple to create [Flox environments that are portable across platforms and architectures](https://flox.dev/blog/hassle-free-cross-platform-dev-with-flox/). Take the **`torch-cuda-ml`** environment described above (see **Composing Modular, Fit-for-Purpose CUDA Environments**):
+
+```
+[install]
+pytorch-lightning.pkg-path = "flox-cuda/python3Packages.pytorch-lightning"
+pytorch-lightning.pkg-group = "torch-extras"
+pytorch-lightning.systems = ["x86_64-linux"]
+torch.pkg-path = "flox-cuda/python3Packages.torch"
+torch.systems = ["x86_64-linux", "aarch64-linux"]
+torch.priority = 1
+numpy.pkg-path = "flox-cuda/python3Packages.numpy"
+numpy.pkg-group = "python-cuda"
+numpy.systems = ["aarch64-linux", "x86_64-linux"]
+scipy.pkg-path = "flox-cuda/python3Packages.scipy"
+scipy.systems = ["aarch64-linux", "x86_64-linux"]
+scipy.pkg-group = "python-cuda"
+```
+
+The function of the **`<package_name>.systems`** keys is to constrain packages so they’re available _only_ for specific platform and hardware combinations. Flox environments are _cross-platform by default_, so packages that aren’t available for both Linux and macOS (on x86-64 and ARM) _must_ be constrained to their appropriate platform(s) and architecture(s). In the manifest above, each package is available _only_ for x86-64 and ARM Linux. This is because CUDA is unsupported on current macOS versions and hardware.
+
+System constraints can be useful when you need to define multiple, platform-specific versions of a package in a single Flox environment. For example, to make the **`torch-cuda-ml`** environment cross-platform, you could:
+
+-  Install CUDA-accelerated PyTorch on Linux using the **`flox-cuda/python3Packages.torch`** package;
+-  Install CPU-only or Metal/MPS PyTorch on macOS using the **`python313Packages.pytorch`** package.
+
+The changed manifest looks like this:
+
+```
+[install]
+## cuda pytorch dependencies
+cuda-pytorch.pkg-path = "flox-cuda/python3Packages.torch"
+cuda-pytorch.pkg-group = "python-cuda"
+cuda-pytorch.systems = ["x86_64-linux"]
+cuda-pytorch-lightning.pkg-path = "flox-cuda/python3Packages.pytorch-lightning"
+cuda-pytorch-lightning.pkg-group = "torch-extras"
+cuda-pytorch-lightning.systems = ["x86_64-linux"]
+cuda-numpy.pkg-path = "flox-cuda/python3Packages.numpy"
+cuda-numpy.pkg-group = "python-cuda"
+cuda-numpy.systems = ["aarch64-linux", "x86_64-linux"]
+cuda-scipy.pkg-path = "flox-cuda/python3Packages.scipy"
+cuda-scipy.systems = ["aarch64-linux", "x86_64-linux"]
+cuda-scipy.pkg-group = "python-cuda"
+
+## non-cuda pytorch dependencies
+pytorch.pkg-path = "python313Packages.pytorch"
+pytorch.priority = 6
+pytorch.systems = ["x86_64-darwin", "aarch64-darwin", "aarch64-linux"]
+pytorch-lightning.pkg-path = "python313Packages.pytorch-lightning"
+pytorch-lightning.priority = 6
+pytorch-lightning.systems = ["x86_64-darwin", "aarch64-darwin", "aarch64-linux"]
+numpy.pkg-path = "python313Packages.numpy"
+numpy.priority = 6
+numpy.systems = ["x86_64-darwin", "aarch64-darwin", "aarch64-linux"]
+scipy.pkg-path = "python313Packages.scipy"
+scipy.priority = 6
+scipy.systems = ["x86_64-darwin", "aarch64-darwin", "aarch64-linux"]
+```
+
+The result is a single, declarative Flox PyTorch environment that _optimizes for the system it’s running on_.
+
+On Linux, Flox’s resolver pulls in CUDA-enabled PyTorch (plus required CUDA packages like **`cuda_nvcc`**, **`cuda_numpy`**, **`cuda_scipy`**, and others). On macOS, the same environment definition instead resolves to CPU-only or Metal/MPS PyTorch. By constraining packages with Flox’s **`[systems]`** field, you can create a single manifest that’s portable across platforms—without insoluble dependency conflicts.
+
+The next section walks through how you can add the non-CUDA tools—such as CMake, GCC/Clang, etc.—that the CUDA ecosystem as a whole relies on.
+
+
+
+## 3. Beyond CUDA: Toolchain Dependencies and Much, Much More
+
+Building with the CUDA Toolkit and other NVIDIA CUDA dependencies, or using frameworks like TensorFlow and PyTorch with CUDA, usually requires C and C++ headers, compilers, and libraries.
+
+For example, Section **2.3**, above, referred to a Flox environment for [C/C++ dependencies](https://hub.flox.dev/floxrox/c-and-cxx-deps). The reason for this is that CUDA is an extension of C and C++, which means CUDA code _must_ be compiled and linked with C/C++ toolchains. Dependencies like GCC and CMake provide the compilers and build systems that CUDA applications and frameworks (like PyTorch and TensorFlow) need to build and run correctly.
+
+You can get all of these dependencies via the Flox Catalog, which contains more than 180,000 packages, plus half a decade of package history. Here again, it’s simple to define this environment so it’s both modular and portable across Linux and macOS—just by defining platform-specific packages where necessary.
+
+A cross-platform manifest for C/C++ dependencies might include these packages:
+
+```
+[install]
+## linux-specific compilers + tools
+gcc.pkg-path = "gcc"
+gcc.pkg-group = "linux-build-deps"
+gcc.priority = 1
+gcc.systems = ["x86_64-linux", "aarch64-linux"]
+gcc-unwrapped.pkg-path = "gcc-unwrapped"                # gives us libstdc++
+gcc-unwrapped.pkg-group = "linux-build-deps"
+gcc-unwrapped.systems = ["x86_64-linux", "aarch64-linux"]
+
+## darwin-specific compilers + tools
+clang.pkg-path = "clang"
+clang.pkg-group = "darwin-build-deps"
+clang.systems = ["x86_64-darwin", "aarch64-darwin"]
+apple-sdk_15.pkg-path = "apple-sdk_15"
+apple-sdk_15.systems = ["aarch64-darwin", "x86_64-darwin"]
+IOKit.pkg-path = "darwin.apple_sdk.frameworks.IOKit"
+IOKit.systems = ["x86_64-darwin", "aarch64-darwin"]
+CoreFoundation.pkg-path = "darwin.apple_sdk.frameworks.CoreFoundation"
+CoreFoundation.priority = 2
+CoreFoundation.systems = ["x86_64-darwin", "aarch64-darwin"]
+
+## cuda-specific dependencies
+backendStdenv.pkg-path = "flox-cuda/cudaPackages.backendStdenv"
+backendStdenv.pkg-group = "linux-build-deps"
+backendStdenv.systems = ["x86_64-linux", "aarch64-linux"]
+
+## cross-platform dependencies
+binutils.pkg-path = "binutils"
+binutils.pkg-group = "xplatform-build-deps"
+coreutils.pkg-path = "coreutils"
+coreutils.pkg-group = "xplatform-build-deps"
+cmake.pkg-path = "cmake"
+cmake.pkg-group = "xplatform-build-deps"
+gnumake.pkg-path = "gnumake"
+gnumake.pkg-group = "xplatform-build-deps"
+gnused.pkg-path = "gnused"
+gnused.pkg-group = "xplatform-build-deps"
+gawk.pkg-path = "gawk"
+gawk.pkg-group = "xplatform-build-deps"
+gdb.pkg-path = "gdb"
+gdb.pkg-group = "xplatform-build-deps"
+
+## pkgconfig is difficult so it gets its own package group
+pkgconfig.pkg-path = "pkgconfig"
+pkgconfig.pkg-group = "packaging-deps"
+```
+
+**Note**: One quirk of Nixpkgs is that we need to install both **`gcc`** _and_ **`gcc-unwrapped`** on Linux, because the latter gives us **`libstdc++`**. The two packages conflict with one another, so we assign **gcc-unwrapped** a custom priority value. 
+
+
+
+### 3.1. How Flox Stacks Up
+
+By combining general-purpose and fit-for-purpose Flox environments, you can create rich, full-featured stacks. **Part 3** of this guide walks through a practical example of this in action.
+
+The composed manifest shown below includes two CUDA-specific and four cross-platform environments. It composes a cross-platform PyTorch environment that automatically optimizes for its host: CUDA-enabled systems run with GPU acceleration, Apple silicon systems use Metal, and non-GPU systems use CPU.
+
+```
+version = 1
+
+[include]
+environments = [
+     { remote = "[floxrox/cuda-base](https://hub.flox.dev/floxrox/cuda-base)" },
+     { remote = "[floxrox/cuda-math](https://hub.flox.dev/floxrox/cuda-math" },
+     { remote = "[floxrox/xplatform-python-nlp](https://hub.flox.dev/floxrox/xplatform-python-nlp)" },
+     { remote = "[floxrox/xplatform-c-and-cxx-deps](https://hub.flox.dev/floxrox/xplatform-c-and-cxx-deps" },
+     { remote = "[floxrox/xplatform-python-ml](https://hub.flox.dev/floxrox/xplatform-python-ml)" },
+     { remote = "[floxrox/xplatform-pytorch-gpu](https://hub.flox.dev/floxrox/xplatform-pytorch-gpu)" }
+ ]
+```
+
+Running **`flox list -r floxrox/xplatform-ml`** shows the packages defined in this environment:
+
+```
+$ flox list -r floxrox/xplatform-ml-gpu
+cuda_cccl: cudaPackages.cuda_cccl (12.8.90)
+cuda_cudart: cudaPackages.cuda_cudart (12.8.90)
+cuda_nvcc: cudaPackages.cuda_nvcc (12.8.93)
+cudnn_9_11: cudaPackages_12_8.cudnn_9_11 (9.11.0.98)
+cutensor: cudaPackages.cutensor (libcutensor-2.1.0.9)
+libcublas: cudaPackages.libcublas (12.8.4.1)
+libcufft: cudaPackages_12_8.libcufft (11.3.3.83)
+libcurand: cudaPackages_12_8.libcurand (10.3.9.90)
+libcusolver: cudaPackages.libcusolver (11.7.3.90)
+libcusparse: cudaPackages_12_8.libcusparse (12.5.8.93)
+backendStdenv: cudaPackages.backendStdenv (stdenv-linux)
+binutils: binutils (2.44)
+cmake: cmake (3.31.7)
+coreutils: coreutils (9.7)
+gawk: gawk (5.3.2)
+gcc: gcc (14.3.0)
+gcc-unwrapped: gcc-unwrapped (14.3.0)
+gdb: gdb (16.3)
+gnumake: gnumake (4.4.1)
+gnused: gnused (4.9)
+pkgconfig: pkgconfig (0.29.2)
+black: python313Packages.black (25.1.0)
+build: python313Packages.build (1.3.0)
+ipython: python313Packages.ipython (9.4.0)
+mypy: python313Packages.mypy (1.15.0)
+packaging: python313Packages.packaging (25.0)
+pip: python313Packages.pip (25.0.1)
+pytest: python313Packages.pytest (8.4.1)
+python313Full: python313Full (python3-3.13.6)
+ruff: python313Packages.ruff (0.12.8)
+setuptools: python313Packages.setuptools (80.9.0)
+uv: python313Packages.uv (0.8.6)
+virtualenv: python313Packages.virtualenv (20.33.1)
+wheel: python313Packages.wheel (0.46.1)
+cuda-numpy: python3Packages.numpy (python3.13-numpy-2.3.2)
+cuda-pytorch: python3Packages.torch (python3.13-torch-2.8.0)
+cuda-scipy: python3Packages.scipy (python3.13-scipy-1.16.1)
+datasets: python313Packages.datasets (4.0.0)
+matplotlib: python313Packages.matplotlib (3.10.5)
+pandas: python313Packages.pandas (2.3.1)
+seaborn: python313Packages.seaborn (0.13.2)
+sentencepiece: python313Packages.sentencepiece (0.2.1)
+tokenizers: python313Packages.tokenizers (0.22.0)
+transformers: python3Packages.transformers (4.56.1)
+cuda-pytorch-lightning: python3Packages.pytorch-lightning (2.5.5)
+```
+
+_**Note**: You can pull [this environment](https://hub.flox.dev/floxrox/xplatform-ml) and try it for yourself: just run**`flox pull floxrox/xplatform-ml`**_
+
+By composing CUDA-specific and cross-platform environments, you get a single manifest that’s portable, modular, and adapted to whatever hardware it lands on. Whether you’re building on a CUDA-enabled Linux workstation, an Apple Silicon laptop, or running tests on a CPU-only CI runner, the same Flox manifest just works—anytime, anywhere. 
+
+
+## Get Started Building Reproducible CUDA Stacks with Flox
+
+Flox makes it simple to start working with CUDA-accelerated packages in your projects. It gives you powerful, intuitive tools for managing conflicts between CUDA dependencies and enables you to work with both current and historical versions of CUDA packages on the same system, as well as create cross-platform environments that take advantage of GPU acceleration on both CUDA- and Apple Metal-enabled hardware.
+
+With Flox, you define a single declarative environment definition that travels across your SDLC. This means teams can build and share CUDA environments with other teams, ship them to CI, and deploy them to production. The same environment runs with GPU acceleration across CUDA and Metal hardware.
+
+If you’d like to learn more about Flox and/or take it for a test drive, check out our “[Flox in Five Minutes](https://flox.dev/docs/flox-5-minutes/) guide or [download the latest version of Flox](https://flox.dev/docs/install-flox/install/) for your platform.
+
+
+_Beaucoup thanks to Flox's own Rok Garbas for guidance, feedback, and—in a couple of instances—last-second, late-night-Ljubljana-time pair-debugging sessions. Rok's contributions helped make this walk-through a reality. Prodigious great thanks to Tom Bereknyei for help on this piece ... and so many others._
+
+
+## FAQs about CUDA and Flox
+
+### How can I install specific versions of the NVIDIA CUDA Toolkit using Flox?
+
+You can discover specific versions of the NVIDIA CUDA Toolkit by running the **`flox search`** command with the **`--all`** flag to view the full list of available packages in the catalog. Once you identify the required version (such as the 12.8 release) you can install the corresponding wrapper package directly into your environment using the standard **`flox install`** command. These wrappers provide essential components like the NVCC compiler and core libraries while ensuring the build remains reproducible and isolated from global system paths.
+
+### How does Flox handle dependency conflicts between different CUDA libraries?
+
+Flox resolves conflicts by allowing users to define package groups and assign priority values within the environment manifest. When a symlink collision occurs, for example, the system utilizes the package defined with the lower priority value to determine which file takes precedence in the materialized Flox environment. This feature enables developers to install conflicting versions of dependencies or libraries side-by-side without breaking the environment.
+
+### Can I create a CUDA development environment that works on both Linux and macOS?
+
+With Flox, uou can build a single declarative environment that adapts to different operating systems by applying system constraints within your manifest file. This allows you to configure the environment to load NVIDIA CUDA-accelerated packages when running on Linux hardware while automatically switching to CPU-only or Metal-accelerated alternatives on macOS. This way, you can ensure that your machine learning or development stacks remain portable and optimized for the specific architecture they are running on.
+
+### Do I need to install the full NVIDIA CUDA Toolkit to run my applications?
+
+You do not always need the entire toolkit, as Flox allows you to install only the specific dependencies required for your project (e.g. **`nvcc`**, the CUDA runtime API, or specific CUDA math libraries). The available wrapper packages are designed to provide the essential binaries and libraries needed to compile and run code without the bloat of a full 8+ GB toolkit installation. This capability helps minimize the size of your environment and reduces the potential attack surface of your software supply chain.

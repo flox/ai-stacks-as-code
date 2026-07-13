@@ -1,0 +1,10 @@
+2026-07-07T16:52:03.522602Z  INFO flox_activations::cli::executive: ExecutiveArgs { dot_flox_path: "/home/daedalus/dev/ai-stacks-as-code/envs/ai-notebook/.flox", executive_ctx: "/run/user/1000/activations/95700ada-ai-notebook/rnx4h2xavmva68kplhrzwcmhj4hd06lv-environment-dev.1783443123521/executive_ctx_REPb9l" }
+2026-07-07T16:52:03.530706Z  INFO flox_activations::cli::executive: sending SIGUSR1 to parent 1492419
+2026-07-07T16:52:03.530833Z  INFO flox_activations::cli::executive: starting monitoring loop
+2026-07-07T16:52:03.530842Z  INFO flox_activations::cli::executive::log_gc: still watching, woof woof
+2026-07-07T16:52:07.809956Z  INFO monitoring: flox_core::activations: detaching terminated PID pid=1492419
+2026-07-07T16:52:07.809987Z  INFO monitoring: flox_activations::cli::executive: running cleanup after all PIDs terminated
+2026-07-07T16:52:07.809990Z  INFO monitoring: flox_activations::cli::executive: running cleanup
+2026-07-07T16:52:07.809996Z  INFO monitoring: flox_activations::cli::executive: did not shut down process-compose reason="no socket"
+2026-07-07T16:52:07.810060Z  INFO monitoring: flox_activations::cli::executive: finished cleanup
+2026-07-07T16:52:07.810091Z  INFO flox_activations::cli::executive: executive exiting: Ok(())

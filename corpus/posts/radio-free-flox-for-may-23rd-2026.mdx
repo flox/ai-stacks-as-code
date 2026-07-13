@@ -1,0 +1,242 @@
+---
+title: 'Radio Free Flox for May 23rd, 2026'
+altTitle: 'Radio Free Flox for May 23rd, 2026'
+description: 'This week’s Radio Free Flox dishes on the new packages, environments, AI tools, etc. that land in the Flox Catalog + go live on FloxHub. It also spills tea on what’s going on internally at Flox—including just how much some Flox employees spend on API tokens each month.'
+metaDescription: 'This week’s Radio Free Flox dishes on the new packages, environments, AI tools, etc. that land in the Flox Catalog + go live on FloxHub. It also spills tea on what’s going on internally at Flox—including just how much some Flox employees spend on API tokens each month.'
+isPublished: true
+category: news
+author: Flox Labs
+authorKey: flox-labs
+publishedDate: 23 May 2026
+thumbnail: '/images/blog/dishes-on-the-plains.webp'
+orderBy: 20260523
+---
+
+This week we’re debuting a new feature on the Flox Blog: **Radio Free Flox**. Each week, we’ll descant on the new packages, environments, AI tools, etc. that land in the [Flox Catalog](https://hub.flox.dev/packages) or go live on [FloxHub](https://hub.flox.dev/flox/). We'll also dish on what’s going on internally here at Flox.
+
+Radio Free Flox is proudly uncensored: We intentionally publish _after_ Flox management has signed off for the weekend. (So ... [after 9 PM on Saturdays](https://en.wikipedia.org/wiki/996_working_hour_system).)
+
+This week’s episode covers new **terminal coding agents**; **Claude Code** ecosystem tools; **spec-driven** dev kits; **MCP and browser automation** integrations; servers for running **frontier checkpoint models**, and other goodies. We also spill tea re: the [beaucoup dolares](https://www.reddit.com/r/Earwolf/comments/27j4o7/i_couldnt_get_the_phrase_buco_dolores_out_of_my/) that some Flox employees spend on API tokens each month, and we explore Flox [master builder](https://en.wikipedia.org/wiki/The_Master_Builder) [Rok Garbas](https://www.linkedin.com/in/garbas/)’ passion for procuring swine. Note: “swine” is _not_ an agentic framework. (Maybe it should be?) It’s ... exactly what it sounds like.
+
+This. Is. Radio Free Flox. 
+
+
+#### CLI coding harnesses
+
+This week the Flox Catalog added packages for [Amp](https://github.com/ampcode-com), [DeepSeek TUI](https://github.com/Hmbown/DeepSeek-TUI), GitHub Copilot CLI, [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Grok CLI](https://github.com/superagent-ai/grok-cli), [Mistral Vibe](https://github.com/mistralai/mistral-vibe), [goose-cli](https://github.com/aaif-goose/goose), [Qwen Code](https://github.com/QwenLM/qwen-code), and [Forge](https://github.com/tailcallhq/forgecode). Some of these ([Amp](https://hub.flox.dev/packages/flox/amp), [GitHub Copilot CLI](https://hub.flox.dev/packages/flox/copilot-cli), [Gemini CLI](https://hub.flox.dev/packages/flox/gemini-cli)) are already indexed by the Catalog. Others ([Cursor Agent](https://hub.flox.dev/packages/flox/cursor-agent), [DeepSeek TUI](https://hub.flox.dev/packages/flox/deepseek-tui), [Mistral Vibe](https://hub.flox.dev/packages/flox/mistral-vibe)) are new. In every case, Flox now tracks upstream releases and publishes updated packages within hours.
+
+Most of these tools are so well-known as not to need an introduction. For the others: [this guide](https://flox.dev/blog/run-frontier-models-anywhere-with-deepseek-tui/) shows how to run the **`flox/deepseek-tui`** package. **`flox/mistral-vibe`** is another new package. It’s a credible Claude Code / Codex CLI / Gemini CLI competitor, but with a hackable (in a good way) Python implementation, plus an emphasis on configurability vis-à-vis agents, MCP, ACP, and skills. Also worth checking out.
+
+**Note**: Packages referred to as **`flox/<package_name>`** in this article are built, packaged, and maintained by Flox. You can install them imperatively by running:
+
+```
+flox install flox/<package_name1> flox/<package_name2> flox/<package_name3> # and so on
+```
+
+Or declaratively add them to your manifest using the **[flox edit](https://flox.dev/docs/man/flox-edit#flox-edit)** command.
+
+
+#### Claude Code-adjacent packages
+
+The Flox Catalog added [ccstatusline](https://github.com/sirmalloc/ccstatusline), [ccusage](https://github.com/ryoppippi/ccusage), [claude-code-router](https://github.com/musistudio/claude-code-router), [claudebox](https://github.com/RchGrav/claudebox), and Anthropic’s experimental [sandbox-runtime](https://github.com/anthropic-experimental/sandbox-runtime).
+
+New Claude Code plugins and skill packs include:
+
+-  [flox/claude-code-plugin-gstack](https://github.com/garrytan/gstack), based on [Garry Tan’s gstack](https://www.reddit.com/r/machinelearningnews/comments/1rteeig/garry_tan_releases_gstack_an_opensource_claude/): structured AI personae, skills, and workflows for Claude Code / OpenAI Codex.
+-  [flox/claude-code-plugin-caveman](https://github.com/juliusbrussee/caveman), A Claude Code/Codex skill that constrains AI coding agents to reply in monosyllabic “caveman” style to save tokens.
+-  [flox/claude-code-plugin-remotion](https://github.com/DojoCodingLabs/remotion-superpowers), a Claude Code plugin that turns [Remotion](https://github.com/remotion-dev/remotion) into an AI-assisted video production workflow with tools for generating voiceovers, music, captions, stock footage, etc.
+-  [flox/claude-code-plugin-claude-blog](https://github.com/AgriciDaniel/claude-blog), A Claude Code skill suite for AI-assisted blog production that automates research, writing, SEO optimization, and editing.
+-  [flox/claude-code-plugin-claude-ads](https://github.com/AgriciDaniel/claude-ads), a Claude Code skill that automates paid advertising audits across platforms like Google, Meta, TikTok, LinkedIn, and so on.
+-  [flox/claude-code-plugin-claude-obsidian](https://github.com/deivid11/obsidian-claude-code-plugin), an Obsidian plugin that brings Claude Code/OpenCode into your Obsidian notes.
+-  [flox/skills-shipshit](https://github.com/shipshitdev/skills/), an exquisitely named library of 157 AI-agent skills + workflow commands, built for Claude Code and OpenAI Codex.
+
+Here’s one of our contributor's ([Steve Swoyer’s](https://www.linkedin.com/in/stephenswoyer/)) updated Claude Code [manifest](https://flox.dev/docs/man/manifest.toml) with [flox/ccstatusline](https://hub.flox.dev/packages/flox/ccstatusline), [flox/ccusage](https://hub.flox.dev/packages/flox/ccusage), [flox/sandbox-runtime](https://hub.flox.dev/packages/flox/sandbox-runtime), and (why not) [flox/claude-code-plugin-caveman](https://hub.flox.dev/packages/flox/claude-code-plugin-caveman) added to it:
+
+```toml
+[install]
+## core cc package
+claude-code.pkg-path = "flox/claude-code"
+claude-code.pkg-group = "claude-code"
+
+## anthropic srt: experimental sandbox env for cc
+sandbox-runtime.pkg-path = "flox/sandbox-runtime"
+sandbox-runtime.pkg-group = "sandbox-runtime"
+
+## caveman plugin: make cc talk like groot. save token? 
+claude-code-plugin-caveman.pkg-path = "flox/claude-code-plugin-caveman"
+claude-code-plugin-caveman.pkg-group = "plugins"
+
+## ccstatusline: display cc model info, git branch, token usage, other metrics
+ccstatusline.pkg-path = "flox/ccstatusline"
+ccstatusline.pkg-group = "adjacent"
+## query cc token usage + cost
+ccusage.pkg-path = "flox/ccusage"
+ccusage.pkg-group = "adjacent"
+
+## useful deps
+openssl.pkg-path = "openssl"
+openssl.pkg-group = "openssl"
+openssl.outputs = "all"
+
+## flox mcp server
+flox-mcp-server.pkg-path = "flox/flox-mcp-server"
+flox-mcp-server.systems = ["aarch64-darwin", "x86_64-linux"]
+flox-mcp-server.pkg-group = "mcp"
+flox-mcp-server.outputs = "all"
+```
+
+Steve can **`flox activate -r flox-labs/claude-code`** this environment and get these tools anytime/anywhere. (On his desktop and laptops, he aliases this command and uses a clickable launcher to run it.) If he needs a latest/greatest Claude Code-adjacent tool that just got picked up by the Flox Catalog, he can add it declaratively (by using **`flox edit`**) or install it imperatively:
+
+```bash
+flox install flox/ccstatusline flox/ccusage flox/sandbox-runtime flox/claude-code-plugin-caveman
+✔ 'ccstatusline', 'ccusage', 'sandbox-runtime', 'claude-code-plugin-caveman' installed to environment 'claude-code'
+```
+
+<PostLightbox
+	thumbnailSrc="/images/blog/claude-code-status-line.png"
+	alt="Cap of Claude Code Status Line config screen"
+/>
+
+Note: **`ccusage`** is machine-specific: If you work on several different machines, you’ll get different results for each machine. It also seems to calculate based on projected API usage. The code block below shows how much Steve has abused the Claude Code API on just his main dev box:
+
+```markdown
+┌────────────────────────────────────────────┐
+│                                            │
+│  Coding (Agent) CLI Usage Report - Daily   │
+│              Detected: Claude              │
+│                                            │
+╰────────────────────────────────────────────╯
+
+┌────────────┬───────────────┬─────────────┬────────────┬─────────────┬─────────────┐         
+│ Date       │ Agent         │ Models      │      Input │      Output │  Cost (USD) │    
+│ Total      │               │             │  1,390,747 │  11,368,012 │    $6331.69 │
+└────────────┴───────────────┴─────────────┴────────────┴─────────────┴─────────────┘
+```
+
+The _rest_ of Flox Labs—namely, Rok, [Morgan Helton](https://www.linkedin.com/in/mohelton/), and [Brendan Magee](https://www.linkedin.com/in/brendan-eamon-magee/)—refused under threat of termination to make public their actual monthly API costs.
+
+So ... maybe a $200-a-month Claude Max plan is close to a bargain? But what happens when Anthropic, OpenAI, Google, et al start charging for what this stuff actually costs them?
+
+
+#### Spec-driven / workflow-oriented agentic development
+
+The Flox Catalog added several new packages for spec- and workflow-driven development. Stuff like [flox/spec-kit](https://github.com/github/spec-kit), [flox/openspec](https://github.com/Fission-AI/OpenSpec), and [flox/workmux](https://github.com/raine/workmux) aren’t new to the Catalog, but they’ll now update automatically with new releases.
+
+The [flox/worktrunk](https://github.com/max-sixty/worktrunk) package _is_ new: similar to **`workmux`**, it’s a CLI tool that aims to make Git worktrees easier to use, especially when herding multiple agents in parallel. Also like **`workmux`**, **`worktrunk`** is written in Rust.
+
+Flox customers frequently ask us about software for running Git worktrees. Both **`workmux`** and **`worktrunk`** are two credible options.
+
+
+#### Agentic cat-herding
+
+[CodeRabbit CLI](https://github.com/coderabbitai), isn’t new—the Flox Catalog has shipped **`flox/coderabbit-cli`** for months now—but as of this week (thanks to the [Rhadamanthysian](https://en.wikipedia.org/wiki/The_Magic_Mountain#:~:text=Rhadamanthys) Rok Garbas), the version you get from the Flox Catalog will basically always be up-to-date.
+
+The [flox/mcporter](https://github.com/openclaw/mcporter) package is, however, new to the Catalog. It’s a TypeScript runtime and CLI that discovers, wraps, and exposes MCP server tools as callable local CLI commands or typed APIs. Yep: it lets you call MCP servers from bash, Makefiles, scripts, or agents. Useful.
+
+[flox/agent-browser](https://github.com/vercel-labs/agent-browser), from the folks at Vercel, gives agents a browser-control layer with screenshots, DOM and accessibility context, forms, storage, isolated sessions, and other conveniences. It aims to make browser automation more reliable for coding agents as they build and test login flows, scrape pages, capture screenshots, or script web-app interactions.
+
+
+#### AI model-servers
+
+Also “newish” in the Flox Catalog are model-serving platforms like [flox/lmstudio](https://github.com/lmstudio-ai) and [flox/ollama](https://github.com/ollama/ollama). We’ve been shipping **`flox/lmstudio`** for a couple of months, but going forward the Flox Catalog should always pick up the latest upstream version within hours of release. You can read about how to run and use it in [this walk-through article](https://flox.dev/blog/run-the-latest-frontier-coding-models-locally-with-Flox/).
+
+Ollama has been available in the Catalog almost since its inception; at some point, however, the upstream **`nixpkgs`** recipe Flox was using to build the Nvidia CUDA-accelerated **`flox-cuda/ollama`** package changed, breaking compatibility on non-NixOS systems. Flox took this over with a custom [flox/ollama-cuda](https://github.com/barstoolbluz/build-ollama-cuda) package a few months ago, but keeping this current on x86 and ARM was being done manually by one person. (Steve) Now both the **`ollama`** (for non-CUDA platforms) and **`flox/ollama-cuda`** packages update _almost_ as soon as new releases ship. 
+
+[oMLX](https://github.com/jundot/omlx) is a promising newish model server for macOS. It uses Apple’s open-source [MLX](https://opensource.apple.com/projects/mlx/) machine-learning array framework for Apple Silicon to run language models faster than just using the Apple Metal/MPS API alone. What’s fascinating about oMLX is that it splits huge models between Apple’s unified memory (the fast memory that’s shared between the Apple M-series CPU and GPU) and high-speed [PCIe 4 or PCIe 5 NVMe](https://en.wikipedia.org/wiki/PCI_Express#History_and_revisions) storage. oMLX keeps the active model's state in RAM but spills older cache data to NVMe, so oversized models are usable on Mac hardware. The [flox/omlx](https://hub.flox.dev/packages/flox/omlx) package bundles both oMLX and the [HuggingFace CLI](https://github.com/huggingface/huggingface_hub), which oMLX uses to download checkpoint models.
+
+
+#### Other neat packages
+
+[flox/fnox](https://github.com/jdx/fnox) is a command-line tool for managing passwords, API keys, and other secrets, including workflows that securely sync secrets via Git or third-party password managers.
+
+[Nvidia SkillSpector](https://github.com/nvidia/skillspector) scans AI-agent skills for risky or malicious patterns before you install them. Think of it as the equivalent of antivirus + static analysis for AI workflow plugins. Our [flox/skillspector](https://hub.flox.dev/packages/flox/skillspector) package delivered same-day support for this one.
+
+[flox/herdr](https://github.com/ogulcancelik/herdr) is a is a terminal workspace manager for coordinating or multiplexing multiple AI coding agents at the same time, with support for split-screen sessions so you can track what each agent is working on. [flox/serena](https://github.com/oraios/serena) is an open-source MCP toolkit that gives AI coding agents an IDE-style view of your codebase, so they can navigate, edit, refactor, and analyze code at the symbol level. 
+
+Finally, [flox/temporal](https://github.com/temporalio/temporal) and [flox/temporal-cli](https://github.com/temporalio/cli) add workflow orchestration; they’re useful when agent systems or developer automations need long-running, retryable, and/or observable workflows.
+
+
+### New Flox Runtime Environments
+
+One set of new Flox Environments centers on Claude Code plugins and agent extensions. Others address developer workflows, local AI model serving, and secrets management.
+
+**Note**: Environments referred to as **`flox/<environment_name>`** are authored and maintained by Flox. You can pull, modify, and make them your own by running:
+
+```bash
+flox pull --copy flox/<environment_name>
+```
+
+Or take them for test drives by running:
+
+```bash
+flox activate [-s] -r flox/<environment_name>
+```
+
+The **`-s`** switch activates any services defined by the environment.
+
+
+#### Flox environments for Claude Code skills
+
+The [flox/agentmemory](https://hub.flox.dev/flox/agentmemory) environment packages persistent memory for Claude Code workflows. Test drive this environment without pulling it by running: **`flox activate -r flox/agentmemory`**.
+
+The [flox/gstack](https://hub.flox.dev/flox/gstack) environment packages Garry Tan’s Claude Code stack, which frames agent work via role-oriented helpers such as product, design, engineering-management, release, docs, and QA workflows. Test drive this environment by running **`flox activate -r flox/gstack`**
+
+The [flox/caveman](https://hub.flox.dev/flox/caveman) environment packages the aforementioned Caveman plugin for Claude Code. It … has to be used (and seen) to really appreciate it. Test drive this environment by running **`flox activate -r flox/caveman`**.
+
+The [flox/remotion](https://hub.flox.dev/flox/remotion) environment packages skills for Claude Code and Remotion. If you use Remotion for video editing and if you’re curious, do **`flox activate -r flox/remotion`** to take it for a test drive.
+
+
+#### Flox environments for dev workflows
+
+Another set of new Flox environments focuses on developer workflows.
+
+The [flox/iloom](https://hub.flox.dev/flox/iloom) environment packages [iloom-cli](https://github.com/iloom-ai/iloom-cli), which is aimed at GitHub-issue-driven dev workflows where work starts from a GitHub issue or engineering ticket and the CLI keeps a structured record of plans, assumptions, and decisions. Do **`flox activate -r flox/iloom`** to take it for a no-money-down test drive.
+
+The [flox/worktrunk](https://hub.flox.dev/flox/worktrunk) environment packages **`worktrunk`** with **`git`**, giving developers a ready workspace for worktree-based agent or parallel-branch workflows.
+
+The [flox/temporal](https://hub.flox.dev/flox/temporal) environment packages both the Temporal server and CLI, which is useful for local development against durable workflows.
+
+
+#### Flox environments for AI model serving
+
+This last category is a little misleading. For example, [flox/basic-memory](https://hub.flox.dev/flox/basic-memory) is a Flox environment that packages [Basic Memory](https://github.com/basicmachines-co/basic-memory), a local-first knowledge system that agents can use as a persistent memory backend. It isn't a model server, per se, but it's incredibly useful when running checkpoint models _on_ a local model server. Sound intriguing? You can test-drive this environment by doing **`flox activate -r flox/basic-memory`**.
+
+As for model serving:
+
+The [flox/lmstudio](https://hub.flox.dev/flox/lmstudio) environment packages LM Studio for local model serving. You can read about LM Studio and model serving on Linux and macOS in [this walk-through](https://flox.dev/blog/run-the-latest-frontier-coding-models-locally-with-Flox/). You can take it for a test drive by doing **`flox activate -s -r flox/lmstudio`**.
+
+The [flox/omlx](https://hub.flox.dev/flox/omlx) environment packages oMLX for local, optimized model serving on macOS. We talked about oMLX above. You can try it out by running **`flox activate -s -r flox/omlx`**.
+
+There’s also a [flox/serena](https://hub.flox.dev/flox/serena) environment that packages [Serena](https://github.com/oraios/serena) as a semantic coding agent/MCP environment, including a built-in Flox-defined service for its MCP server. Try it out by running **`flox activate -s -r flox/serena`**.
+
+[Nous Research’s Hermes Agent](https://github.com/nousresearch/hermes-agent) isn’t new to the Flox Catalog, but it _is_ new to [floxenvs](https://github.com/flox/floxenvs), the proving ground for Flox Labs. The new [flox/hermes](https://hub.flox.dev) environment packages a turn-key version of Hermes. Try it out by running **`flox activate -r flox/hermes`**.
+
+The [Borgesian outlier](https://en.wikipedia.org/wiki/Celestial_Emporium_of_Benevolent_Knowledge) in this heterotopic taxonomy is the [flox/fnox](https://hub.flox.dev/flox/fnox) environment. It isn't a model server, it isn't an AI tool, and it isn't explicitly AI-adjacent, but it _is_ notionally useful if/when your agentic development workflows need credentials for APIs, package registries, cloud services, and so on. If you're copacetic sharing secrets with autonomous quasi-intelligent agents, you (or they) can give it a try by running **`flox activate -r flox/fnox`**.
+
+
+### This Has Been Radio. Free. Flox.
+
+We’re Flox Labs and we’re solely responsible/liable for producing Radio Free Flox. Nominally we’re … 
+
+-  Rok Garbas, Flox engineer
+-  Morgan Helton, Flox engineer
+-  Brendan Magee, Flox engineer, drafted possibly against his will
+-  Steve Swoyer, Flox probationary summer intern, aka “Esteban"
+-  Various and sundry Flox [PTBNL](https://en.wikipedia.org/wiki/Player_to_be_named_later)
+
+...but we’re _really_ anchored by the redoubtable Rok. Every week Rok tracks down software that either isn’t currently indexed by the Flox Catalog _or_ doesn’t get refreshed as frequently as he’d like. When software’s absent from the Catalog, Rok uses Flox and Nix to build, package, and publish it reproducibly in CI. When it isn’t refreshed frequently enough, he sets up CI so new releases publish within hours.
+
+Basically, Rok wants his [Flox Claude Code environment](https://hub.flox.dev/garbas/claude) to pick up the latest current-stable **`claude-code`** package as soon as it drops. In fact, Rok has an ongoing obsession with AI tools. He’s forever hunting down new/different CLI coding harnesses like [DeepSeek TUI](https://github.com/Hmbown/DeepSeek-TUI), agents like [hermes](https://github.com/nousresearch/hermes-agent), and anything/everything that supports them: proxies and routing tools, model servers, spec-driven dev kits, skill packs, agentic code-review tools, etc.
+
+Rok also digs swine! He’s an avid participant in a Hungarian livestock share and is impatiently waiting for two delicious shoats to mature. Out of a sense of delicacy and (wait for it) good breeding, we won’t tell you what Rok plans to do once that happens.
+
+Tune in next week to discover more incriminating facts about the folks who bring you Flox.
+
+_[Cue Radio Free Flox outro music](https://en.wikipedia.org/wiki/Pigs_(Three_Different_Ones))_...
+
+```outro music
+Big man, pig man
+Ha, ha, charade you are
+You well heeled big wheel
+Ha, ha, charade you are...
+```

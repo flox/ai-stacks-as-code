@@ -1,0 +1,218 @@
+---
+title: 'Flox and Containers: A Perfect Pattern for Local Development'
+altTitle: 'Flox and Containers: A Perfect Pattern for Local Development'
+description: 'Learn how to pair Flox with containers for local development: Flox provides the project runtime on the host, while containers run supporting services like PostgreSQL.'
+metaDescription: 'Learn how to pair Flox with containers for local development: Flox provides the project runtime on the host, while containers run supporting services like PostgreSQL.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 26 March 2026
+thumbnail: '/images/blog/container-ship.webp'
+orderBy: 20260326
+---
+
+Flox spans the entire software development lifecycle (SDLC), but most teams adopt it first in local development, either as a solution for fixing chronically broken dev setups or as an alternative to dev containers. They like Flox environments because they run as subshells on their local machines, enabling access to local tools, shell settings, secrets, and data, unless the environment explicitly overrides them.
+
+Customers often pair Flox with containers in local dev, typically in a complementary way designed to minimize hassle and overhead. The following tutorial is inspired by a pattern one customer, Ryan Schlesinger, engineering lead with [detaso](https://detaso.com/), uses with his own team. At detaso, Flox environments provide the project runtime, including the language, libraries, build tools, and CLI teams use to develop and test software, while containers power services such as PostgreSQL, Redis, and others.
+
+This tutorial features a Rails application backed by PostgreSQL. Flox provides the Ruby development runtime on the host, while containers run the database and any other required long-running services.
+
+
+### The best of both worlds
+
+Ryan likes this pattern because he says Flox pairs perfectly with [OrbStack](https://orbstack.dev/), macOS software for running Docker containers and local Kubernetes "clusters." OrbStack is detaso's preferred way to run long-lived local services on macOS because it is fast, dependable, deeply integrated with the Mac, and makes it easy to reset or restore local service state to a known-good point in seconds.
+
+Ryan argues that the Flox-Orbstack pairing gives detaso the best of both worlds:
+
+-  Teams get a Flox-powered project runtime that feels native;
+-  Teams run the same kinds of supporting services locally in OrbStack that they use in CI and production;
+-  Team leads like Schlesinger can version and manage both Flox runtimes and OCI images.
+
+Even though Ryan and his team are partial to OrbStack, you can achieve comparable results with virtually _any_ container runtime. The point is an **equitable division of labor**: teams build inside versioned Flox dev environments; supporting services (like databases) run inside containers. Teams no longer need mount their projects into containers, defining mount points, configuring networking, injecting env vars and secrets, etc. The container isolates precisely the services they _don't_ need to penetrate.
+
+
+### Prerequisites and setup
+
+What you need to get started: [The Flox CLI](https://flox.dev/download/).
+
+If you're playing along with an AI agent: Check out [the Flox MCP server](https://hub.flox.dev/packages/flox/flox-mcp-server).
+
+**Note**: This tutorial assumes you use OrbStack, but Docker Desktop, Colima, and other container runtimes will work just fine. If you don't have OrbStack installed, fear not: it's defined in the Flox manifest below. You can run **`flox activate -s`** to take it for a test drive as part of this tutorial.
+
+First, run **`git clone https://github.com/floxrox/orbstack-flox-poc`**. Next, change into **`./orbstack-flox-poc`** and run **`flox edit`**. This opens the Flox manifest in your default editor.
+
+Let's first look at the **`[install]`** section:
+
+```toml
+[install]
+# Language runtime
+ruby.pkg-path = "ruby"                   # Ruby 3.4.x — the app runtime
+
+# Database client (for pg gem compilation and CLI tools like psql)
+postgresql.pkg-path = "postgresql"       # PostgreSQL client libs + psql CLI
+
+# Native library dependencies (required for gem compilation)
+libyaml.pkg-path = "libyaml"             # Required by psych gem (YAML parsing)
+
+# Build toolchain (for compiling native gem extensions)
+# On macOS, gcc from nixpkgs is a broken clang wrapper that can't find the SDK.
+# Use clang on darwin, gcc on linux.
+clang.pkg-path = "clang"                 # C compiler for macOS native extensions
+clang.systems = ["aarch64-darwin", "x86_64-darwin"]
+gcc.pkg-path = "gcc"                     # C compiler for Linux native extensions
+gcc.systems = ["aarch64-linux", "x86_64-linux"]
+gnumake.pkg-path = "gnumake"             # Make for native extension builds
+pkg-config.pkg-path = "pkg-config"       # Finds library paths for compilation
+
+# Developer utilities
+gum.pkg-path = "gum"                     # Styled terminal output; you'd skip this for minimal envs
+
+# Docker/container runtime (macOS only)
+orbstack.pkg-path = "orbstack"           # Fast Docker & Linux VM runtime
+orbstack.systems = ["aarch64-darwin", "x86_64-darwin"]  # darwin-only OS constraint
+
+# Cross-platform compatibility
+coreutils.pkg-path = "coreutils"         # GNU coreutils (consistent across OS)
+gnused.pkg-path = "gnused"               # GNU sed (macOS ships BSD sed)
+```
+
+Two dozen lines of TOML define the environment's entire dependency surface. When you share this environment, either by co-locating it with your project code in a Git repository or by **`flox push`**-ing it to [FloxHub](https://flox.dev/docs/concepts/floxhub/), every developer who activates this environment gets the same Ruby, the same PostgreSQL client libraries, and the same **`libyaml`**, regardless of whether they are working on an M3 MacBook or an x86-64 Linux laptop. There's no Homebrew to drift; no global installation to break things; no **`README`** that's chronically out of date. There's only a declarative manifest (**`manifest.toml`**) and the lockfile (**`manifest.lock`**) that pins the package versions defined in it. 
+
+The **`[hook]`** section sets the runtime config via environment variables. It defines sensible defaults:
+
+```bash
+export PSQL_HOST="${PSQL_HOST:-localhost}"
+export PSQL_PORT="${PSQL_PORT:-5432}"
+export PSQL_USER="${PSQL_USER:-postgres}"
+```
+
+To point at a different database, simply override these defaults at runtime: **`PSQL_HOST=10.0.1.5 flox activate`**. The rest of the hook—gem path setup, dependency installation, a status banner message—follows the same pattern of modular, idempotent functions that do their work and get out of the way.
+
+
+### Services run in containers
+
+Postgres, by contrast, runs in a container. This makes sense: developers don't need to work "inside" Postgres' runtime boundary; instead, they access its external interface—via psql, ORMs, Ruby's **`pg`** driver, migration tools, or SQL clients like JDBC—the same way their project does. Developers _do_ however need direct access to their project's runtime environment because that's the locus of iteration.
+
+In this pattern, Flox provides the project environment, while containers isolate the services the project consumes. You can even BYOCD—bring your own Compose Definition—like this one:
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: flox-poc-postgres
+    ports:
+      - "${PSQL_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${PSQL_USER:-postgres}"
+      POSTGRES_PASSWORD: "${PSQL_PASSWORD:-postgres}"
+      POSTGRES_DB: "flox_rails_poc_development"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+```
+
+The same **`PSQL_*`** variables appear in both the Flox **`[hook]`** and the compose file. Both artifacts share a vocabulary, even if they don't share a mechanism: their relationship is semantic, not structural.
+
+
+### The same manifest can power CI
+
+Because the Flox manifest is the source of truth for the runtime, CI can consume it directly rather than maintaining its own parallel definition. An example GitHub Actions workflow does precisely this:
+
+```yaml
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      RAILS_ENV: test
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flox
+        uses: flox/install-flox-action@v2
+
+      - name: Install dependencies via Flox
+        uses: flox/activate-action@v1
+        with:
+          command: bundle install
+
+      - name: Setup database
+        uses: flox/activate-action@v1
+        with:
+          command: bundle exec rails db:create db:migrate
+
+      - name: Run tests
+        uses: flox/activate-action@v1
+        with:
+          command: bundle exec rails test
+```
+
+There's no **`ruby-setup`** action, no version matrix, no **`.tool-versions`** file to keep in sync. Instead, the Flox manifest pins the Ruby version, and **`flox activate`**-ing provides Ruby plus all other dependencies. Postgres runs as a GitHub Actions service container. This mirrors the structural split in local development.
+
+
+### From dev environment to production image
+
+The **`flox containerize`** command makes it simple to build OCI images from declarative Flox environments, but the production OCI image need not be generated from the Flox project environment. After all, Flox-generated containers don't always align with all workflows or requirements. Many teams (like Ryan's at detaso) already have mature Dockerfile-based image pipelines, with hardened patterns for multi-stage builds, layer caching, base-image selection, tagging, scanning, and release automation.
+
+Even though the Flox manifest does not mechanically translate into a Dockerfile, it's a useful input when authoring OCI images. It provides a declarative view of an environment's packages, toolchains, variables, activation behavior, and defined services/build recipes. This makes it easier to author OCI images that match a project's environment without reverse-engineering that environment through trial and error.
+
+```dockerfile
+# A Dockerfile author might translate parts of the Flox manifest roughly like this:
+#   ruby 3.4              -> ruby:3.4-slim base image
+#   postgresql (client)   -> libpq-dev in build stage, libpq5 at runtime
+#   libyaml               -> libyaml-dev
+#   gcc, gnumake          -> build-essential in build stage
+#   pkg-config            -> pkg-config in build stage
+#
+# Not every package in the Flox dev environment belongs in the production image;
+# local-only tools such as gum, coreutils, and gnused would usually be omitted.
+```
+
+In a Debian-based multi-stage image, the build stage pulls in **`build-essential`**, **`libpq-dev`**, and **`libyaml-dev`** for gem compilation; the runtime stage keeps only **`libpq5`** and **`libyaml-0-2`**.
+
+
+### Trade-offs and limitations
+
+An honest assessment of this pattern must also recognize its limitations. For one thing, Nix and Debian packages do not share the same naming conventions: Flox ships one **`libyaml`** package for dev and run time; Debian two: **`libyaml-dev`** and **`libyaml-0-2`**. Transitive dependencies are another gotcha: Nix packages travel with their full set of dependencies (in Nix-speak, this is known as a "[closure](https://nix.dev/manual/nix/2.22/glossary.html?highlight=closure#gloss-closure)"); **`apt`**, Debian's package manager, resolves its own dependency graph. The two do not and should not produce byte-identical results. The build toolchain is another source of divergence: Flox provides **`gcc`** and **`gnumake`** as discrete packages; the Dockerfile uses **`build-essential`**, Debian's metapackage.
+
+The value of this pattern is that it makes the local development environment explicit, inspectable, and reproducible—across OS/architectures and across time. This makes the prod side easier to get right.
+
+
+### Getting started
+
+The example project runtime—viz., the Flox manifest, Compose file, CI workflow, Dockerfile, and helper scripts—is [on GitHub](https://github.com/floxrox/orbstack-flox-poc). You can clone it, run **`flox activate`**, and run **`bundle install`** to install the Ruby gems declared in **`Gemfile.lock`** into the Flox environment's cache. Then bring up Postgres with **`scripts/db-up`**, and start the Rails server with **`scripts/dev`**. On a modern MacBook, the complete sequence takes less than a minute.
+
+The Flox Catalog has more than 190,000 packages, with millions of historical package-version combinations. You can search for and discover both packages and _prebuilt environments_ at [FloxHub](https://hub.flox.dev/), including environments for running workflow orchestrators (like [Airflow](https://hub.flox.dev/floxrox/airflow-stack), [prefect](https://hub.flox.dev/floxrox/prefect), and others); databases (like [Postgres](https://hub.flox.dev/flox/postgres), [MariaDB](https://hub.flox.dev/floxrox/mariadb), [Redis](https://hub.flox.dev/flox/redis)); streaming platforms (like [Kafka](https://hub.flox/dev/kafka)); even production-grade model-serving engines ([vllm](https://hub.flox.dev/vllm-runtime), [nvidia-triton](https://hub.flox.dev/flox/triton-runtime), [llama.cpp](https://hub.flox.dev/llamacpp-runtime)), and scads of others. Discover a more elegant approach to local dev: reproducible project runtimes that feel native on your own machine … because they are.

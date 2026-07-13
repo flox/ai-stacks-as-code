@@ -1,0 +1,103 @@
+---
+title: 'BYOA Needs a Floor. That Floor Is Flox.'
+altTitle: 'BYOA Needs a Floor. That Floor Is Flox.'
+description: 'The BYOA governance stack from Red Hat provides the ceiling and walls. Flox provides the floor: a deterministic, input-addressed runtime substrate that makes the governance layer mean something.'
+metaDescription: 'The BYOA governance stack from Red Hat provides the ceiling and walls. Flox provides the floor: a deterministic, input-addressed runtime substrate that makes the governance layer mean something.'
+isPublished: true
+category: news
+author: Jeremy Hogan
+authorKey: jeremy-hogan
+publishedDate: 18 March 2026
+thumbnail: '/images/blog/layering-tower-of-babel.webp'
+orderBy: 20260318
+---
+
+Red Hat [published a good piece](https://www.redhat.com/en/blog/operationalizing-bring-your-own-agent-red-hat-ai-openclaw-edition) this week on "Bring Your Own Agent" - the idea that the platform shouldn't dictate your agent framework. [LangChain](https://github.com/langchain-ai/langchain), [CrewAI](https://github.com/crewaiinc/crewai), [AutoGen](https://github.com/microsoft/autogen), custom harness? Doesn't matter. Red Hat's platform wraps it: identity, RBAC, guardrails, tracing, lifecycle management. Framework-agnostic governance. The agent stays yours.
+
+**Yes. And.**
+
+All of that governance expects to wrap around a runtime. But what's in the runtime is assumed.
+
+That assumption is doing a lot of work.
+
+### The Floor Is Missing
+
+The Red Hat stack is real and it's useful. [Kagenti](https://kagenti.github.io/.github/) injects [SPIFFE](https://spiffe.io/) identity. The MCP Gateway enforces tool-level authorization by token claims, not prompt content. The Guardrails Orchestrator screens model inputs and outputs at the inference boundary. [TrustyAI](https://github.com/trustyai-explainability) traces execution. [Garak](https://github.com/NVIDIA/garak) scans for jailbreaks before promotion.
+
+That's the ceiling and the walls.
+
+**What about the floor?**
+
+_The floor is the environment your agent actually runs in_. The Python runtime. The tool server binaries. The model inference dependencies. The packages your agent's framework pulled at install time, from wherever, with whatever version resolver was feeling lucky that day.
+
+Governance at the orchestration layer is only as trustworthy as the thing it's governing. *Wrap an unknown in a governance harness and you get a governed unknown.* That's not nothing, but it's not the same thing as a *known* known.
+
+### What Agents Actually Do
+
+Agents download, import, install, or call software and dependencies that have not been approved. They hallucinate packages. Their velocity outpaces review.
+
+Sound familiar? It should. [I wrote about this](https://flox.dev/blog/cves-are-now-being-exploited-much-faster-than-you-can-respond/) in January, in the context of CVEs. Agents can weaponize a CVE in minutes: Anthropic demonstrated that Claude Sonnet 4.5 can replicate the Equifax breach from memory, no lookup required. The remediation window is now measured in minutes, not days.
+
+That CVE lives somewhere in a dependency graph. Somewhere in a **`pip install`** that resolved to **`latest`** six weeks ago. Somewhere in an MCP server binary that nobody pinned because it was "just a tool server."
+
+The MCP Gateway governs *which tools the agent can call*. **It doesn't know what those tool servers are made of.**
+
+That's a different problem. And it's the problem Flox solves.
+
+Here's the inversion worth sitting with: agents don't just get governed *through* MCP - they can use MCP *to author the environment itself*. The [Flox MCP server](https://hub.flox.dev/packages/flox/flox-mcp-server) lets any MCP-capable coding tool—Claude Code, Codex, Cursor, OpenAI, Crush, Windsurf—author, build, and publish pinned, reproducible Flox environments on demand. The agent builds the floor it's going to run on. Then Red Hat's MCP Gateway governs what it does from there. The stack closes.
+
+### The Environment Is the Unit of Trust
+
+For Flox, the environment—not the package, not the container, not the image digest—is the atomic unit of deployment, security, and trust.
+
+Every Flox environment is built from input-addressed hashes. The same inputs yield the same outputs, bit-for-bit identical, anywhere, at anytime. The hash and the build are the same thing, not a description of each other. This is something wholly different from "Is/is not reproducible?" as a compliance checkbox; with Flox, it's nothing less than _mathematical certainty_.
+
+> The Flox SBOM is a mathematical proof, not an inference.
+
+When a CVE drops, you query the hash. You get blast radius in milliseconds. You cordon, block at admission, roll back: all of this is automated, auditable, and keyed to the same hash that sits in your pod annotation. In other words, you aren't scanning at runtime and _inferring_ what's inside; you aren't looking at a Dockerfile without knowing for sure what's drifted and why; you aren't scanning an SBOM that includes irrelevant build-time dependencies  or just doesn't know about some statically linked library that disappeared into some binary.
+
+The Flox hash travels. It's the same from the developer's laptop to CI, from CI to staging, from staging to the production pod running inside your OpenShift cluster with Kagenti injecting its identity credentials. **The hash is the join key that connects your vulnerability intel to your runtime inventory to your policy layer.**
+
+This Red Hat solution governs what agents do. Flox governs what agents run on. Just as a sandbox can give you isolation and containment, Flox says "you can have this plastic pail and shovel, but you cannot grab the bulldozer."
+
+### The Agentic Supply Chain Problem
+
+The Red Hat post celebrates framework diversity. LangChain. LlamaIndex. CrewAI. AutoGen. Good: the creative phase should be messy. But each of those frameworks has a dependency graph. That graph needs to be pinned, reproducible, and auditable *before* you can trust anything the runtime governance layer says about the agent running on top of it. And the same goes for the MCP servers those agents call. Which binary? Which version? Evaluated when, against what CVE database?
+
+The ugly truth is that governance without provenance is theater.
+
+Flox was born inside the D. E. Shaw group to solve exactly this. The goal, stated simply, was **Run the same bits you test.** Not approximately. Not probably. Exactly. Input-addressed hashing is how you prove it.
+
+The Red Hat stack gives you a governance harness. Flox gives you a deterministic substrate so the harness has something stable to attach to. A fixed point or reference.
+
+### What This Looks Like in Practice
+
+A Flox environment for your LangChain agent looks like this:
+
+```
+[install]
+
+langchain.pkg-path = "python312Packages.langchain"
+langchain-anthropic.pkg-path = "python312Packages.langchain-anthropic"
+python.pkg-path = "python312"
+```
+
+That manifest resolves to a complete, input-addressed closure: every package, every transitive dependency, and the realized environment itself under a SHA-256-based Nix store path. That hash gives you an exact artifact to pin, while Flox assigns each revision of the environment a generation you can promote, compare, or roll back. You push it to FloxHub, pull it in CI, materialize it into a container at compose time, or run it ["uncontained"](https://flox.dev/blog/with-kubernetes-uncontained-flox-unlocks-faster-more-reproducible-workloads-on-k8s/) directly on Kubernetes, closer to the hardware, without the image overhead. You use the same hash—or the same Flox env reference—at every stage.
+
+Speed matters here too. Downloading a prebuilt, CUDA-accelerated PyTorch wheel from the Flox Catalog takes **1m 11s**. Building the same wheel from source takes **55x** longer: over 65 minutes on a beefy 32-core machine. The governance story only works if teams can actually ship the pinned artifact, but build times measured in hours are how "we'll pin it later" becomes policy.
+
+When Kagenti discovers the agent via [AgentCard](https://agent2agent.info/docs/concepts/agentcard/) [CRD](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) and injects SPIFFE identity, the thing it's governing has a known, provable, auditable software bill of materials attached to it. Not a Docker digest that tells you *what arrived*; instead, an input-addressed hash that tells you *how it was built and from what*.
+
+Best practices can't beat physics. But math can.
+
+### The Complementary Stack
+
+This isn't a Red Hat vs. Flox argument. Quite the opposite: It's a layer argument.
+
+The platform governance story Red Hat is building—identity, tool authorization, guardrails, tracing, lifecycle –is absolutely the right story for operationalizing agents at enterprise scale. Flox sits underneath all of it, providing the reproducible, SBOM-grounded substrate that makes the governance layer mean something.
+
+Every organization moving agents from laptop to production hits the same wall: "it worked in dev." The reason it worked in dev is that nobody pinned anything. The reason it fails in prod—or worse, silently misbehaves—is the same reason.
+
+Flox closes that gap. Not by wrapping the agent in yet another abstraction, layer, or platform, but by making the runtime environment tself the thing you ship. Your sandbox needs a ground-truth bottom. We built one.
+
+*Learn more about [Flox environments for agentic development](https://flox.dev/blog/a-turnkey-toolkit-for-agentic-development-with-flox/), [hash-based CVE response](https://flox.dev/blog/cves-are-now-being-exploited-much-faster-than-you-can-respond/), and the [Flox CUDA Kickstart Program](https://flox.dev/cuda-kickstart). Install the [Flox MCP server](https://hub.flox.dev/packages/flox/flox-mcp-server) to let your agents author environments directly.*

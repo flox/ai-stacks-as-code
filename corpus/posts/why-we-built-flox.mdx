@@ -1,0 +1,69 @@
+---
+title: 'Why we built Flox'
+altTitle: 'Why we built Flox'
+description: "Flox CLI 1.0 and FloxHub is here! It's a good opportunity to reflect on our own experiences and the reasons we feel Flox is a part of the next generation of software development practices."
+metaDescription: "Flox CLI 1.0 and FloxHub is here! It's a good opportunity to reflect on our own experiences and the reasons we feel Flox is a part of the next generation of software development practices."
+isPublished: true
+category: news
+author: Graham Hudgins
+isNixInTheWild: false
+publishedDate: 13 Mar 2024
+thumbnail: /images/blog/grove-of-technology.webp
+orderBy: 28
+---
+
+## Nuking projects (from orbit, apparently)
+
+So there I was, **working on a software product team that was doing all the right things**–shipping multiple times a day, iterating quickly, rolling out with feature flags, deploying in cloud native ways where what is being tested is what’s being deployed (and the same being true in reverse).
+
+However, despite a stellar team that seemed to have all the best engineering principles, **we still occasionally had to, in the words of the team, “nuke it from orbit.”** So much so that our cute little Hubot in Slack had a response to the word “nuke” with “burn it with fire!” and some fun memes (you know, the classic ones that totally reveal my age).
+
+<br />
+<center>![](/images/blog/disaster-girl.webp)</center>
+<br />
+
+I’ll step back a bit for those who might not know what I'm on about. To “nuke it from orbit” you would `rm -rf` an entire project and re- `git clone` it from source. There were softer ways of cleaning up the environment but sometimes they just didn’t work. So out rolls the nukes.
+
+So **why is it that a high performing team periodically has to nuke things?**
+
+The answer? **“That’s just the way it is.”** That feeling of “the way it is” permeates a special class of problems–often referred to as the age-old “works on my machine” (but not yours) response to a question from a coworker. I think part of the reason is _it is how software has been done for a long time_ and it’s a special class of problem that vanishes (and you purge it from memory) as soon as you resolve it.
+
+Often when you ask an engineer how much time they spend on this they’ll say “oh almost nothing” but if you ask “tell me about how the last person that joined the team got onboarded” you’ll hear a very different answer. We so deeply accept this as how it works that we sometimes don’t see how much time we lose to ‘the nuke’–either in the time you spend waiting to reconstruct the universe or the time spent helping someone else figuring out what has gone horribly wrong with their universe.
+
+## Reproducibility with containers! And Nix!
+
+Then containers came along…and a part of me was like FINALLY. We have a solution, right? Our lives are better, right? Well, sort of.
+
+Containers are a very powerful abstraction providing us a very simple way to run and deploy our code repeatedly. But for local development? You can drill the holes in the container and get your source code mounted but **you’ll always feel like you’re doing some development on not-my-machine** and, in my observation, this tends to put off most people from doing local development from within a reproducible container. Many instead defer to containers to get you a database or a redis cluster but leave the cool language of choice things to that language of choice’s toolset.
+
+Are containers the only option? Well, no. This class of problems is one of the reasons why open source Nix, Nixpkgs, and NixOS exist. If you don’t know what Nix is, it’s a 20+ year-old open source technology that **provides declarative principles that allow guarantees of reproducibility** (it’s more than that, I’m over simplifying). If you speak to anyone who has ever crossed the Rubicon from today’s ways to Nix’s ways then you’ll know what I'm about to say: you can ‘just do it better’ and never have any of those problems ever again.
+
+Amazing, right? Well, unfortunately for Nix it takes a lot more than a blog post to convince people to rock the boat. There’s a real cost to trying to adopt a new way to work, and your coworkers may not easily follow you to a new mantra. So Nix _is_ an answer but it doesn’t feel like it’s familiar or forgiving enough to be the answer on its own.
+
+What is Nix missing? Not a lot from a functionality standpoint. However, **I think Nix presents three key challenges** that helped push us towards creating Flox:
+
+- The user experience is unfamiliar and the learning curve is high.
+- The technology is so un-opinionated and flexible that it’s hard to implement something using it without feeling like you are inventing the universe.
+- Nix is decentralized by design in a way that makes it a hard sell for the enterprise.
+
+## Introducing Flox
+
+This is a long way of saying **we built Flox to take the best declarative parts of Nix, wrap them in a user experience you are familiar with, and offer centralization in the right places** so individuals (and enterprises) can manage their applications comfortably.
+
+Flox is a virtual environment and package manager all in one. **With Flox you create environments** that layer and provide dependencies just where it matters, making them portable across the full software lifecycle. Flox gives you a developer environment that you can take with you–across different system types and architectures and, broadly, the software development lifecycle.
+
+![](/images/blog/flox-and-floxhub-march-2024.webp)
+
+**Flox helps you avoid having to nuke your projects** but that’s not the only reason I love it.
+
+**Flox environments are declarative and comprehensive:** Flox contains software you’d normally install with an OS package manager plus all the software you would install with a tool-specific solution such as `nvm` for node projects. This can all be declared in a simple manifest (toml), checked into your source code, and environments ship with an activation script plus environment variables that make it simple to reproduce the environment no matter where it’s running. This comprehensive approach reduces a README.md guide down to a single `flox activate` that works no matter what Linux or macOS flavor you’re on (or what CPU type you’re using).
+
+**Flox CLI semantics are so familiar you likely already know them:** what’s your favorite package manager? We think Flox works just like it does (or very close). Flox adds only a single abstraction–the environment–on top of your computer so you can have multiple declarative environments on the same machine. That means fast searching, installation, and declaration of packages and simple environment creation, use, and removal.
+
+**Flox is fast:** Trying to get onto development really quickly to check something for a colleague? With Flox you can switch environments (inclusive of packages, environment variables, and that activation script) and confidently get new context, software, and variables in under a second.
+
+![](/images/blog/flox-is-fast.gif)
+
+We have a long way to go to fulfill our full vision and the Flox CLI 1.0 and FloxHub service is just step 1 of the journey. But I think technologies like Flox will help guide us towards a world where it does work on my machine and we can be a lot kinder to our development environments because they **work like they should and don’t waste our time.**
+
+Flox is free to use. We hope you give us a spin at [flox.dev](https://flox.dev) and tell us what you think!

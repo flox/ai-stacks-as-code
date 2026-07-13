@@ -1,0 +1,144 @@
+---
+title: 'Playbook 4: Define and Commit the Environment with the Repo'
+description: 'Finalize and commit a declarative Flox environment so repos describe how they build, test, run, and deploy.'
+isPublished: true
+isUnlisted: true
+publishedDate: '2026-05-27'
+thumbnail: '/images/blog/wizard-or-witches-hat.webp'
+author: Steve Swoyer
+category: 'guides'
+---
+
+## Playbook 4: Define and Commit the Environment with the Repo
+
+Once the team has inventoried the runtime contract and decided where the service boundaries belong, the next move is to define the project environment and commit it with the repo.
+
+This is the point at which the runtime contract becomes project infrastructure, with the Flox manifest defining the environment the project needs in order to run reproducibly; the Flox lockfile pinning the resolved dependency graph; and the Git repo itself providing versioning, change management, and a review trail.
+
+By the end of this playbook, the _repo_ itself should answer the question: “What does this project need to build, test, run, and deploy?” The answer will be legible as the declared Flox environment.
+
+
+### The Declared Environment
+
+This section walks through an example project: a Python-backed web service with a Node-based frontend or asset pipeline; PostgreSQL-backed client and migrations tools; native build dependencies; and CLI deployment tooling. After discussion and iteration, the **`manifest.toml`** for this repo might look like:
+
+```
+[install]
+## core runtime
+node.pkg-path = "nodejs_24"
+node.version = "24.14.1"
+
+## python interpreter and supporting tools
+python.pkg-path = "python3"
+python.version = "3.13.12"
+pip.pkg-path = "python313Packages.pip"
+uv.pkg-path = "uv"
+
+## python database tools
+postgresql.pkg-path = "postgresql"
+postgresql.version = "16.4"
+# note: we keep postgres/libpq in its own resolver and upgrade group b/c
+# pg_config, libpq, headers, and related native deps are consumed by
+# python packages such as psycopg2, so we do not want unrelated cli/runtime
+# upgrades to perturb this part of the dependency graph
+postgresql.pkg-group = "postgresql"
+alembic.pkg-path = "python313Packages.alembic"
+alembic.version = "1.18.1"
+sqlalchemy.pkg-path = "python313Packages.sqlalchemy"
+sqlalchemy.version = "2.0.49"
+gcc-unwrapped.pkg-path = "gcc-unwrapped" #  required for building and compiling python’s psycopg2
+
+## native build tools
+gnumake.pkg-path = "gnumake"
+pkg-config.pkg-path = "pkg-config"
+
+## cli infra tools
+kubectl.pkg-path = "kubectl"
+kubectl.version = "1.36.0"
+terraform.pkg-path = "terraform"
+terraform.version = "1.15.2"
+
+[vars]
+APP_ENV = "development"
+PGHOST = "localhost"
+PGPORT = "5432"
+
+
+[hook]
+on-activate = '''
+set -e
+
+export VIRTUAL_ENV="$FLOX_ENV_CACHE/venv"
+export UV_CACHE_DIR="$FLOX_ENV_CACHE/uv"
+
+mkdir -p "$UV_CACHE_DIR"
+
+if [ ! -d "$VIRTUAL_ENV" ]; then
+  uv venv "$VIRTUAL_ENV" --python python3
+fi
+
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+
+if [ -f "$FLOX_ENV_PROJECT/uv.lock" ] || [ -f "$FLOX_ENV_PROJECT/pyproject.toml" ]; then
+  uv sync --project "$FLOX_ENV_PROJECT"
+elif [ -f "$FLOX_ENV_PROJECT/requirements.txt" ]; then
+  uv pip install --python "$VIRTUAL_ENV/bin/python" -r "$FLOX_ENV_PROJECT/requirements.txt"
+fi
+'''
+```
+
+This example does a good bit of runtime-contract work.
+
+**1.** It tells contributors, CI jobs, code-generating tools, agents, and other consumers that this project requires specific, pinned versions of Node.js. Python 3.13, PostgreSQL, and CLI tools.
+
+<aside class="info" aria-labelledby="note-title">
+**Note**: This example manifest defines and pins two Python 3.13 packages: SQLAlchemy and Alembic. The decision as to whether to use Python packages from the Flox Catalog _or_ get them at runtime via **`uv`**, **`pip`**, or other package manager is a nuanced one. This playbook explores the pluses and minuses of doing so in the **Flox, Nix, and Python Packages** section, below.
+</aside>
+
+**2.** It declares the package managers and build inputs required to assemble the Python side of the project environment: **`pip`**, **`uv`**, **`gcc-unwrapped`**, **`gnumake`**, and **`pkg-config`**.
+
+**3.** The `postgresql` package contributes more than the **`psql`** CLI. It also provides **`pg_config`**, **`libpq`**, and the development headers that Python packages need when they build against Postgres.
+
+We place `postgresql` into its own **[package group](https://flox.dev/docs/concepts/package-groups/?h=package)** because PostgreSQL 16.4 is older than the other runtimes and tools defined in this environment. Flox resolves every package in a package group against a single Flox Catalog revision. (A Flox Catalog revision is a point-in-time snapshot of upstream [nixpkgs](https://github.com/NixOS/nixpkgs).) PostgreSQL 16.4 resolves against an older, historical revision, circa August of 2024; the pinned versions of tools like **`kubectl`** and **`terraform`** resolve against a much newer one. No one revision will satisfy both. Isolating **`postgresql`** lets Flox resolve it independently while the rest of the environment resolves against a current revision. In this way, it’s possible for legacy and modern versions of tools and libraries to coexist in the same Flox environment.
+
+**Note**: The values in **`[vars]`** set the project’s database-specific variables—**`PGHOST=localhost`** and **`PGPORT=5432`**—even though the environment itself doesn’t define a database service. These variables help the Postgres client and Python libraries discover and connect to the PostgreSQL container.
+
+**4.** The activation **`[hook]`** creates a Python venv in **`$FLOX_ENV_CACHE`**, points **`uv`** at a cache inside the Flox environment, prepends the venv’s bin directory to **`PATH`**, and installs project Python dependencies with **`uv`**. If the project contains **`uv.lock`** or **`pyproject.toml`**, activation uses **`uv sync`**; otherwise, it falls back to **`requirements.txt`** via **`uv pip install`**.
+
+For Flox environments that live and travel with project code, it’s essential to commit the files in the **`.flox/env/`** path: **`manifest.toml`** and **`manifest.lock`**. These files, along with **`env.json`** (which defines the environment as either unmanaged or FloxHub-managed), comprise the whole of the environment definition. To commit these files is to commit the environment in _toto_.
+
+```
+.flox/
+├── env.json                 # managed/unmanaged environment metadata
+└── env/
+    ├── manifest.toml        # environment manifest
+    └── manifest.lock        # locked environment resolution
+
+Commit:	.flox/env/manifest.toml,
+ 		.flox/env/manifest.lock,
+ 		.flox/env.json
+```
+
+In most cases, the environment cache (**`.flox/cache`**); the materialized environment (**`.flox/run/`**, Flox log files (**`.flox/logs/`**); Python virtual environments; and Flox build outputs (denoted by **`result-<package-name>`** in the project directory) should not be committed; add them to **`.gitignore`**.
+
+<aside class="info-box" aria-labelledby="note-title">
+Common-sense best practices apply: For example, never define and export secrets in the Flox manifest! 
+</aside>
+
+In the Flox model, changes to a project’s runtime environment and dependencies are always visible, attributable, reviewable, and reversible. The environment’s declarative definition gives dev and platform teams a shared object to inspect and discuss, so terms like “the runtime,” “the dependency set,” or “the promoted environment” mean the same thing and point to the same concrete files, lock, and reference.
+
+This makes it practicable for teams to discuss, test, review the impact of, and promote changes—especially agent-authored changes. Promotion or rollback become an atomic edit to the reference (a specific Git commit, a FloxHub generation, even a Nix store path hash) used to run the environment.
+
+Once committed, a project’s runtime becomes part of its normal development workflow. A change to a dependency change is no longer an undocumented/out-of-date instruction in a README, or a one-off command someone ran locally. It becomes a diff. Moreover, that diff can be reviewed:
+
+```
+-[install]
+-## native build tools
++[install]
++## other tools
+ gnumake.pkg-path = "gnumake"
+ pkg-config.pkg-path = "pkg-config"
++jq.pkg-path = "jq"
+```
+
+

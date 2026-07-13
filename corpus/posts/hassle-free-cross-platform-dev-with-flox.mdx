@@ -1,0 +1,251 @@
+---
+title: 'Hassle-Free Cross-Platform Dev with Flox'
+altTitle: 'Hassle-Free Cross-Platform Dev with Flox'
+description: 'Flox makes it simple to create portable, cross-platform dev environments, but sometimes you also need to work around system- and architecture-specific package constraints. This article shows you how.'
+metaDescription: 'Flox makes it simple to create portable, cross-platform dev environments, but sometimes you also need to work around system- and architecture-specific package constraints. This article shows you how.'
+isPublished: true
+category: guides
+author: Steve Swoyer
+authorKey: steve-swoyer
+publishedDate: 5 Sept 2024
+thumbnail: '/images/blog/desert-meets-arctic.webp'
+orderBy: 20240905
+---
+
+Flox makes it simple to create portable dev environments that run the same way everywhere.
+
+Typically, Flox environments Just Work. An environment you built on your ARM-based MacBook Just Works when a teammate downloads and runs it on their Fedora-based Dell XPS x86 laptop.
+
+The same environment Just Works when it’s pushed to CI or production, whether running in an ARM-powered Amazon Linux VM, an x86 Alpine Linux container, or Ubuntu LXD instances on ARM and x86. 
+
+Even better, Flox environments _always_ run platform-optimized, using native binaries and libraries, with no virtualization required. This goes for GPU acceleration, too: when you build Nvidia CUDA- or Apple Metal-aware libraries into a Flox environment, it takes advantage of GPU compute capabilities if available.
+
+In _almost_ all cases, all of this Just Works. Sometimes, however, you’ll run into a corner-case. For example, if software hasn’t been packaged for a specific operating system (OS), Flox can’t magically make it work on that OS. In the same way, Flox isn’t a hypervisor or emulator, so if software hasn’t been _compiled_ for a specific machine architecture, Flox can’t make it run on that architecture.
+
+This article guides you through the do’s and don’ts of creating portable, reproducible environments with Flox. You’ll learn how to identify and work around system- or architecture-specific package constraints, you’ll discover the powerful tools Flox gives you to manage different kinds of package, platform, or architecture-specific conflicts, and you’ll also learn about the hard limits posed by impossible situations.
+
+Ready to dig in?
+
+
+## Package Conflicts in Cross-Platform Flox Environments
+
+When you’re building and installing packages for a cross-platform Flox environment, you might sometimes encounter errors caused by dependency conflicts inside your Flox environment, like when separate packages expect to install different versions of the same library to the same path. Flox’s support for [Package Groups](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox) gives you an easy way to work around this, enabling you to segregate finicky packages by defining them in logically distinct groups. 
+
+Sometimes, however, errors occur because a specified version of a package _is only available for a certain OS or machine architecture_, so it’s impossible to install it into a cross-platform environment.
+
+Thankfully, problems like this are not only rare but can almost always be resolved by selecting compatible package versions, or by segmenting packages into distinct groups based on their platform compatibility.
+
+Let’s take a look at a few textbook scenarios and how you can work around them.
+
+
+## Cross-Platform Compatibility 101 
+
+Say you have a project that requires [Clang](https://github.com/llvm/llvm-project/tree/main/clang), a C, C++, and Objective-C compiler front end for the LLVM compiler. You boot your Linux laptop, `cd` into your project directory, type `flox init` to create a new environment, and `flox activate` to start it up.
+
+Now you’re ready to install `libclang` from Flox Catalog. And you might as well grab [the latest version](https://releases.llvm.org/), right?
+
+```
+daedalus@askesis:~/dev/o11y$ flox install libclang@18.1.8
+❌ ERROR: resolution failed: Resolution constraints are too tight.
+```
+
+[You’ve encountered this error before](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox), and it’s almost always the result of package-level dependency conflicts, like when separate packages expect to install different versions of the same library to the same path in the same environment. Flox’s support for [Package Groups](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox) gives you an easy way to work around this, enabling you to segregate finicky packages into logically distinct groups. 
+
+Typically, you just need to edit the `manifest.toml` file that defines the packages in your Flox environment, segregating troublesome packages in their own (or shared) Package Groups.
+
+But this is a _fresh_ Flox environment, which means there aren’t any other packages installed into it. So there’s nothing for `libclang` v18.1.8 to conflict with. You begin to suspect you’re dealing with a different sort of problem.
+
+```
+daedalus@ethos:~/dev/o11y$ flox show libclang
+libclang - C language family frontend for LLVM
+    libclang@clang-18.1.8 (aarch64-linux, x86_64-linux only)
+    libclang@clang-16.0.6
+    libclang@clang-17.0.6 (aarch64-linux, x86_64-linux only)
+    libclang@clang-11.1.0
+    libclang@clang-7.1.0 (aarch64-linux, x86_64-darwin, x86_64-linux only)
+```
+
+Eureka. The latest `libclang` isn’t available for macOS. But you’re on Linux, so why does this matter?
+
+Because Flox is a declarative environment manager that is biased in favor of creating [cross-platform, multi-architecture (multi-arch) environments](https://flox.dev/docs/tutorials/multi-arch-environments/?h=arch). By default, a Flox environment’s `manifest.toml` includes all supported operating systems and CPU architectures. You can find these under `[options]`:
+
+```
+[options]
+systems = ["aarch64-darwin", "aarch64-linux", "x86_64-darwin", "x86_64-linux"]
+```
+
+If you just need `libclang` for Linux, this is an easy enough fix:
+
+```
+[options]
+systems = ["aarch64-linux", "x86_64-linux"]
+```
+
+And if you need a `libclang` package that works across both Linux and macOS, you can specify v16.0.6:
+
+```
+[install]
+libclang.pkg-path = "libclang"
+libclang.version = "clang-16.0.6"
+```
+
+Congratulations: You aced Cross-Platform Compatibility 101!
+
+
+
+## Cross-Platform Compatibility 202a
+
+Now let’s imagine that you and your team are responsible for maintaining a reverse-logistics observability (o11y) app. Your org relies on this app to monitor, log, and trace return timelines across its supply chain.
+
+Your team built this app ages ago, and hasn’t modernized it since. So you need to install specific older versions of [Grafana](https://grafana.com/), [Prometheus](https://prometheus.io/), [InfluxDB](https://www.influxdata.com/downloads/), and other components in your Flox environment.
+
+You quickly create a project directory for your o11y stack, type `flox init`, and install your packages. 
+
+```
+daedalus@ethos:~/dev/apm-o11y$ flox install grafana@8.1.2 prometheus@2.27.1 grafana-loki@2.4.1 tempo@2.2.1 telegraf@1.24.3 influxdb2
+❌ ERROR: resolution failed: Resolution constraints are too tight.
+```
+
+What’s going on? Could it be that one of the packages you’re trying to install is constrained to run on one or more OSs or CPU architectures? You use `flox show` to find out, and quickly zero in on the `tempo` package:
+
+```
+daedalus@ethos:~/dev/apm-o11y$ flox show tempo
+tempo - High volume, minimal dependency trace storage
+    tempo@2.5.0
+    tempo@2.4.2
+    tempo@2.4.1
+    tempo@2.4.0
+    tempo@2.3.1
+    tempo@2.3.0
+    tempo@2.2.3
+    tempo@2.2.2 (aarch64-linux, x86_64-linux only)
+    tempo@2.2.1 (aarch64-linux, x86_64-linux only)
+    tempo@2.2.0 (aarch64-linux, x86_64-linux only)
+    tempo@2.1.1 (aarch64-linux, x86_64-linux only)
+    tempo@2.0.1 (aarch64-linux, x86_64-linux only)
+    tempo@2.0.0 (aarch64-linux, x86_64-linux only)
+    tempo@1.5.0 (aarch64-linux, x86_64-linux only)
+    tempo@1.4.1 (aarch64-linux, x86_64-linux only)
+    tempo@1.1.0 (aarch64-linux, x86_64-linux only)
+    tempo@1.0.1 (aarch64-linux, x86_64-linux only)
+    tempo@0.5.0 (aarch64-linux, x86_64-linux only)
+    tempo@0.4.0 (aarch64-linux, x86_64-linux only)
+```
+
+So `tempo` is indeed the offending package.
+
+A little research shows that your o11y app will work just fine with v2.2.3 of `tempo`, so if you use that package version, you _should_ be able to create a cross-platform Flox environment for macOS and Linux. 
+
+But Flox is an incredibly versatile tool, and there’s something else you can try.
+
+Something that might let you have your proverbial cake—and eat it too.
+
+
+
+## Cross-Platform Compatibility 202b
+
+A term like “cross-platform” is only meaningful in a context. If you use x86-64 Linux systems to build locally, but run Linux-on-ARM AWS Graviton instances in CI and production, “cross-platform” from your perspective basically means Linux packages that run reproducibly on x86-64 and aarch64 silicon.
+
+However, if your team uses Macs and you’re building apps exclusively for macOS and iOS, you just need dev environments that run on x86-64 and aarch64 Darwin. This is what “cross-platform” means for you.
+
+Both use cases are examples of what you might call “cross-platform enough” requirements.
+
+Flox offers powerful tools you can use to create “cross-platform-enough” environments. **Cross-Platform Compatibility 101** explored one of these: constraining an environment to run only on specified platforms and/or CPU architectures
+
+But another, more pragmatic option is to _constrain software packages_ so they install only on specific platforms or architectures.
+
+Let’s revisit an example from the previous section:  the o11y stack that uses a legacy version (2.2.1) of [Grafana Tempo](https://github.com/grafana/tempo), the open-source tracing backend, which won’t run on macOS. One way to resolve this would be to use v2.2.3 of the `tempo` package, which is what we did in **Cross-Platform Compatibility 202a**. A less ideal option would be to edit your software manifest, delete `aarch64-darwin`, and create a duplicate o11y environment with `tempo` v2.2.3 just for your Macs . But this would involve maintaining separate Flox environments for x86-64 Linux and ARM-based Macs.
+
+That’s far from ideal.
+
+A more elegant and pragmatic solution is to define separate `tempo` packages in the same environment for Linux and Darwin. Flox makes it easy to do this using simple declarative methods:
+
+```
+[install]
+tempo-x86_64.pkg-path = "tempo"
+tempo-x86_64.version = "2.2.1"
+tempo-x86_64.systems = ["x86_64-linux", "x86_64-darwin"]
+tempo-x86_64.pkg-group = "x86_64"
+tempo-darwin.pkg-path = "tempo"
+tempo-darwin.version = "2.2.3"
+tempo-darwin.systems = ["aarch64-darwin", "x86_64-darwin"]
+tempo-darwin.pkg-group = "darwin"
+```
+
+This is a more elegant and performant solution, because it makes it possible for teammates to run native software optimized for their hardware—on Linux or Mac—without resorting to containers or VMs.
+
+
+## A Graduate Seminar in Cross-Platform Compatibility
+
+In rare cases, you may encounter a different, albeit related type of cross-platform error.
+
+```
+daedalus@askesis:~/dev/o11y$ flox install tart
+❌ ERROR: resolution failed: The attr_path tart is not found for all the requested systems, suggest limiting systems to (aarch64-darwin).
+```
+
+Tart is a macOS and iOS virtual machine manager (VMM) for running VMs on Apple Silicon, which means it is literally impossible for you to `flox install tart` in a default cross-platform, multi-arch Flox environment.
+
+It is also essentially impossible to install the `tart` package on anything but an ARM-based Mac. 
+
+There’s no simple, scalable workaround for this problem, either: you can’t run Tart in a VM on your system, because you can’t (easily) run the ARM version of macOS in an emulator like QEMU. Basically, anything designed just for Apple’s ecosystem won’t run on platforms other than macOS and iOS.
+
+Take [CoreFoundation](https://developer.apple.com/documentation/corefoundation), Apple’s C-based framework for macOS and iOS. It's open source, but it's also tightly integrated with Apple's ecosystem.
+
+```
+daedalus@askesis:~/dev/o11y$ flox install darwin.apple_sdk.frameworks.CoreFoundation
+❌ ERROR: resolution failed: The attr_path darwin.apple_sdk.frameworks.CoreFoundation is not found for all the requested systems, suggest limiting systems to (aarch64-darwin,x86_64-darwin).
+```
+
+By the same token, you can’t `flox install` Linux-specific software on bare-metal macOS. For example, the code block below contains the partial output of `flox show` for `glibc`, 
+the GNU C Library, which is kind of like the central nervous system of Linux's software ecosystem:
+
+```
+daedalus@kakos:~/dev/kernel-panic % flox show glibc
+glibc - GNU C Library
+    glibc@2.39-52 (aarch64-linux, x86_64-linux only)
+    glibc@2.39-31 (aarch64-linux, x86_64-linux only)
+    glibc@2.39-5 (aarch64-linux, x86_64-linux only)
+    glibc@2.38-44 (aarch64-linux, x86_64-linux only)
+    glibc@2.38-27 (aarch64-linux, x86_64-linux only)
+    glibc@2.38-23 (aarch64-linux, x86_64-linux only)
+```
+
+Even though Flox has more than 20 versions of `glibc`, _none of these_ can be used with macOS. If I attempt to install `glibc` on `kakos`, an x86-64 macOS system, I get the following error:
+
+```
+daedalus@kakos:~/dev/kernel-panic % flox install glibc@2.39-52
+❌ ERROR: resolution failed: The attr_path glibc is not found for all the requested systems, suggest limiting systems to (aarch64-linux,x86_64-linux).
+```
+
+In the same way, I cannot install a package like [Darling](https://github.com/darlinghq/darling), an open source Darwin/macOS emulation layer for Linux, on macOS or iOS.
+
+```
+daedalus@kakos:~/dev/kernel-panic % flox install darling
+❌ ERROR: resolution failed: The attr_path darling is not found for all the requested systems, suggest limiting systems to (x86_64-linux).
+```
+
+No amount of fussing or fiddling with Package Groups can fix these error messages, because—as Debian’s `apt` tool might put it—“you have requested an impossible situation.” It’s kind of like trying to transmute base metals into gold, like with alchemy. It just isn’t possible within the given set of constraints.
+
+
+
+## Summing Up
+
+In most cases, creating a cross-platform, multi-arch environment with Flox is a straightforward process, especially when you don’t require specific versions of legacy software packages.
+
+If you _do_ need specific versions of packages, however, things can get more complicated, particularly [if you need to mix software from different eras](https://flox.dev/blog/conflict-resolution-made-easy-with-package-groups-in-flox).
+
+Basically, package management in Flox is an exercise in combinatorial maths. And Flox is a genius in combinatorics! But when the dependency matrix for some environments becomes large enough, there’s an increased risk of running into different kinds of package-, platform-, or architecture-specific conflicts. 
+
+The good news is that Flox provides tools you can use to work around these issues, including:
+
+-  Constraining Flox environments to run on a specific platform and/or architecture;
+-  Grouping packages into isolated groups;
+-  Defining specific versions of packages for different platforms and/or architectures.
+
+
+## Different Thinking about Cross-Platform Dev Environments
+
+Flox takes the guesswork out of creating cross-platform dev environments. It’s a powerful, scalable, easy-to-use solution that builds on and extends the core capabilities of the open source Nix package manager.
+
+Flox is free to use and easy to learn. You can get started in [as few as five minutes](https://flox.dev/docs/), building on your local system, with full access to all of your tools, folders, files, and other resources. Best of all, when you `git push` or `flox push` the environments you create, your teammates and coworkers can download and run them on _their_ systems, enjoying the same experience. [Download Flox and discover the difference!](https://flox.dev/docs/install-flox/)
