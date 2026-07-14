@@ -23,21 +23,14 @@ ask-flox.pkg-path              = "<catalog>/ask-flox"
 # Claude Code — the agent that will call the tool.
 claude-code.pkg-path           = "flox/claude-code"
 
-# Python runtime + retrieval deps (own pkg-groups; matches ai-embeddings).
+# Python runtime + retrieval deps. The default embedder is ONNX (torch-free),
+# so this needs only mcp + chromadb (which brings onnxruntime) — no torch/CUDA,
+# no glibc floor, no per-system torch split. Works uniformly across all systems.
 python3.pkg-path               = "python3"
 mcp.pkg-path                   = "python313Packages.mcp"
 mcp.pkg-group                  = "mcp"
-sentence-transformers.pkg-path = "python313Packages.sentence-transformers"
-sentence-transformers.pkg-group = "python-deps"
 chromadb.pkg-path              = "python313Packages.chromadb"
 chromadb.pkg-group             = "chromadb"
-# torch: cuda on Linux (GPU + CPU fallback), stock on Apple Silicon.
-torch-cuda.pkg-path            = "flox-cuda/python3Packages.torch"
-torch-cuda.systems             = ["x86_64-linux", "aarch64-linux"]
-torch-cuda.pkg-group           = "cuda"
-torch-mps.pkg-path             = "python313Packages.torch"
-torch-mps.systems              = ["aarch64-darwin"]
-torch-mps.pkg-group            = "mps-torch"
 
 [hook]
 on-activate = '''

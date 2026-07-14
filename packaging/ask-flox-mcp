@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Ask-Flox MCP launcher — run by the *consuming* Flox environment (which
-# provides python3.13 + mcp/sentence-transformers/chromadb/torch). It serves the
-# stdio retrieval tool against the index + embedding model baked into the
-# installed `ask-flox` package, fully offline.
+# provides python3.13 + mcp + chromadb/onnxruntime). Serves the stdio retrieval
+# tool against the index + ONNX embedding model baked into the installed
+# `ask-flox` package, fully offline. No torch.
 #
 # NOT shipped as a package executable on purpose: Flox wraps packaged binaries
 # into the build-env closure, which lacks the (pkg-grouped) Python deps. Instead
@@ -14,18 +14,28 @@ share="${ASK_FLOX_SHARE:-${FLOX_ENV:-}/share/ask-flox}"
 [ -d "$share/pipeline" ] || { echo "ask-flox package data not found at $share" >&2; exit 1; }
 
 # ChromaDB opens its SQLite read-write, but the baked index lives in the
-# read-only Nix store. Stage it once into a writable cache.
+# read-only Nix store. Stage it into a writable cache — and RE-stage whenever the
+# baked manifest differs from the cached copy (i.e. the package was upgraded), so
+# a stale index from an older package version can't linger.
 cache="${ASK_FLOX_CACHE:-${FLOX_ENV_CACHE:-$HOME/.cache/ask-flox}/ask-flox-index}"
-if [ ! -f "$cache/index/chroma.sqlite3" ]; then
+if [ ! -f "$cache/index/chroma.sqlite3" ] || ! cmp -s "$share/index-manifest.json" "$cache/index-manifest.json"; then
+  rm -rf "$cache"
   mkdir -p "$cache"
   cp -r "$share/index" "$cache/index"
   cp "$share/index-manifest.json" "$cache/index-manifest.json"
   chmod -R u+w "$cache"
 fi
 
-export WORK_DIR="$cache"                       # holds writable index/ + manifest
-export HF_HOME="${HF_HOME:-$share/model}"       # model cache is read-only-OK
-export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+# Chroma loads its ONNX embedding model from $HOME/.cache/chroma (hardcoded path,
+# no override). Seed it from the baked copy so the model never has to download.
+onnx_dst="$HOME/.cache/chroma/onnx_models/all-MiniLM-L6-v2"
+if [ ! -d "$onnx_dst/onnx" ]; then
+  mkdir -p "$onnx_dst"
+  cp -r "$share/onnx-model/all-MiniLM-L6-v2/onnx" "$onnx_dst/onnx"
+  chmod -R u+w "$onnx_dst"
+fi
+
+export WORK_DIR="$cache"                        # holds writable index/ + manifest
 # APPEND, never overwrite — overwriting breaks Flox pkg-group site-package paths.
 export PYTHONPATH="$share/pipeline${PYTHONPATH:+:$PYTHONPATH}"
 

@@ -94,37 +94,40 @@ environments = [
 sandbox = "off"
 command = '''
 set -euo pipefail
-export AI_BACKEND=cpu
 export WORK_DIR="$PWD/work"
-export HF_HOME="$PWD/.hfcache"
+# Default engine is ONNX (torch-free). Chroma caches its ONNX model under
+# $HOME/.cache/chroma; pin HOME here so the download lands where we can grab it.
+export HOME="$PWD/.buildhome"
 just ingest corpus
 just index
-mkdir -p "$out/share/ask-flox"
+mkdir -p "$out/share/ask-flox/onnx-model/all-MiniLM-L6-v2"
 cp -r work/index "$out/share/ask-flox/index"
 cp work/index-manifest.json "$out/share/ask-flox/index-manifest.json"
-cp -r "$HF_HOME" "$out/share/ask-flox/model"
+# Bake only the extracted model dir (verified to work offline; skips the 79MB tar.gz).
+cp -r "$HOME/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx" \
+      "$out/share/ask-flox/onnx-model/all-MiniLM-L6-v2/onnx"
 '''
 
 [build.ask-flox]
 sandbox = "pure"
 version = "0.1.0"
 description = "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool"
-# DATA + CODE package (no executable): ships the prebuilt index, the embedding-
-# model cache, and the server code under $out/share/ask-flox. It deliberately
+# DATA + CODE package (no executable): ships the prebuilt index, the ONNX
+# embedding model, and the server code under $out/share/ask-flox. It deliberately
 # ships NO launcher binary — Flox wraps any packaged executable into the build
 # environment's closure, which (because the Python deps live in separate
-# pkg-groups, not `toplevel`) lacks mcp/sentence-transformers/chromadb, and
-# `runtime-packages` only accepts toplevel-group pkgs. So the CONSUMING env
-# provides python + those deps and runs $out/share/ask-flox/pipeline/mcp_server.py
-# directly (see envs/ask-flox-demo). packaging/ask-flox-mcp is the reference
-# launch logic the wrapper env reuses.
+# pkg-groups, not `toplevel`) lacks mcp/chromadb, and `runtime-packages` only
+# accepts toplevel-group pkgs. So the CONSUMING env provides python + those deps
+# (mcp + chromadb/onnxruntime — no torch) and runs
+# $out/share/ask-flox/pipeline/mcp_server.py directly (see envs/ask-flox-demo).
+# packaging/ask-flox-mcp is the reference launch logic the wrapper env reuses.
 command = '''
 set -euo pipefail
 mkdir -p "$out/share/ask-flox"
 cp -r pipeline "$out/share/ask-flox/pipeline"
 cp -r ${assets}/share/ask-flox/index "$out/share/ask-flox/index"
 cp ${assets}/share/ask-flox/index-manifest.json "$out/share/ask-flox/index-manifest.json"
-cp -r ${assets}/share/ask-flox/model "$out/share/ask-flox/model"
+cp -r ${assets}/share/ask-flox/onnx-model "$out/share/ask-flox/onnx-model"
 # Launch logic shipped as DATA (mode 644, not under bin/) so Flox won't wrap it.
 # The consuming env installs it onto PATH and runs it with its own python.
 install -m644 packaging/ask-flox-mcp "$out/share/ask-flox/ask-flox-mcp"
