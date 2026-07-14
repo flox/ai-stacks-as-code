@@ -29,7 +29,7 @@ from common import (
     write_json,
     write_text,
 )
-from index import COLLECTION_NAME, HashEmbedder, SentenceTransformerEmbedder, batch_items, resolve_device
+from index import COLLECTION_NAME, HashEmbedder, OnnxMiniLMEmbedder, SentenceTransformerEmbedder, batch_items, resolve_device
 
 STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "does", "for", "from",
@@ -133,9 +133,7 @@ def validate_inputs(
             "index manifest uses hash embeddings, which are allowed only in explicit sandbox/dev mode; "
             "run index with sentence-transformers or pass --dev-hash-embeddings, set AI_BRIEF_ALLOW_HASH_FALLBACK=1, or use EMBED_MODEL=hash:<name> for explicit sandbox/dev mode"
         )
-    if engine not in {"sentence-transformers", "hash"}:
-        raise RuntimeError(f"index manifest has unsupported embedding_engine={engine!r}; run index again")
-    if engine != "sentence-transformers" and engine != "hash":
+    if engine not in {"onnx", "sentence-transformers", "hash"}:
         raise RuntimeError(f"index manifest has unsupported embedding_engine={engine!r}; run index again")
     if engine == "hash" and store == "chroma":
         # Legal only in explicit dev mode, but still queryable because vectors are persisted in Chroma.
@@ -220,6 +218,14 @@ def make_query_embedder(manifest: dict[str, Any], *, allow_hash_embeddings: bool
         except (TypeError, ValueError) as exc:
             raise RuntimeError(f"invalid hash embedding dimension in index manifest: {dim!r}") from exc
         return HashEmbedder(model=model, dimension=dim_int)
+    if engine == "onnx":
+        try:
+            return OnnxMiniLMEmbedder()
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"failed to load the ONNX MiniLM query embedder: {exc}. "
+                "Activate the composed Flox environment (chromadb + onnxruntime)."
+            ) from exc
     if engine != "sentence-transformers":
         raise RuntimeError(f"unsupported embedding engine in index manifest: {engine!r}; run index again")
     device = resolve_device(str(manifest.get("backend") or os.environ.get("AI_BACKEND", "cpu")))

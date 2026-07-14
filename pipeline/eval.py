@@ -330,10 +330,10 @@ def main(argv: list[str] | None = None) -> int:
     manifest_path = eval_work_dir / "index-manifest.json"
     manifest = read_json(manifest_path, default=None)
     if isinstance(manifest, dict):
-        engine_ok = manifest.get("embedding_engine") == "sentence-transformers"
+        engine_ok = manifest.get("embedding_engine") == "onnx"
         store_ok = manifest.get("store") == "chroma"
         if args.dev_hash:
-            engine_ok = manifest.get("embedding_engine") in {"sentence-transformers", "hash"}
+            engine_ok = manifest.get("embedding_engine") in {"onnx", "sentence-transformers", "hash"}
             store_ok = manifest.get("store") in {"chroma", "json"}
         engine_label = "dev index embedding engine explicitly allowed" if args.dev_hash else "index uses required embedding engine"
         store_label = "dev index vector store explicitly allowed" if args.dev_hash else "index uses required Chroma store"

@@ -125,7 +125,44 @@ class SentenceTransformerEmbedder(Embedder):
         return [[float(x) for x in row] for row in vectors.tolist()]
 
 
+ONNX_MODEL = "onnx/all-MiniLM-L6-v2"
+
+
+class OnnxMiniLMEmbedder(Embedder):
+    """all-MiniLM-L6-v2 via ChromaDB's bundled ONNX model (onnxruntime, no torch).
+
+    Same 384-dim, L2-normalized embeddings as the sentence-transformers variant's
+    model family, but with no PyTorch/CUDA dependency and a lighter, faster start.
+    This is the default engine; sentence-transformers remains available for parity.
+    """
+
+    engine = "onnx"
+
+    def __init__(self, model: str = ONNX_MODEL) -> None:
+        from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2  # type: ignore
+
+        self.model = ONNX_MODEL  # fixed label — the ONNX model is bundled, not resolved
+        self._fn = ONNXMiniLM_L6_V2()
+        self.dimension = len(self._fn(["dimension probe"])[0])
+
+    def encode(self, texts: Sequence[str]) -> list[list[float]]:
+        return [[float(x) for x in row] for row in self._fn(list(texts))]
+
+
 def make_embedder(model: str, requested_backend: str, allow_hash_embeddings: bool) -> tuple[Embedder, str]:
+    # Engine selection: ONNX (torch-free) is the default; sentence-transformers
+    # and hash remain selectable via EMBED_ENGINE / an EMBED_MODEL=hash:* prefix.
+    engine = os.environ.get("EMBED_ENGINE", "onnx").strip().lower()
+    if engine == "onnx" and not (model.startswith("hash:") or model.startswith("hash://")):
+        try:
+            return OnnxMiniLMEmbedder(), "cpu"
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"failed to load the ONNX MiniLM embedder: {exc}. Ensure chromadb + onnxruntime "
+                "are available (composed Flox env) and the model cache is present or downloadable. "
+                "Set EMBED_ENGINE=sentence-transformers to use the torch backend instead."
+            ) from exc
+
     if model.startswith("hash:") or model.startswith("hash://"):
         # Selecting an EMBED_MODEL in the hash namespace is itself an explicit
         # development-mode request. The default model remains the spec-required
