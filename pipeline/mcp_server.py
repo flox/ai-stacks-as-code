@@ -28,12 +28,6 @@ from typing import Any
 # Silence ChromaDB's telemetry before it is ever imported (keeps stdout clean).
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
-# Load the embedding model fully offline: it was cached when the index was built
-# on this machine, so the server never needs to reach HuggingFace. setdefault so
-# an operator can still force online with HF_HUB_OFFLINE=0. (Override both flags.)
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-
 # pipeline/ is on sys.path when run as a script; mirror the other stage scripts.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
