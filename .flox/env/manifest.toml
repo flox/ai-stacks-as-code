@@ -84,60 +84,10 @@ environments = [
     { dir = "envs/ai-notebook" },
 ]
 
-## Packaging ---------------------------------------------------------
-## Two-stage build so the published package is self-contained + offline:
-##   assets (sandbox=off): rebuild the index from the committed corpus and
-##     capture the embedding-model cache — needs network + the composed deps.
-##   ask-flox (sandbox=pure): assemble the shippable package from git-tracked
-##     code + the baked assets. This is the target you `flox publish`.
-[build.assets]
-sandbox = "off"
-command = '''
-set -euo pipefail
-# Isolate the build in a tmp dir OUTSIDE the working tree: sandbox=off runs in
-# the project dir, so writing WORK_DIR/HOME here would litter the repo and
-# clobber the developer's local work/index. corpus/ (git-tracked) is the input.
-BUILD_TMP="$(mktemp -d)"
-trap 'rm -rf "$BUILD_TMP"' EXIT
-export WORK_DIR="$BUILD_TMP/work"
-# Default engine is ONNX (torch-free). Chroma caches its ONNX model under
-# $HOME/.cache/chroma; pin HOME into the tmp dir so we can grab the download.
-export HOME="$BUILD_TMP/home"
-mkdir -p "$WORK_DIR" "$HOME"
-just ingest corpus
-just index
-mkdir -p "$out/share/ask-flox/onnx-model/all-MiniLM-L6-v2"
-cp -r "$WORK_DIR/index" "$out/share/ask-flox/index"
-cp "$WORK_DIR/index-manifest.json" "$out/share/ask-flox/index-manifest.json"
-# Bake only the extracted model dir (verified to work offline; skips the 79MB tar.gz).
-cp -r "$HOME/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx" \
-      "$out/share/ask-flox/onnx-model/all-MiniLM-L6-v2/onnx"
-'''
-
-[build.ask-flox]
-sandbox = "pure"
-version = "0.1.0"
-description = "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool"
-# DATA + CODE package (no executable): ships the prebuilt index, the ONNX
-# embedding model, and the server code under $out/share/ask-flox. It deliberately
-# ships NO launcher binary — Flox wraps any packaged executable into the build
-# environment's closure, which (because the Python deps live in separate
-# pkg-groups, not `toplevel`) lacks mcp/chromadb, and `runtime-packages` only
-# accepts toplevel-group pkgs. So the CONSUMING env provides python + those deps
-# (mcp + chromadb/onnxruntime — no torch) and runs
-# $out/share/ask-flox/pipeline/mcp_server.py directly (see envs/ask-flox-demo).
-# packaging/ask-flox-mcp is the reference launch logic the wrapper env reuses.
-command = '''
-set -euo pipefail
-mkdir -p "$out/share/ask-flox"
-cp -r pipeline "$out/share/ask-flox/pipeline"
-cp -r ${assets}/share/ask-flox/index "$out/share/ask-flox/index"
-cp ${assets}/share/ask-flox/index-manifest.json "$out/share/ask-flox/index-manifest.json"
-cp -r ${assets}/share/ask-flox/onnx-model "$out/share/ask-flox/onnx-model"
-# Launch logic shipped as DATA (mode 644, not under bin/) so Flox won't wrap it.
-# The consuming env installs it onto PATH and runs it with its own python.
-install -m644 packaging/ask-flox-mcp "$out/share/ask-flox/ask-flox-mcp"
-'''
+# Packaging lives in a Nix expression build, not here: .flox/pkgs/ask-flox/.
+# (The chroma index is non-reproducible, so it's built once + committed as a
+# pinned tarball; the ONNX model is a fetchurl FOD. A manifest [build] can't
+# express that cleanly.) Build with: flox build ask-flox
 
 [options]
 systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
