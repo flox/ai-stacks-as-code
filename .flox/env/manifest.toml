@@ -94,15 +94,21 @@ environments = [
 sandbox = "off"
 command = '''
 set -euo pipefail
-export WORK_DIR="$PWD/work"
+# Isolate the build in a tmp dir OUTSIDE the working tree: sandbox=off runs in
+# the project dir, so writing WORK_DIR/HOME here would litter the repo and
+# clobber the developer's local work/index. corpus/ (git-tracked) is the input.
+BUILD_TMP="$(mktemp -d)"
+trap 'rm -rf "$BUILD_TMP"' EXIT
+export WORK_DIR="$BUILD_TMP/work"
 # Default engine is ONNX (torch-free). Chroma caches its ONNX model under
-# $HOME/.cache/chroma; pin HOME here so the download lands where we can grab it.
-export HOME="$PWD/.buildhome"
+# $HOME/.cache/chroma; pin HOME into the tmp dir so we can grab the download.
+export HOME="$BUILD_TMP/home"
+mkdir -p "$WORK_DIR" "$HOME"
 just ingest corpus
 just index
 mkdir -p "$out/share/ask-flox/onnx-model/all-MiniLM-L6-v2"
-cp -r work/index "$out/share/ask-flox/index"
-cp work/index-manifest.json "$out/share/ask-flox/index-manifest.json"
+cp -r "$WORK_DIR/index" "$out/share/ask-flox/index"
+cp "$WORK_DIR/index-manifest.json" "$out/share/ask-flox/index-manifest.json"
 # Bake only the extracted model dir (verified to work offline; skips the 79MB tar.gz).
 cp -r "$HOME/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx" \
       "$out/share/ask-flox/onnx-model/all-MiniLM-L6-v2/onnx"
