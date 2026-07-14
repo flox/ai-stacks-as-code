@@ -1,0 +1,522 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "schema-version": "1.13.0",
+    "install": {
+      "ask-flox": {
+        "pkg-path": "flox-labs/ask-flox",
+        "pkg-group": "ask-flox"
+      },
+      "chromadb": {
+        "pkg-path": "python313Packages.chromadb",
+        "pkg-group": "chromadb",
+        "outputs": "all"
+      },
+      "claude-code": {
+        "pkg-path": "flox/claude-code",
+        "pkg-group": "claude-code"
+      },
+      "mcp": {
+        "pkg-path": "python313Packages.mcp",
+        "pkg-group": "mcp",
+        "outputs": "all"
+      },
+      "python3": {
+        "pkg-path": "python3",
+        "outputs": "all"
+      }
+    },
+    "hook": {
+      "on-activate": "# Put the packaged launcher on PATH (stages the read-only index to a writable\n# cache, forces offline, runs the stdio server with this env's python).\nmkdir -p \"$FLOX_ENV_CACHE/bin\"\ninstall -m755 \"$FLOX_ENV/share/ask-flox/ask-flox-mcp\" \"$FLOX_ENV_CACHE/bin/ask-flox-mcp\"\nexport PATH=\"$FLOX_ENV_CACHE/bin:$PATH\"\n\n# MCP config for Claude Code, exposed via the `ask-flox` alias below.\ncat > \"$FLOX_ENV_CACHE/ask-flox.mcp.json\" <<EOF\n{ \"mcpServers\": { \"ask-flox\": { \"command\": \"ask-flox-mcp\" } } }\nEOF\n"
+    },
+    "profile": {
+      "bash": "alias ask-flox='claude --mcp-config \"$FLOX_ENV_CACHE/ask-flox.mcp.json\"'\n",
+      "zsh": "alias ask-flox='claude --mcp-config \"$FLOX_ENV_CACHE/ask-flox.mcp.json\"'\n",
+      "fish": "alias ask-flox 'claude --mcp-config \"$FLOX_ENV_CACHE/ask-flox.mcp.json\"'\n"
+    },
+    "options": {
+      "systems": [
+        "x86_64-linux",
+        "aarch64-linux",
+        "aarch64-darwin"
+      ]
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "ask-flox",
+      "broken": false,
+      "derivation": "/nix/store/psw1xnxn20pfzikdjjiddxpg420z83y4-ask-flox-0.1.0-gc38a566.drv",
+      "description": "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool",
+      "install_id": "ask-flox",
+      "locked_url": "ssh://git@github.com/flox/ai-stacks-as-code.git?rev=2e7bd490f46e49e35fc527961da5e2b6c191017f",
+      "name": "ask-flox-0.1.0-gc38a566",
+      "pname": "ask-flox-0.1.0-gc38a566",
+      "rev": "2e7bd490f46e49e35fc527961da5e2b6c191017f",
+      "rev_count": 14,
+      "rev_date": "2026-07-14T18:35:01Z",
+      "scrape_date": "2026-07-14T22:18:05.050228623Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.1.0-gc38a566",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/m5gi9rydv2rysvxqkn25m6vsai7jcf3b-ask-flox-0.1.0-gc38a566"
+      },
+      "system": "aarch64-darwin",
+      "group": "ask-flox",
+      "priority": 5
+    },
+    {
+      "attr_path": "ask-flox",
+      "broken": false,
+      "derivation": "/nix/store/y6dknv4wxcj7v1mp6yvfwf2nxwcly76l-ask-flox-0.1.0-gc38a566.drv",
+      "description": "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool",
+      "install_id": "ask-flox",
+      "locked_url": "ssh://git@github.com/flox/ai-stacks-as-code.git?rev=2e7bd490f46e49e35fc527961da5e2b6c191017f",
+      "name": "ask-flox-0.1.0-gc38a566",
+      "pname": "ask-flox-0.1.0-gc38a566",
+      "rev": "2e7bd490f46e49e35fc527961da5e2b6c191017f",
+      "rev_count": 14,
+      "rev_date": "2026-07-14T18:35:01Z",
+      "scrape_date": "2026-07-14T22:18:05.050231499Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.1.0-gc38a566",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/1pfj3cshk1ad9ykbv9s67sxvy1hqpc4n-ask-flox-0.1.0-gc38a566"
+      },
+      "system": "aarch64-linux",
+      "group": "ask-flox",
+      "priority": 5
+    },
+    {
+      "attr_path": "ask-flox",
+      "broken": false,
+      "derivation": "/nix/store/7x9acf0v0vzf7kvfbl3wisw97ksb4a38-ask-flox-0.1.0-gc38a566.drv",
+      "description": "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool",
+      "install_id": "ask-flox",
+      "locked_url": "ssh://git@github.com/flox/ai-stacks-as-code.git?rev=2e7bd490f46e49e35fc527961da5e2b6c191017f",
+      "name": "ask-flox-0.1.0-gc38a566",
+      "pname": "ask-flox-0.1.0-gc38a566",
+      "rev": "2e7bd490f46e49e35fc527961da5e2b6c191017f",
+      "rev_count": 14,
+      "rev_date": "2026-07-14T18:35:01Z",
+      "scrape_date": "2026-07-14T22:18:05.050232026Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "0.1.0-gc38a566",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/i6vlp9v2248j5k6hjpwp0kcssggxlbgq-ask-flox-0.1.0-gc38a566"
+      },
+      "system": "x86_64-linux",
+      "group": "ask-flox",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/ww3ac4b0dmd2c7mvxp3qwk9q0cs73sfi-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:39.540674Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/65xzf5ms3n2hypzh727wmcc0j6lf75yb-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/r5gmal2dpyx5amdvp5lf2adf480mzw28-python3.13-chromadb-1.5.9"
+      },
+      "system": "aarch64-darwin",
+      "group": "chromadb",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/c3b1cc8767l75jlcq07kxdjdmdw063d8-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:25.868787Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/b6zhjkj3b64wm4wypyy4safa1s7c9j7b-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/my8jfm1j9nzkkhq5iahn9b03gg4qvb1p-python3.13-chromadb-1.5.9"
+      },
+      "system": "aarch64-linux",
+      "group": "chromadb",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.chromadb",
+      "broken": false,
+      "derivation": "/nix/store/qnlvag59f52xmj0f9zz7yrsqrvq7w0vj-python3.13-chromadb-1.5.9.drv",
+      "description": "AI-native open-source embedding database",
+      "install_id": "chromadb",
+      "license": "Apache-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-chromadb-1.5.9",
+      "pname": "chromadb",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:32.545878Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.5.9",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/s8s3k9cgf6f53nzy1c51lbnc94b28dii-python3.13-chromadb-1.5.9-dist",
+        "out": "/nix/store/8gpk8d52mpzxcfv42q1azrhbr7pakwxx-python3.13-chromadb-1.5.9"
+      },
+      "system": "x86_64-linux",
+      "group": "chromadb",
+      "priority": 5
+    },
+    {
+      "attr_path": "claude-code",
+      "broken": false,
+      "derivation": "/nix/store/7njrw8nmgj4kpci5jfimr1n6jddc5q4a-claude-code-2.1.209.drv",
+      "description": "Agentic coding tool from Anthropic",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/floxenvs?rev=9fb9610d3708342a5a8f2cfc7bacf4876197cbde",
+      "name": "claude-code-2.1.209",
+      "pname": "claude-code",
+      "rev": "9fb9610d3708342a5a8f2cfc7bacf4876197cbde",
+      "rev_count": 14405,
+      "rev_date": "2026-07-14T07:00:59Z",
+      "scrape_date": "2026-07-14T22:18:05.050256675Z",
+      "stabilities": [
+        "stable",
+        "staging",
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "2.1.209",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/9ivsnkj7ksxlky6kcgqvf85hya372cmm-claude-code-2.1.209"
+      },
+      "system": "aarch64-darwin",
+      "group": "claude-code",
+      "priority": 5
+    },
+    {
+      "attr_path": "claude-code",
+      "broken": false,
+      "derivation": "/nix/store/aqbfwyyvyj2w4pgfkjgsy426rbm1x80l-claude-code-2.1.209.drv",
+      "description": "Agentic coding tool from Anthropic",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/floxenvs?rev=9fb9610d3708342a5a8f2cfc7bacf4876197cbde",
+      "name": "claude-code-2.1.209",
+      "pname": "claude-code",
+      "rev": "9fb9610d3708342a5a8f2cfc7bacf4876197cbde",
+      "rev_count": 14405,
+      "rev_date": "2026-07-14T07:00:59Z",
+      "scrape_date": "2026-07-14T22:18:05.050257151Z",
+      "stabilities": [
+        "stable",
+        "staging",
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "2.1.209",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/icygcvxwynpx3vzxdsdmhv7szr8d2xa1-claude-code-2.1.209"
+      },
+      "system": "aarch64-linux",
+      "group": "claude-code",
+      "priority": 5
+    },
+    {
+      "attr_path": "claude-code",
+      "broken": false,
+      "derivation": "/nix/store/wsnlkhmcsfw96bkky6ggi4gjm7jv07qv-claude-code-2.1.209.drv",
+      "description": "Agentic coding tool from Anthropic",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/floxenvs?rev=9fb9610d3708342a5a8f2cfc7bacf4876197cbde",
+      "name": "claude-code-2.1.209",
+      "pname": "claude-code",
+      "rev": "9fb9610d3708342a5a8f2cfc7bacf4876197cbde",
+      "rev_count": 14405,
+      "rev_date": "2026-07-14T07:00:59Z",
+      "scrape_date": "2026-07-14T22:18:05.050257478Z",
+      "stabilities": [
+        "stable",
+        "staging",
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "2.1.209",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/cpdgbq05xq7f8yb8vyym4728p8vxd4rx-claude-code-2.1.209"
+      },
+      "system": "x86_64-linux",
+      "group": "claude-code",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.mcp",
+      "broken": false,
+      "derivation": "/nix/store/2gff1f3s027g5ax4j2zhi74y81lkaqyp-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:45.971127Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/0jrqxaad75x8issjgfx1sx2yxk9xdkxp-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/3wf6hv9av6nl1djcb4h6yb92hjsc6hy6-python3.13-mcp-1.27.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "mcp",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.mcp",
+      "broken": false,
+      "derivation": "/nix/store/gm06n58hm7a4c4kx2f04rnc5582zqbai-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:34.087787Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/mj5c4x6rp9ak988knixv4j0k1n4pydn4-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/3d7x2h0npj6cdpy8g40fr4nxylvvrfkb-python3.13-mcp-1.27.0"
+      },
+      "system": "aarch64-linux",
+      "group": "mcp",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.mcp",
+      "broken": false,
+      "derivation": "/nix/store/iicryksrzljmhnvpj0jnbpgbvsmfp0hc-python3.13-mcp-1.27.0.drv",
+      "description": "Official Python SDK for Model Context Protocol servers and clients",
+      "install_id": "mcp",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-mcp-1.27.0",
+      "pname": "mcp",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:40.770241Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.27.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/v0xqwrqbmnfnl4gx2ca20gn10gil568a-python3.13-mcp-1.27.0-dist",
+        "out": "/nix/store/pk5f53krsb3sjmc4bk522j6ih3dikjdl-python3.13-mcp-1.27.0"
+      },
+      "system": "x86_64-linux",
+      "group": "mcp",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3",
+      "broken": false,
+      "derivation": "/nix/store/bknb559vqzsgsrjz47gr6yfl8ivz60cs-python3-3.13.13.drv",
+      "description": "High-level dynamically-typed programming language",
+      "install_id": "python3",
+      "license": "Python-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "name": "python3-3.13.13",
+      "pname": "python3",
+      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "rev_count": 1017464,
+      "rev_date": "2026-06-16T02:33:49Z",
+      "scrape_date": "2026-06-17T03:13:55.984850Z",
+      "stabilities": [
+        "stable",
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.13.13",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/ygxqin6ydzjfawywqpp5pal8wv6sf5bh-python3-3.13.13"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3",
+      "broken": false,
+      "derivation": "/nix/store/x2hqw4p7ypn5mh08wgv4h37g6pqnw9ka-python3-3.13.13.drv",
+      "description": "High-level dynamically-typed programming language",
+      "install_id": "python3",
+      "license": "Python-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "name": "python3-3.13.13",
+      "pname": "python3",
+      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "rev_count": 1017464,
+      "rev_date": "2026-06-16T02:33:49Z",
+      "scrape_date": "2026-06-17T03:45:10.916575Z",
+      "stabilities": [
+        "stable",
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.13.13",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/wsi1phrz2gvs0xa8gxsq34mbdpr0s6h0-python3-3.13.13-debug",
+        "out": "/nix/store/lqn6mbgzzdrqq2qkwddcmxj9z6amdd86-python3-3.13.13"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3",
+      "broken": false,
+      "derivation": "/nix/store/3qs947by1lp93b4gnfisb3jx67mpkd3c-python3-3.13.13.drv",
+      "description": "High-level dynamically-typed programming language",
+      "install_id": "python3",
+      "license": "Python-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "name": "python3-3.13.13",
+      "pname": "python3",
+      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "rev_count": 1017464,
+      "rev_date": "2026-06-16T02:33:49Z",
+      "scrape_date": "2026-06-17T04:48:11.369152Z",
+      "stabilities": [
+        "stable",
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.13.13",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/f8f8fd1yyvay2916vv1lk77v4cy5p3wz-python3-3.13.13-debug",
+        "out": "/nix/store/60m4rxhg2fldqaak400c0lry96ijrzqn-python3-3.13.13"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    }
+  ]
+}

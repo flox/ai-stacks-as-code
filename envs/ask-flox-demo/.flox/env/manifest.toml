@@ -1,0 +1,56 @@
+schema-version = "1.13.0"
+
+# Ask-Flox demo environment ------------------------------------------------
+# Activate it and you get Claude Code with the `search_flox_docs` tool wired to
+# the baked Flox-docs index. Installs the published ask-flox package (index +
+# ONNX model + server code) from the flox-labs catalog.
+
+[install]
+# Published package: cited retrieval over the Flox docs + blog as an MCP tool.
+# Own pkg-group — flox-labs is a separate catalog page (cf. the flox-cuda lesson).
+ask-flox.pkg-path              = "flox-labs/ask-flox"
+ask-flox.pkg-group             = "ask-flox"
+
+# Claude Code — the agent that calls the tool. flox catalog -> own group too.
+claude-code.pkg-path           = "flox/claude-code"
+claude-code.pkg-group          = "claude-code"
+
+# Python runtime + retrieval deps. Default embedder is ONNX (torch-free), so
+# this needs only mcp + chromadb (which brings onnxruntime) — no torch/CUDA.
+python3.pkg-path               = "python3"
+python3.outputs = "all"
+mcp.pkg-path                   = "python313Packages.mcp"
+mcp.pkg-group                  = "mcp"
+mcp.outputs = "all"
+chromadb.pkg-path              = "python313Packages.chromadb"
+chromadb.pkg-group             = "chromadb"
+chromadb.outputs = "all"
+
+[hook]
+on-activate = '''
+# Put the packaged launcher on PATH (stages the read-only index to a writable
+# cache, forces offline, runs the stdio server with this env's python).
+mkdir -p "$FLOX_ENV_CACHE/bin"
+install -m755 "$FLOX_ENV/share/ask-flox/ask-flox-mcp" "$FLOX_ENV_CACHE/bin/ask-flox-mcp"
+export PATH="$FLOX_ENV_CACHE/bin:$PATH"
+
+# MCP config for Claude Code, exposed via the `ask-flox` alias below.
+cat > "$FLOX_ENV_CACHE/ask-flox.mcp.json" <<EOF
+{ "mcpServers": { "ask-flox": { "command": "ask-flox-mcp" } } }
+EOF
+'''
+
+[profile]
+bash = '''
+alias ask-flox='claude --mcp-config "$FLOX_ENV_CACHE/ask-flox.mcp.json"'
+'''
+zsh = '''
+alias ask-flox='claude --mcp-config "$FLOX_ENV_CACHE/ask-flox.mcp.json"'
+'''
+fish = '''
+alias ask-flox 'claude --mcp-config "$FLOX_ENV_CACHE/ask-flox.mcp.json"'
+'''
+
+[options]
+# ask-flox is arch-independent data+code; deps resolve on all published systems.
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
