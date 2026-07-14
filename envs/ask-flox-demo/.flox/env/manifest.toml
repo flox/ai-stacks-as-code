@@ -17,8 +17,9 @@ claude-code.pkg-group          = "claude-code"
 
 # Python runtime + retrieval deps. Default embedder is ONNX (torch-free), so
 # this needs only mcp + chromadb (which brings onnxruntime) — no torch/CUDA.
-python3.pkg-path               = "python3"
-python3.outputs = "all"
+# Pin python313: the deps are python313Packages, and `python3` floats to 3.14.
+python313.pkg-path             = "python313"
+python313.outputs = "all"
 mcp.pkg-path                   = "python313Packages.mcp"
 mcp.pkg-group                  = "mcp"
 mcp.outputs = "all"
