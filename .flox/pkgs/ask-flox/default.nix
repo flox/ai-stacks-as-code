@@ -27,12 +27,11 @@ runCommand "ask-flox-0.1.0"
   }
   ''
     dst=$out/share/ask-flox
-    mkdir -p "$dst/onnx-model/all-MiniLM-L6-v2"
+    mkdir -p "$dst/onnx-model/all-MiniLM-L6-v2" "$dst/pipeline"
 
-    # Server + retrieval code (drop __pycache__).
-    cp -r ${../../../pipeline} "$dst/pipeline"
-    chmod -R u+w "$dst/pipeline"
-    find "$dst/pipeline" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+    # Server + retrieval code — only the .py modules, not dev docs (SPEC.md,
+    # CODE-BUNDLE.md) or __pycache__.
+    cp ${../../../pipeline}/*.py "$dst/pipeline/"
 
     # Prebuilt, content-pinned index (extracts to index/ + index-manifest.json).
     tar -xzf ${./index.tar.gz} -C "$dst"
