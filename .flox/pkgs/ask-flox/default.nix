@@ -15,13 +15,19 @@
 { runCommand, fetchurl }:
 
 let
+  # Version is <base>-g<short-commit>, stamped into VERSION by
+  # scripts/stamp-ask-flox-version.sh (Nix can't read git reliably in a clean
+  # publish clone). Strip whitespace/newline so the derivation name is clean.
+  version = builtins.replaceStrings [ "\n" " " ] [ "" "" ] (builtins.readFile ./VERSION);
+
   onnxModel = fetchurl {
     url = "https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz";
     sha256 = "913d7300ceae3b2dbc2c50d1de4baacab4be7b9380491c27fab7418616a16ec3";
   };
 in
-runCommand "ask-flox-0.1.0"
+runCommand "ask-flox-${version}"
   {
+    inherit version;
     meta.description =
       "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool";
   }

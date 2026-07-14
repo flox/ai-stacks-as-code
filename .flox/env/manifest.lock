@@ -216,18 +216,6 @@
       "jupyter-lab": {
         "command": "# Activate venv for user packages\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\nfi\n\nexec jupyter-lab \\\n  --no-browser \\\n  --ip=\"$JUPYTER_HOST\" \\\n  --port=\"$JUPYTER_PORT\" \\\n  --IdentityProvider.token=\"$JUPYTER_SERVER_TOKEN\" \\\n  --notebook-dir=\"$NOTEBOOK_DIR\"\n"
       }
-    },
-    "build": {
-      "ask-flox": {
-        "command": "set -euo pipefail\nmkdir -p \"$out/share/ask-flox\"\ncp -r pipeline \"$out/share/ask-flox/pipeline\"\ncp -r ${assets}/share/ask-flox/index \"$out/share/ask-flox/index\"\ncp ${assets}/share/ask-flox/index-manifest.json \"$out/share/ask-flox/index-manifest.json\"\ncp -r ${assets}/share/ask-flox/model \"$out/share/ask-flox/model\"\n# Launch logic shipped as DATA (mode 644, not under bin/) so Flox won't wrap it.\n# The consuming env installs it onto PATH and runs it with its own python.\ninstall -m644 packaging/ask-flox-mcp \"$out/share/ask-flox/ask-flox-mcp\"\n",
-        "sandbox": "pure",
-        "version": "0.1.0",
-        "description": "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool"
-      },
-      "assets": {
-        "command": "set -euo pipefail\nexport AI_BACKEND=cpu\nexport WORK_DIR=\"$PWD/work\"\nexport HF_HOME=\"$PWD/.hfcache\"\njust ingest corpus\njust index\nmkdir -p \"$out/share/ask-flox\"\ncp -r work/index \"$out/share/ask-flox/index\"\ncp work/index-manifest.json \"$out/share/ask-flox/index-manifest.json\"\ncp -r \"$HF_HOME\" \"$out/share/ask-flox/model\"\n",
-        "sandbox": "off"
-      }
     }
   },
   "packages": [
@@ -4546,18 +4534,6 @@
           "aarch64-linux",
           "aarch64-darwin"
         ]
-      },
-      "build": {
-        "ask-flox": {
-          "command": "set -euo pipefail\nmkdir -p \"$out/share/ask-flox\"\ncp -r pipeline \"$out/share/ask-flox/pipeline\"\ncp -r ${assets}/share/ask-flox/index \"$out/share/ask-flox/index\"\ncp ${assets}/share/ask-flox/index-manifest.json \"$out/share/ask-flox/index-manifest.json\"\ncp -r ${assets}/share/ask-flox/model \"$out/share/ask-flox/model\"\n# Launch logic shipped as DATA (mode 644, not under bin/) so Flox won't wrap it.\n# The consuming env installs it onto PATH and runs it with its own python.\ninstall -m644 packaging/ask-flox-mcp \"$out/share/ask-flox/ask-flox-mcp\"\n",
-          "sandbox": "pure",
-          "version": "0.1.0",
-          "description": "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool"
-        },
-        "assets": {
-          "command": "set -euo pipefail\nexport AI_BACKEND=cpu\nexport WORK_DIR=\"$PWD/work\"\nexport HF_HOME=\"$PWD/.hfcache\"\njust ingest corpus\njust index\nmkdir -p \"$out/share/ask-flox\"\ncp -r work/index \"$out/share/ask-flox/index\"\ncp work/index-manifest.json \"$out/share/ask-flox/index-manifest.json\"\ncp -r \"$HF_HOME\" \"$out/share/ask-flox/model\"\n",
-          "sandbox": "off"
-        }
       },
       "include": {
         "environments": [
