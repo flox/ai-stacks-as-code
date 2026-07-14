@@ -10,6 +10,15 @@
 work/
 reports/
 
+# --- flox build artifacts + model cache ---
+result-*
+.hfcache/
+
+# --- ask-flox-demo: the store-path-pinned test env is machine-specific
+# (its lock references a local /nix/store hash). Keep only the portable
+# manifest.toml.template; the realised env is created post-publish.
+envs/ask-flox-demo/.flox/
+
 # --- Python ---
 __pycache__/
 *.py[cod]

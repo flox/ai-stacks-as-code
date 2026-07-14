@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Ask-Flox MCP launcher — run by the *consuming* Flox environment (which
+# provides python3.13 + mcp/sentence-transformers/chromadb/torch). It serves the
+# stdio retrieval tool against the index + embedding model baked into the
+# installed `ask-flox` package, fully offline.
+#
+# NOT shipped as a package executable on purpose: Flox wraps packaged binaries
+# into the build-env closure, which lacks the (pkg-grouped) Python deps. Instead
+# the wrapper env drops this on PATH so the ACTIVE env's python resolves them.
+set -euo pipefail
+
+# Installed package data (ask-flox pkg -> $FLOX_ENV/share/ask-flox).
+share="${ASK_FLOX_SHARE:-${FLOX_ENV:-}/share/ask-flox}"
+[ -d "$share/pipeline" ] || { echo "ask-flox package data not found at $share" >&2; exit 1; }
+
+# ChromaDB opens its SQLite read-write, but the baked index lives in the
+# read-only Nix store. Stage it once into a writable cache.
+cache="${ASK_FLOX_CACHE:-${FLOX_ENV_CACHE:-$HOME/.cache/ask-flox}/ask-flox-index}"
+if [ ! -f "$cache/index/chroma.sqlite3" ]; then
+  mkdir -p "$cache"
+  cp -r "$share/index" "$cache/index"
+  cp "$share/index-manifest.json" "$cache/index-manifest.json"
+  chmod -R u+w "$cache"
+fi
+
+export WORK_DIR="$cache"                       # holds writable index/ + manifest
+export HF_HOME="${HF_HOME:-$share/model}"       # model cache is read-only-OK
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+# APPEND, never overwrite — overwriting breaks Flox pkg-group site-package paths.
+export PYTHONPATH="$share/pipeline${PYTHONPATH:+:$PYTHONPATH}"
+
+exec python3.13 "$share/pipeline/mcp_server.py" "$@"

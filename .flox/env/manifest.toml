@@ -84,7 +84,51 @@ environments = [
     { dir = "envs/ai-notebook" },
 ]
 
-[build]
+## Packaging ---------------------------------------------------------
+## Two-stage build so the published package is self-contained + offline:
+##   assets (sandbox=off): rebuild the index from the committed corpus and
+##     capture the embedding-model cache — needs network + the composed deps.
+##   ask-flox (sandbox=pure): assemble the shippable package from git-tracked
+##     code + the baked assets. This is the target you `flox publish`.
+[build.assets]
+sandbox = "off"
+command = '''
+set -euo pipefail
+export AI_BACKEND=cpu
+export WORK_DIR="$PWD/work"
+export HF_HOME="$PWD/.hfcache"
+just ingest corpus
+just index
+mkdir -p "$out/share/ask-flox"
+cp -r work/index "$out/share/ask-flox/index"
+cp work/index-manifest.json "$out/share/ask-flox/index-manifest.json"
+cp -r "$HF_HOME" "$out/share/ask-flox/model"
+'''
+
+[build.ask-flox]
+sandbox = "pure"
+version = "0.1.0"
+description = "Ask Flox: cited retrieval over the Flox docs + blog, served as an MCP tool"
+# DATA + CODE package (no executable): ships the prebuilt index, the embedding-
+# model cache, and the server code under $out/share/ask-flox. It deliberately
+# ships NO launcher binary — Flox wraps any packaged executable into the build
+# environment's closure, which (because the Python deps live in separate
+# pkg-groups, not `toplevel`) lacks mcp/sentence-transformers/chromadb, and
+# `runtime-packages` only accepts toplevel-group pkgs. So the CONSUMING env
+# provides python + those deps and runs $out/share/ask-flox/pipeline/mcp_server.py
+# directly (see envs/ask-flox-demo). packaging/ask-flox-mcp is the reference
+# launch logic the wrapper env reuses.
+command = '''
+set -euo pipefail
+mkdir -p "$out/share/ask-flox"
+cp -r pipeline "$out/share/ask-flox/pipeline"
+cp -r ${assets}/share/ask-flox/index "$out/share/ask-flox/index"
+cp ${assets}/share/ask-flox/index-manifest.json "$out/share/ask-flox/index-manifest.json"
+cp -r ${assets}/share/ask-flox/model "$out/share/ask-flox/model"
+# Launch logic shipped as DATA (mode 644, not under bin/) so Flox won't wrap it.
+# The consuming env installs it onto PATH and runs it with its own python.
+install -m644 packaging/ask-flox-mcp "$out/share/ask-flox/ask-flox-mcp"
+'''
 
 [options]
 systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
