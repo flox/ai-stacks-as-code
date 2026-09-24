@@ -53,8 +53,11 @@ flowchart TD
       EV -->|fail| REJ[rejected]
     end
     AUTH -->|update| AW[PublicationAuthorityWorkflow<br/>singleton, stable id]
-    AW -->|granted + newest| PROM[promote: atomic current swap<br/>+ verify ask-flox can open]
+    AW -->|register| FENCE[(publication-fence.json)]
+    AW -->|fresh| VER[verify artifact opens + queries]
+    VER -->|still newest| PROM[promote: atomic current swap]
     AW -->|superseded / stale| SUP[denied - never becomes current]
+    VER -->|superseded during verify| SUP
     PROM --> CUR[(store/current.json)]
 ```
 
@@ -67,10 +70,20 @@ reads. Large payloads (chunks, embeddings, index files) never travel through
 Temporal history — they live in the store and are referenced by id/digest/hash.
 
 **Publication authority.** `PublicationAuthorityWorkflow` is a singleton (stable
-Workflow ID `ask-flox-pub-authority`). Because one workflow processes its updates
-one-at-a-time, generation-aware compare-and-set needs no locks. It is the *only*
-writer of the `current` pointer (via `promote_activity`), so two builds finishing
-at once cannot race. It bounds its own history with Continue-As-New.
+Workflow ID `ask-flox-pub-authority`). Temporal runs async Update handlers as
+concurrent tasks, so state mutation and the final pointer swap share a
+workflow-local `asyncio.Lock`. Slow artifact verification runs outside that lock;
+`authorize` re-checks freshness after verification and before promotion, so a
+new generation can supersede an older request while it verifies.
+Registration also persists the newest `(generation, candidate)` as a durable
+publication fence before the Update completes. `promote_activity` is the only
+logical writer of `current`; the fence update and pointer compare/swap share one
+filesystem lock. A timed-out Activity that keeps running cannot publish after a
+newer registration has crossed that fence. The workflow bounds its own history
+with Continue-As-New. The command-sequence change is guarded by Temporal's
+`workflow.patched` API so pre-change histories retain their original replay path;
+legacy promotion requests still verify, re-query the live authority state, and
+establish a migration fence before mutating `current`.
 
 **Supersession rule.** Every new build request `register`s a new generation,
 which becomes the desired one. `authorize` grants only for the desired generation
@@ -87,14 +100,17 @@ candidates/<candidate_id>/work/           per-candidate build staging
 artifacts/<artifact_digest>.tar.gz        immutable, content-addressed indexes
 provenance/<candidate_id>.json            how it was produced
 published/<candidate_id>.json             publish record (idempotency anchor)
+publication-fence.json                    newest registered generation + candidate
 current.json                              the active pointer (atomic os.replace)
 ```
 
 `current.json` names the active `artifact_digest` + version + generation.
-Consumers read `current`, never a half-written pointer (single writer + atomic
-rename). Artifacts are never mutated in place. Byte-for-byte identical Chroma
-files across rebuilds are **not** required; the artifact digest hashes file
-*contents* deterministically instead.
+Consumers read `current`, never a half-written pointer: the publication fence and
+pointer swap use one filesystem lock, and the final `os.replace` is atomic for
+readers. Once a newer registration is fenced, an older generation is rejected
+even if a stale Activity attempt runs late. Artifacts are never mutated in place.
+Byte-for-byte identical Chroma files across rebuilds are **not** required; the artifact digest hashes
+file *contents* deterministically instead.
 
 The **seam to real publication** (FloxHub `flox-labs/ask-flox`) is deliberate:
 today's release path (`refresh-ask-flox-index.sh` + `flox publish`) can be driven

@@ -3,10 +3,10 @@
 Two workflows:
 
 * ``PublicationAuthorityWorkflow`` — a singleton (stable Workflow ID) that is the
-  ONE authority for publication ordering (§2.3, §8). It serializes generation
-  registration and authorization; because a single workflow processes its
-  updates one at a time, generation-aware compare-and-set needs no locks. It is
-  also the only writer of the ``current`` pointer (via ``promote_activity``).
+  ONE authority for publication ordering (§2.3, §8). Its async Update handlers
+  use a workflow-local lock for generation mutation and the final publication
+  commit, while slow verification may interleave safely. It is also the only
+  logical writer of the ``current`` pointer (via ``promote_activity``).
 
 * ``BuildWorkflow`` — the per-candidate lifecycle: snapshot -> identity ->
   register intent -> ingest -> index -> package -> evaluate -> request
@@ -15,6 +15,7 @@ Two workflows:
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -26,6 +27,7 @@ from .activities import (
     compute_candidate_activity,
     evaluate_activity,
     existing_artifact_activity,
+    fence_generation_activity,
     hydrate_activity,
     index_activity,
     ingest_activity,
@@ -35,10 +37,16 @@ from .activities import (
     register_generation_activity,
     request_authorization_activity,
     resolve_snapshot_activity,
+    verify_artifact_activity,
 )
 
 # Bound authority history: Continue-As-New after this many handled updates.
 _CONTINUE_AFTER_UPDATES = 500
+
+# Workflow command-sequence version. Histories created before this patch replay
+# the legacy handlers; the first live post-upgrade invocation records the marker
+# and takes the fenced/verified path. Keep until all pre-patch histories are gone.
+_PUBLICATION_AUTHORITY_PATCH = "publication-authority-fence-v1"
 
 _DEFAULT_RETRY = RetryPolicy(maximum_attempts=3, initial_interval=timedelta(seconds=1))
 
@@ -80,6 +88,10 @@ class PublicationAuthorityWorkflow:
     def __init__(self) -> None:
         self._state = authority.AuthorityState()
         self._handled = 0
+        # Async Update handlers run concurrently and may interleave at awaits.
+        # Serialize state mutation and the final current-pointer swap; slow
+        # artifact verification deliberately happens outside this lock.
+        self._publication_lock = asyncio.Lock()
 
     @workflow.run
     async def run(self, carry: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -93,10 +105,28 @@ class PublicationAuthorityWorkflow:
 
     @workflow.update
     async def register(self, candidate_id: str) -> int:
-        """Register a new publication intent; returns its generation."""
-        self._state, generation = authority.register(self._state, candidate_id)
-        self._handled += 1
-        return generation
+        """Register and durably fence a new publication intent."""
+        if not workflow.patched(_PUBLICATION_AUTHORITY_PATCH):
+            # Replay compatibility for histories produced before the fencing
+            # change. This branch emits the exact legacy command sequence.
+            self._state, generation = authority.register(self._state, candidate_id)
+            self._handled += 1
+            return generation
+
+        # State advances before the Activity is scheduled, so even a failed
+        # fence attempt consumes its generation. The lock stays held until the
+        # durable fence is confirmed, which makes registration and publication
+        # linearizable at the external store boundary.
+        async with self._publication_lock:
+            self._state, generation = authority.register(self._state, candidate_id)
+            self._handled += 1
+            await workflow.execute_activity(
+                fence_generation_activity,
+                {"candidate_id": candidate_id, "generation": generation},
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=_DEFAULT_RETRY,
+            )
+            return generation
 
     @register.validator
     def _validate_register(self, candidate_id: str) -> None:
@@ -107,31 +137,90 @@ class PublicationAuthorityWorkflow:
     async def authorize(self, request: dict[str, Any]) -> dict[str, Any]:
         """Grant or deny publication for a candidate/generation (§8).
 
-        On a fresh grant this performs the atomic `current` swap itself, so the
-        authority is the sole mutator of the active pointer. Superseded or stale
-        requests are denied and never touch `current`.
+        Slow verification runs outside the publication lock. The request is
+        re-evaluated after verification, immediately before the pointer swap.
         """
         candidate_id = request["candidate_id"]
         generation = request["generation"]
-        decision = authority.evaluate_request(self._state, candidate_id, generation)
-        if decision.granted and not decision.already_published:
+
+        if not workflow.patched(_PUBLICATION_AUTHORITY_PATCH):
+            # Exact legacy Workflow command sequence for replay of pre-patch
+            # histories. `promote_activity` retains a legacy verification and
+            # authority re-check for an old Activity resumed after an upgrade.
+            decision = authority.evaluate_request(self._state, candidate_id, generation)
+            if decision.granted and not decision.already_published:
+                promotion = await workflow.execute_activity(
+                    promote_activity,
+                    {
+                        "candidate_id": candidate_id,
+                        "generation": generation,
+                        "artifact_digest": request["artifact_digest"],
+                        "version": request["version"],
+                        "snapshot_id": request.get("snapshot_id"),
+                    },
+                    start_to_close_timeout=timedelta(minutes=5),
+                    retry_policy=_DEFAULT_RETRY,
+                )
+                if isinstance(promotion, dict) and promotion.get("promoted") is False:
+                    decision = authority.Decision(
+                        False,
+                        str(promotion.get("reason", "superseded")),
+                        generation,
+                        self._state.published_generation,
+                        self._state.published_candidate,
+                    )
+                else:
+                    self._state = authority.commit_publication_legacy(
+                        self._state, candidate_id, generation, request["artifact_digest"]
+                    )
+            self._handled += 1
+            return _decision_to_dict(decision)
+
+        async with self._publication_lock:
+            decision = authority.evaluate_request(self._state, candidate_id, generation)
+            if not decision.granted or decision.already_published:
+                self._handled += 1
+                return _decision_to_dict(decision)
+            # Establish/refresh the fence here too so a generation registered by
+            # a pre-patch worker can migrate safely when it later authorizes.
             await workflow.execute_activity(
-                promote_activity,
-                {
-                    "candidate_id": candidate_id,
-                    "generation": generation,
-                    "artifact_digest": request["artifact_digest"],
-                    "version": request["version"],
-                    "snapshot_id": request.get("snapshot_id"),
-                },
-                start_to_close_timeout=timedelta(minutes=5),
+                fence_generation_activity,
+                {"candidate_id": candidate_id, "generation": generation},
+                start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=_DEFAULT_RETRY,
             )
-            self._state = authority.commit_publication(
-                self._state, candidate_id, generation, request["artifact_digest"]
-            )
-        self._handled += 1
-        return _decision_to_dict(decision)
+
+        await workflow.execute_activity(
+            verify_artifact_activity,
+            request["artifact_digest"],
+            start_to_close_timeout=timedelta(minutes=5),
+            retry_policy=_DEFAULT_RETRY,
+        )
+
+        async with self._publication_lock:
+            # Registration and other authorizations may have run while the
+            # immutable artifact was being verified. Re-check freshness at the
+            # actual commit boundary before any current-pointer mutation.
+            decision = authority.evaluate_request(self._state, candidate_id, generation)
+            if decision.granted and not decision.already_published:
+                await workflow.execute_activity(
+                    promote_activity,
+                    {
+                        "candidate_id": candidate_id,
+                        "generation": generation,
+                        "artifact_digest": request["artifact_digest"],
+                        "version": request["version"],
+                        "snapshot_id": request.get("snapshot_id"),
+                        "preverified": True,
+                    },
+                    start_to_close_timeout=timedelta(seconds=30),
+                    retry_policy=_DEFAULT_RETRY,
+                )
+                self._state = authority.commit_publication(
+                    self._state, candidate_id, generation, request["artifact_digest"]
+                )
+            self._handled += 1
+            return _decision_to_dict(decision)
 
     @authorize.validator
     def _validate_authorize(self, request: dict[str, Any]) -> None:

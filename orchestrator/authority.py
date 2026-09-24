@@ -99,6 +99,27 @@ def evaluate_request(
     return Decision(True, "granted", generation, generation, candidate_id)
 
 
+def commit_publication_legacy(
+    state: AuthorityState,
+    candidate_id: str,
+    generation: int,
+    artifact_digest: str,
+) -> AuthorityState:
+    """Replay-only form of the pre-fencing publication commit.
+
+    Existing Temporal histories may contain the old authorize command sequence,
+    whose post-Activity state mutation was unconditional. New executions must use
+    :func:`commit_publication`; this helper exists only so those histories replay
+    with their original pure-state semantics.
+    """
+    return replace(
+        state,
+        published_generation=generation,
+        published_candidate=candidate_id,
+        published_artifact=artifact_digest,
+    )
+
+
 def commit_publication(
     state: AuthorityState,
     candidate_id: str,
@@ -107,9 +128,17 @@ def commit_publication(
 ) -> AuthorityState:
     """Record that ``candidate_id`` became current at ``generation``.
 
-    Call only after :func:`evaluate_request` returned a fresh ``granted``
-    decision *and* the atomic pointer swap succeeded.
+    The commit re-checks the ordering policy rather than trusting its caller.
+    This keeps stale or superseded generations from being written into authority
+    state even if a future caller forgets the evaluate-before-commit contract.
     """
+    decision = evaluate_request(state, candidate_id, generation)
+    if decision.already_published:
+        if state.published_artifact != artifact_digest:
+            raise ValueError("published generation cannot change artifact")
+        return state
+    if not decision.granted:
+        raise ValueError(f"cannot commit publication: {decision.reason}")
     return replace(
         state,
         published_generation=generation,

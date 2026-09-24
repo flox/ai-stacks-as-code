@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from . import candidate, config, evaluate as evaluate_mod, snapshot as snapshot_mod, store
 
@@ -221,13 +222,88 @@ async def hydrate_activity(request: dict[str, Any]) -> dict[str, Any]:
 
 
 @activity.defn
-async def promote_activity(request: dict[str, Any]) -> dict[str, Any]:
-    """Atomically advance `current` to a published artifact (single-writer).
+async def fence_generation_activity(request: dict[str, Any]) -> dict[str, Any]:
+    """Persist the newest registration before it can supersede older work."""
+    try:
+        return store.fence_generation(request["generation"], request["candidate_id"])
+    except (store.StalePublicationError, store.PublicationGenerationConflict) as exc:
+        raise ApplicationError(str(exc), non_retryable=True) from exc
 
-    Called only by the authority workflow after a granted authorization, so this
-    is the one place the `current` pointer moves. Idempotent: rewriting the same
-    entry is harmless, and the published record anchors publish-retry.
+
+@activity.defn
+async def verify_artifact_activity(artifact_digest: str) -> dict[str, Any]:
+    """Gate publication on a real consumer open/query of the immutable artifact."""
+    if not _verify_artifact_opens(artifact_digest):
+        raise ApplicationError(
+            f"artifact {artifact_digest} failed publish verification",
+            non_retryable=True,
+        )
+    return {"artifact_digest": artifact_digest, "verified": True}
+
+
+async def _legacy_promotion_still_desired(request: dict[str, Any]) -> bool:
+    """Fence a pre-patch promotion only if the authority still desires it.
+
+    A promotion Activity can be present in a pre-patch Temporal history without
+    a corresponding durable store fence. If that Activity is resumed by the
+    upgraded worker, consult the live authority state before creating the
+    migration fence. This prevents a previously authorized-but-now-superseded
+    Activity from reviving an older generation during crash/restart recovery.
     """
+    status = await _authority_status()
+    desired_generation = status.get("desired_generation") if isinstance(status, dict) else None
+    registrations = status.get("registrations") if isinstance(status, dict) else None
+
+    desired_candidate = None
+    if isinstance(registrations, list):
+        for registration in reversed(registrations):
+            if (
+                isinstance(registration, (list, tuple))
+                and len(registration) == 2
+                and registration[0] == desired_generation
+            ):
+                desired_candidate = registration[1]
+                break
+
+    if (
+        desired_generation != request.get("generation")
+        or desired_candidate != request.get("candidate_id")
+    ):
+        return False
+
+    try:
+        fenced = store.fence_generation(request["generation"], request["candidate_id"])
+    except (store.StalePublicationError, store.PublicationGenerationConflict) as exc:
+        raise ApplicationError(str(exc), non_retryable=True) from exc
+    return (
+        fenced.get("generation") == request["generation"]
+        and fenced.get("candidate_id") == request["candidate_id"]
+    )
+
+
+@activity.defn
+async def promote_activity(request: dict[str, Any]) -> dict[str, Any]:
+    """Atomically advance `current` after publish verification has succeeded.
+
+    New Workflow histories pass ``preverified=True`` after the dedicated
+    verification Activity. Legacy histories do not; those requests verify here,
+    then re-check the live authority and establish a migration fence before any
+    pointer mutation.
+    """
+    if not request.get("preverified", False):
+        if not _verify_artifact_opens(request["artifact_digest"]):
+            raise ApplicationError(
+                f"artifact {request['artifact_digest']} failed publish verification",
+                non_retryable=True,
+            )
+        if not await _legacy_promotion_still_desired(request):
+            return {
+                "promoted": False,
+                "reason": "superseded",
+                "generation": request["generation"],
+                "candidate_id": request["candidate_id"],
+            }
+
     entry = {
         "generation": request["generation"],
         "candidate_id": request["candidate_id"],
@@ -235,12 +311,17 @@ async def promote_activity(request: dict[str, Any]) -> dict[str, Any]:
         "version": request["version"],
         "snapshot_id": request.get("snapshot_id"),
         "published_at": datetime.now(timezone.utc).isoformat(),
+        "verified": True,
     }
-    # §9 step 9 — verify a consumer can actually open the published artifact.
-    verify = _verify_artifact_opens(request["artifact_digest"])
-    entry["verified"] = verify
+
+    # advance_current enforces the durable registration fence and returns the
+    # canonical stored entry on an idempotent Activity retry. Record only after
+    # that gate succeeds so stale attempts are never marked as published.
+    try:
+        entry = store.advance_current(entry)
+    except (store.StalePublicationError, store.PublicationGenerationConflict) as exc:
+        raise ApplicationError(str(exc), non_retryable=True) from exc
     store.record_publication(entry)
-    store.advance_current(entry)
     return entry
 
 
@@ -262,6 +343,16 @@ def _verify_artifact_opens(artifact_digest: str) -> bool:
 # These act as a Temporal *client* against the singleton authority workflow.
 # Kept out of workflow code (which can only signal external workflows); the
 # validated Update result (grant/deny) comes back synchronously here.
+
+async def _authority_status() -> dict[str, Any]:
+    """Query the existing authority without ever bootstrapping a replacement."""
+    from temporalio.client import Client
+
+    cfg = config.temporal_config()
+    client = await Client.connect(cfg.address, namespace=cfg.namespace)
+    handle = client.get_workflow_handle(config.AUTHORITY_WORKFLOW_ID)
+    return await handle.query("status")
+
 
 async def _authority_handle():
     from temporalio.client import Client

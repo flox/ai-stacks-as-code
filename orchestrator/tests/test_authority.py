@@ -69,6 +69,21 @@ class AuthorityPolicyTest(unittest.TestCase):
         # A different candidate claiming the already-published generation loses.
         self.assertFalse(authority.evaluate_request(s, "cand_X", gen).granted)
 
+    def test_commit_rejects_superseded_generation(self):
+        s = AuthorityState()
+        s, gen_a = authority.register(s, "cand_A")
+        s, _gen_b = authority.register(s, "cand_B")
+        with self.assertRaisesRegex(ValueError, "superseded"):
+            authority.commit_publication(s, "cand_A", gen_a, "art_a")
+
+    def test_idempotent_commit_cannot_change_artifact(self):
+        s = AuthorityState()
+        s, gen = authority.register(s, "cand_A")
+        s = authority.commit_publication(s, "cand_A", gen, "art_a")
+        self.assertIs(authority.commit_publication(s, "cand_A", gen, "art_a"), s)
+        with self.assertRaisesRegex(ValueError, "cannot change artifact"):
+            authority.commit_publication(s, "cand_A", gen, "art_other")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -28,6 +28,8 @@ ACTIVITIES = [
     A.package_activity,
     A.evaluate_activity,
     A.is_published_activity,
+    A.fence_generation_activity,
+    A.verify_artifact_activity,
     A.promote_activity,
     A.register_generation_activity,
     A.request_authorization_activity,

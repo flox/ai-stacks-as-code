@@ -86,12 +86,13 @@ async def happy_path(client: Client, run_tag: str) -> dict:
 
 
 async def supersession(client: Client, artifact_digest: str, run_tag: str) -> None:
-    """Drive a fresh authority through the exact §19.13-14 race."""
-    cfg = config.temporal_config()
-    auth_id = f"{config.AUTHORITY_WORKFLOW_ID}-demo-race-{run_tag}"
-    handle = await client.start_workflow(
-        "PublicationAuthorityWorkflow", id=auth_id, task_queue=cfg.task_queue,
-    )
+    """Drive the singleton authority through the §19.13-14 race.
+
+    There is exactly one publication authority (and one durable generation fence)
+    per store, so this uses the same authority the build already advanced —
+    registering two fresh generations on top of it, not a throwaway one.
+    """
+    handle = client.get_workflow_handle(config.AUTHORITY_WORKFLOW_ID)
     gen_a = await handle.execute_update("register", "cand_OLD")
     gen_b = await handle.execute_update("register", "cand_NEW")
     print(f"  registered cand_OLD=gen{gen_a}, cand_NEW=gen{gen_b}")
