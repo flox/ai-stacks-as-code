@@ -5,9 +5,10 @@ that sits on top of the existing `pipeline/` stages. It turns "rebuild the index
 and hope" into a workflow that survives interruption, orders publication safely,
 and records exactly how every published index was produced.
 
-> **Status:** Phase 1 (correctness spine) is implemented and demonstrated.
-> Phases 2–5 (durable-processing polish, agentic evaluation, human review,
-> operational hardening) are staged — see `PROMPT_ask_flox_temporal_flox_ingestion_v2.md` §23.
+> **Status:** Phase 1 (correctness spine) and Phase 2 (durable processing +
+> incremental reuse) are implemented and demonstrated. Phases 3–5 (agentic
+> evaluation, human review, operational hardening) are staged — see
+> `PROMPT_ask_flox_temporal_flox_ingestion_v2.md` §23.
 
 ## Division of responsibility
 
@@ -115,7 +116,23 @@ failure.
   tree) fails fast rather than looping.
 - On worker restart, Temporal replays completed activities from history rather
   than re-running them, so interrupted builds resume without redoing expensive
-  work (crash/resume demonstration — Phase 2).
+  work (`scripts/demo-crash-resume.sh`).
+
+## Incremental reuse (Phase 2)
+
+Two layers avoid repeating expensive work whose output is already known (§12):
+
+- **Candidate-level reuse.** Identical inputs produce an identical `candidate_id`;
+  if that candidate's immutable artifact already exists, `BuildWorkflow` skips
+  ingest/index/package (stage `reusing`) and goes straight to re-verify + publish.
+- **Embedding cache** (`pipeline/embed_cache.py`). A content-addressed store keyed
+  by `(engine, model, dim, sha256(text))` under `AI_BRIEF_STORE_DIR/embed-cache`.
+  `index.py` consults it before embedding, so a crash-interrupted index resumes
+  without recomputing vectors it already produced, and a build whose sources barely
+  changed re-embeds only the changed chunks. The identity is in the key, so a
+  model/engine/dimension change lands in a different namespace — never a stale hit.
+  Concurrency is bounded (`max_concurrent_activities`) so parallel builds can't
+  exhaust resources. Demonstrated by `scripts/demo-reuse.py`.
 
 ## Temporal history / versioning strategy
 

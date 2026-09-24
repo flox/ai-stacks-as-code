@@ -53,6 +53,11 @@ def log_dir() -> Path:
     return Path(_env("AI_BRIEF_LOG_DIR", str(state_dir() / "logs")))
 
 
+def embed_cache_dir() -> Path:
+    """Shared, content-addressed embedding cache (across candidates/runs)."""
+    return Path(_env("EMBED_CACHE_DIR", _env("AI_BRIEF_EMBED_CACHE", str(store_dir() / "embed-cache"))))
+
+
 def pipeline_dir() -> Path:
     return Path(_env("PIPELINE_DIR", str(project_root() / "pipeline")))
 

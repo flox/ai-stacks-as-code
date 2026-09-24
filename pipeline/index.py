@@ -358,6 +358,15 @@ def main(argv: list[str] | None = None) -> int:
         allow_json_store = args.dev_json_store or env_flag_any("AI_BRIEF_ALLOW_JSON_FALLBACK", "AI_BRIEF_ALLOW_JSON_STORE")
         embedder, actual_backend = make_embedder(model, requested_backend, allow_hash_embeddings)
 
+        # Optional content-addressed embedding cache (incremental reuse): skip
+        # re-embedding text already embedded with this exact engine/model/dim.
+        cache_dir = os.environ.get("EMBED_CACHE_DIR", "").strip()
+        if cache_dir:
+            from embed_cache import CachedEmbedder, EmbeddingCache
+
+            cache = EmbeddingCache(cache_dir, embedder.engine, getattr(embedder, "model", model), embedder.dimension)
+            embedder = CachedEmbedder(embedder, cache)
+
         old_engine = old_manifest.get("embedding_engine") if isinstance(old_manifest, dict) else None
         old_model = old_manifest.get("model") if isinstance(old_manifest, dict) else None
         old_dimension = old_manifest.get("dimension") if isinstance(old_manifest, dict) else None
@@ -404,10 +413,14 @@ def main(argv: list[str] | None = None) -> int:
                 "json_store": store == "json",
             },
         }
+        embed_stats = getattr(embedder, "stats", None)
+        if embed_stats is not None:
+            manifest["embed_cache"] = embed_stats  # informational; excluded from fingerprint
         write_json(manifest_path, manifest)
+        cache_note = f", embed-cache hits={embed_stats['hits']} misses={embed_stats['misses']}" if embed_stats else ""
         print(
             f"index: {store} store ready at {index_dir} "
-            f"({len(chunks)} chunk(s), {changed} embedded/upserted, {stale} stale removed, engine={embedder.engine})"
+            f"({len(chunks)} chunk(s), {changed} embedded/upserted, {stale} stale removed, engine={embedder.engine}{cache_note})"
         )
         return 0
     except RuntimeError as exc:

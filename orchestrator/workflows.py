@@ -25,6 +25,8 @@ from . import authority, config
 from .activities import (
     compute_candidate_activity,
     evaluate_activity,
+    existing_artifact_activity,
+    hydrate_activity,
     index_activity,
     ingest_activity,
     is_published_activity,
@@ -152,6 +154,8 @@ class BuildWorkflow:
             "snapshot_id": None,
             "source_commits": None,
             "artifact_digest": None,
+            "reused": None,
+            "embed_cache": None,
             "published": None,
             "reason": None,
         }
@@ -188,31 +192,49 @@ class BuildWorkflow:
         )
         self._status["generation"] = generation
 
-        # 4-5. Processing: ingest -> index. Both heartbeat, so a worker crash is
-        # detected within heartbeat_timeout and the stage resumes on the next
-        # worker (rather than waiting out the long start-to-close timeout).
-        self._stage("processing")
+        # 4. Candidate-level reuse (§12): identical inputs => identical candidate
+        # id => reuse the immutable artifact wholesale, skipping the expensive
+        # ingest/index/package. Otherwise build it.
+        existing = await workflow.execute_activity(
+            existing_artifact_activity, candidate_id,
+            start_to_close_timeout=timedelta(seconds=30), retry_policy=_DEFAULT_RETRY,
+        )
         args = {"candidate_id": candidate_id, "content_root": snap["content_root"]}
-        await workflow.execute_activity(
-            ingest_activity, args,
-            start_to_close_timeout=timedelta(minutes=15),
-            heartbeat_timeout=timedelta(seconds=30), retry_policy=_DEFAULT_RETRY,
-        )
-        self._stage("indexing")
-        await workflow.execute_activity(
-            index_activity, args,
-            start_to_close_timeout=timedelta(minutes=45),
-            heartbeat_timeout=timedelta(seconds=30), retry_policy=_DEFAULT_RETRY,
-        )
-
-        # 6. Package an immutable, content-addressed candidate artifact (§9).
-        self._stage("packaging")
-        pkg = await workflow.execute_activity(
-            package_activity,
-            {"candidate_id": candidate_id, "provenance": cand["provenance"], "snapshot": snap["manifest"]},
-            start_to_close_timeout=timedelta(minutes=10), retry_policy=_DEFAULT_RETRY,
-        )
-        artifact_digest = pkg["artifact_digest"]
+        if existing:
+            self._stage("reusing")
+            self._status["reused"] = True
+            artifact_digest = existing["artifact_digest"]
+            await workflow.execute_activity(
+                hydrate_activity,
+                {"candidate_id": candidate_id, "artifact_digest": artifact_digest},
+                start_to_close_timeout=timedelta(minutes=5), retry_policy=_DEFAULT_RETRY,
+            )
+        else:
+            self._status["reused"] = False
+            # ingest -> index. Both heartbeat, so a worker crash is detected within
+            # heartbeat_timeout and the stage resumes on the next worker. The index
+            # stage reuses already-embedded chunks via the content-addressed cache.
+            self._stage("processing")
+            await workflow.execute_activity(
+                ingest_activity, args,
+                start_to_close_timeout=timedelta(minutes=15),
+                heartbeat_timeout=timedelta(seconds=30), retry_policy=_DEFAULT_RETRY,
+            )
+            self._stage("indexing")
+            index_result = await workflow.execute_activity(
+                index_activity, args,
+                start_to_close_timeout=timedelta(minutes=45),
+                heartbeat_timeout=timedelta(seconds=30), retry_policy=_DEFAULT_RETRY,
+            )
+            self._status["embed_cache"] = index_result.get("embed_cache")
+            # Package an immutable, content-addressed candidate artifact (§9).
+            self._stage("packaging")
+            pkg = await workflow.execute_activity(
+                package_activity,
+                {"candidate_id": candidate_id, "provenance": cand["provenance"], "snapshot": snap["manifest"]},
+                start_to_close_timeout=timedelta(minutes=10), retry_policy=_DEFAULT_RETRY,
+            )
+            artifact_digest = pkg["artifact_digest"]
         self._status["artifact_digest"] = artifact_digest
 
         # 7. Deterministic evaluation gate (§11).

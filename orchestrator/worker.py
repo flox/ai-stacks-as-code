@@ -9,6 +9,7 @@ lives in the Temporal server, so builds resume where they left off.
 from __future__ import annotations
 
 import asyncio
+import os
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -20,6 +21,8 @@ from .workflows import BuildWorkflow, PublicationAuthorityWorkflow
 ACTIVITIES = [
     A.resolve_snapshot_activity,
     A.compute_candidate_activity,
+    A.existing_artifact_activity,
+    A.hydrate_activity,
     A.ingest_activity,
     A.index_activity,
     A.package_activity,
@@ -30,6 +33,10 @@ ACTIVITIES = [
     A.request_authorization_activity,
 ]
 
+# Bound concurrent activity execution (§12) so parallel builds cannot exhaust
+# memory / file descriptors / embedding throughput on one worker.
+MAX_CONCURRENT_ACTIVITIES = int(os.environ.get("AI_BRIEF_MAX_CONCURRENT_ACTIVITIES", "8"))
+
 
 async def main() -> None:
     cfg = config.temporal_config()
@@ -39,6 +46,7 @@ async def main() -> None:
         task_queue=cfg.task_queue,
         workflows=[BuildWorkflow, PublicationAuthorityWorkflow],
         activities=ACTIVITIES,
+        max_concurrent_activities=MAX_CONCURRENT_ACTIVITIES,
     )
     print(f"ask-flox worker: task_queue={cfg.task_queue} address={cfg.address} ns={cfg.namespace}")
     await worker.run()

@@ -43,7 +43,10 @@ def _pipeline_code_revision() -> str:
     return short(sha256_json(parts), prefix="code_")
 
 
-async def _run_stage(script: str, argv: list[str], work: Path, content_root: str) -> str:
+async def _run_stage(
+    script: str, argv: list[str], work: Path, content_root: str,
+    extra_env: dict[str, str] | None = None,
+) -> str:
     """Run a pipeline stage as a subprocess while heartbeating.
 
     Heartbeating (§7) lets Temporal detect a worker crash within the activity's
@@ -55,6 +58,8 @@ async def _run_stage(script: str, argv: list[str], work: Path, content_root: str
     env["SOURCES_DIR"] = content_root
     env["EMBED_ENGINE"] = "onnx"       # deterministic, torch-free embedder
     env["AI_BACKEND"] = "cpu"
+    if extra_env:
+        env.update(extra_env)
     script_path = config.pipeline_dir() / script
 
     proc = await asyncio.create_subprocess_exec(
@@ -141,12 +146,16 @@ async def index_activity(request: dict[str, Any]) -> dict[str, Any]:
     """Embed chunks (ONNX) and build the Chroma index for this candidate."""
     cid = request["candidate_id"]
     work = store.work_dir(cid)
-    out = await _run_stage("index.py", [], work, request["content_root"])
+    out = await _run_stage(
+        "index.py", [], work, request["content_root"],
+        extra_env={"EMBED_CACHE_DIR": str(config.embed_cache_dir())},
+    )
     manifest = store.read_json(work / "index-manifest.json", default={})
     return {
         "chunk_count": manifest.get("chunk_count"),
         "engine": manifest.get("embedding_engine"),
         "dimension": manifest.get("dimension"),
+        "embed_cache": manifest.get("embed_cache"),
         "stdout": out.strip()[-500:],
     }
 
@@ -185,6 +194,30 @@ async def evaluate_activity(request: dict[str, Any]) -> dict[str, Any]:
 @activity.defn
 async def is_published_activity(candidate_id: str) -> dict[str, Any] | None:
     return store.is_published(candidate_id)
+
+
+@activity.defn
+async def existing_artifact_activity(candidate_id: str) -> dict[str, Any] | None:
+    """Candidate-level reuse: identical inputs => identical candidate id => the
+    immutable artifact can be reused wholesale, skipping ingest/index/package.
+    """
+    prov = store.read_json(store.provenance_path(candidate_id), default=None)
+    if isinstance(prov, dict):
+        digest = prov.get("artifact_digest")
+        if digest and store.artifact_path(digest).exists():
+            return {"artifact_digest": digest}
+    return None
+
+
+@activity.defn
+async def hydrate_activity(request: dict[str, Any]) -> dict[str, Any]:
+    """Unpack a reused artifact into the candidate work dir so evaluation runs
+    against it exactly as it would against a freshly built index."""
+    cid = request["candidate_id"]
+    work = store.work_dir(cid)
+    if not (work / "index").exists() or not (work / "index-manifest.json").exists():
+        store.unpack(request["artifact_digest"], work)
+    return {"hydrated": True}
 
 
 @activity.defn
