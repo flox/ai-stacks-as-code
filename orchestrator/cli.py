@@ -42,6 +42,7 @@ async def cmd_submit(args: argparse.Namespace) -> int:
             "blog_ref": args.blog_ref,
             "allow_dirty": args.allow_dirty,
             "base_version": args.base_version,
+            "require_review": args.require_review,
         },
         id=wf_id,
         task_queue=cfg.task_queue,
@@ -71,6 +72,57 @@ async def cmd_authority(args: argparse.Namespace) -> int:
     return 0
 
 
+async def cmd_reviews(args: argparse.Namespace) -> int:
+    client = await _client()
+    found = 0
+    async for wf in client.list_workflows(
+        "WorkflowType = 'BuildWorkflow' AND ExecutionStatus = 'Running'"
+    ):
+        handle = client.get_workflow_handle(wf.id)
+        try:
+            status = await handle.query("status")
+        except Exception:  # noqa: BLE001 - workflow may have moved on / not yet queryable
+            continue
+        if status.get("stage") != "awaiting_review":
+            continue
+        found += 1
+        rev = status.get("review") or {}
+        print(json.dumps({
+            "workflow_id": wf.id,
+            "review_request_id": rev.get("review_request_id"),
+            "candidate_id": rev.get("candidate_id"),
+            "generation": rev.get("generation"),
+            "reason": rev.get("reason"),
+            "allowed_decisions": rev.get("allowed_decisions"),
+        }, indent=2))
+    if not found:
+        print("no builds awaiting review")
+    return 0
+
+
+async def cmd_decide(args: argparse.Namespace) -> int:
+    client = await _client()
+    handle = client.get_workflow_handle(args.workflow_id)
+    rev = await handle.query("review")
+    if not rev:
+        print("no open review for that workflow", file=sys.stderr)
+        return 1
+    payload = {
+        "review_request_id": rev["review_request_id"],
+        "candidate_id": rev["candidate_id"],
+        "decision": args.decision,
+        "reviewer": args.reviewer,
+        "note": args.note,
+    }
+    try:
+        result = await handle.execute_update("submit_review", payload)
+    except Exception as exc:  # noqa: BLE001 - validator rejects stale/invalid decisions
+        print(f"decision rejected: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 async def cmd_current(args: argparse.Namespace) -> int:
     current = store.read_current()
     if not current:
@@ -92,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     p_submit.add_argument("--blog-ref", default="HEAD")
     p_submit.add_argument("--base-version", default="0.1.0")
     p_submit.add_argument("--allow-dirty", action="store_true")
+    p_submit.add_argument("--require-review", action="store_true", help="gate publish on human review")
     p_submit.add_argument("--id", default=None, help="explicit workflow id")
     p_submit.add_argument("--wait", action="store_true", help="block for the result")
     p_submit.set_defaults(fn=cmd_submit)
@@ -102,6 +155,16 @@ def main(argv: list[str] | None = None) -> int:
 
     p_auth = sub.add_parser("authority", help="query the publication authority state")
     p_auth.set_defaults(fn=cmd_authority)
+
+    p_reviews = sub.add_parser("reviews", help="list builds awaiting human review")
+    p_reviews.set_defaults(fn=cmd_reviews)
+
+    p_decide = sub.add_parser("decide", help="submit a review decision for a build")
+    p_decide.add_argument("workflow_id")
+    p_decide.add_argument("decision", choices=["approve", "reject"])
+    p_decide.add_argument("--reviewer", default="operator")
+    p_decide.add_argument("--note", default="")
+    p_decide.set_defaults(fn=cmd_decide)
 
     p_current = sub.add_parser("current", help="show the active published index")
     p_current.set_defaults(fn=cmd_current)

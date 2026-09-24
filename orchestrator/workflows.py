@@ -21,7 +21,7 @@ from typing import Any
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
-from . import authority, config
+from . import authority, config, review
 from .activities import (
     compute_candidate_activity,
     evaluate_activity,
@@ -156,9 +156,13 @@ class BuildWorkflow:
             "artifact_digest": None,
             "reused": None,
             "embed_cache": None,
+            "review": None,
+            "review_decision": None,
             "published": None,
             "reason": None,
         }
+        self._review: dict[str, Any] | None = None
+        self._review_decision: dict[str, Any] | None = None
 
     def _stage(self, stage: str) -> None:
         self._status["stage"] = stage
@@ -248,6 +252,28 @@ class BuildWorkflow:
             self._status.update(published=False, reason="evaluation-failed")
             return {**self._status, "report": report}
 
+        # 7b. Durable human review (§6), when policy requires it. The workflow
+        # waits durably (surviving worker restarts) for a validated Update; an
+        # approval does NOT override supersession — the authority is still
+        # consulted below, so an approved-but-superseded candidate can't publish.
+        if request.get("require_review"):
+            self._review = review.build_review_request(
+                candidate_id=candidate_id,
+                generation=generation,
+                snapshot_id=snap["snapshot_id"],
+                source_commits=snap.get("commits"),
+                report=report,
+                artifact_digest=artifact_digest,
+            )
+            self._status["review"] = self._review
+            self._stage("awaiting_review")
+            await workflow.wait_condition(lambda: self._review_decision is not None)
+            self._status["review_decision"] = self._review_decision
+            if self._review_decision["decision"] == "reject":
+                self._stage("rejected")
+                self._status.update(published=False, reason="rejected-by-review")
+                return {**self._status, "report": report}
+
         # 8. Request publication authorization at the final commit boundary (§8).
         self._stage("publishing")
         version = f"{request.get('base_version', '0.1.0')}-{candidate_id}"
@@ -270,6 +296,28 @@ class BuildWorkflow:
             self._stage("superseded")
             self._status.update(published=False, reason=decision["reason"])
         return {**self._status, "decision": decision, "report": report}
+
+    @workflow.update
+    async def submit_review(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Record a human review decision (§6).
+
+        Idempotent: a verbatim re-submit of the recorded decision returns it
+        unchanged. The validator has already rejected wrong-candidate, stale, or
+        conflicting decisions before this runs.
+        """
+        if self._review_decision is not None:
+            return self._review_decision  # idempotent repeat
+        self._review_decision = review.record_decision(payload, workflow.now().isoformat())
+        return self._review_decision
+
+    @submit_review.validator
+    def _validate_review(self, payload: dict[str, Any]) -> None:
+        review.validate_decision(self._review, self._review_decision, payload)
+
+    @workflow.query
+    def review(self) -> dict[str, Any] | None:
+        """The open review request (with request id + evidence), or None."""
+        return self._review
 
     @workflow.query
     def status(self) -> dict[str, Any]:

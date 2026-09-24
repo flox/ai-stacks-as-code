@@ -97,6 +97,18 @@ pipeline-authority *args:
     set -euo pipefail
     exec "{{python}}" -m orchestrator.cli authority "$@"
 
+# List builds awaiting human review.
+pipeline-reviews *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.cli reviews "$@"
+
+# Submit a review decision: just pipeline-decide <workflow-id> approve|reject
+pipeline-decide *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.cli decide "$@"
+
 # Orchestrator unit tests (pure correctness spine — no server needed).
 otests *args:
     #!/usr/bin/env bash

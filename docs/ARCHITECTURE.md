@@ -5,9 +5,11 @@ that sits on top of the existing `pipeline/` stages. It turns "rebuild the index
 and hope" into a workflow that survives interruption, orders publication safely,
 and records exactly how every published index was produced.
 
-> **Status:** Phase 1 (correctness spine) and Phase 2 (durable processing +
-> incremental reuse) are implemented and demonstrated. Phases 3–5 (agentic
-> evaluation, human review, operational hardening) are staged — see
+> **Status:** Phase 1 (correctness spine), Phase 2 (durable processing +
+> incremental reuse), and Phase 4 (durable human review) are implemented and
+> demonstrated. Phase 3 (agentic enrichment) was intentionally dropped — the
+> pipeline stays fully offline and keyless, with no external model calls. Phase 5
+> (operational hardening) is staged — see
 > `PROMPT_ask_flox_temporal_flox_ingestion_v2.md` §23.
 
 ## Division of responsibility
@@ -134,6 +136,32 @@ Two layers avoid repeating expensive work whose output is already known (§12):
   Concurrency is bounded (`max_concurrent_activities`) so parallel builds can't
   exhaust resources. Demonstrated by `scripts/demo-reuse.py`.
 
+## Human review (Phase 4)
+
+When a build is submitted with `--require-review`, the workflow — after the
+deterministic gate passes and before requesting authorization — opens a review
+request and **durably waits** (`workflow.wait_condition`) for a decision. Review
+is workflow state, not a worker blocked on stdin or an open HTTP request, so it
+survives worker restarts.
+
+A reviewer submits a decision through a **validated Temporal Update**
+(`submit_review`). The validator (`review.py`, pure and unit-tested) rejects a
+decision that targets the wrong candidate, carries a stale review-request id, has
+an invalid value, or conflicts with an already-recorded decision — *before* it
+becomes workflow state. A verbatim re-submit of the recorded decision is
+idempotent. The review request surfaces everything a reviewer needs (candidate
+id, generation, snapshot + source commits, the eval evidence, allowed decisions,
+schema version).
+
+**Approval never overrides supersession.** Approval only lets the build proceed
+to the authorization step; the publication authority is still consulted there, so
+an approved-but-superseded candidate is denied and never becomes current.
+
+Control surface: `just pipeline-reviews` lists builds awaiting review;
+`just pipeline-decide <workflow-id> approve|reject` submits the decision.
+Demonstrated by `scripts/demo-review.sh` (crash the worker mid-review, restart,
+reject an invalid decision, then approve).
+
 ## Temporal history / versioning strategy
 
 - Large data stays out of history (references only); the authority uses
@@ -149,7 +177,10 @@ flox activate -s        # composes the stack AND starts the Temporal dev server
 just worker             # run the worker (workflows + activities)
 
 just pipeline-submit --docs-ref HEAD --blog-ref HEAD --wait   # start a build
+just pipeline-submit --require-review                         # gate publish on review
 just pipeline-status <workflow-id>                            # inspect a build
+just pipeline-reviews                                         # builds awaiting review
+just pipeline-decide <workflow-id> approve                    # submit a decision
 just pipeline-authority                                       # authority state
 just pipeline-current                                         # active index + provenance
 
