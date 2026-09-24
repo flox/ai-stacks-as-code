@@ -160,6 +160,12 @@
         "pkg-path": "python313Packages.sympy",
         "outputs": "all"
       },
+      "temporal-cli": {
+        "pkg-path": "temporal-cli"
+      },
+      "temporalio": {
+        "pkg-path": "python313Packages.temporalio"
+      },
       "tiktoken": {
         "pkg-path": "python313Packages.tiktoken",
         "pkg-group": "ingest-py"
@@ -195,10 +201,10 @@
       }
     },
     "vars": {
-      "ENV_NAME": "ai-base"
+      "ENV_NAME": "ai-orchestration"
     },
     "hook": {
-      "on-activate": "# Runtime-configurable variables with defaults\nexport JUPYTER_HOST=\"${JUPYTER_HOST:-0.0.0.0}\"\nexport JUPYTER_PORT=\"${JUPYTER_PORT:-8888}\"\nexport JUPYTER_SERVER_TOKEN=\"${JUPYTER_SERVER_TOKEN:-floxfan4evah}\"\nexport NOTEBOOK_DIR=\"${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}\"\nexport INSTALL_REQUIREMENTS=\"${INSTALL_REQUIREMENTS:-false}\"\n\n# Setup venv\nexport VENV_DIR=\"$FLOX_ENV_CACHE/venv\"\nif [ ! -d \"$VENV_DIR\" ]; then\n    echo \"Creating Python virtual environment...\"\n    python3.13 -m venv \"$VENV_DIR\"\nfi\n\n# Activate venv with guard\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\n\n    # Install requirements if requested\n    if [ -f \"$FLOX_ENV_PROJECT/requirements.txt\" ] && [ \"$INSTALL_REQUIREMENTS\" = \"true\" ]; then\n        echo \"Installing packages from requirements.txt...\"\n        pip install -r \"$FLOX_ENV_PROJECT/requirements.txt\" --quiet\n    fi\nfi\n\n# Display minimal info — only for interactive shells. Non-interactive\n# activations (the ask-flox MCP server, scripts, CI) stay silent so nothing\n# clutters their output streams. The same details remain available via\n# `jupyter-help`.\nif [ -t 1 ]; then\n    echo \"\"\n    echo \"✅ JupyterLab environment ready (headless mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: ${JUPYTER_SERVER_TOKEN}\"\n    echo \"\"\n    echo \"Start service: flox activate -s\"\n    echo \"Show help: jupyter-help\"\n    echo \"Documentation: helpf\"\n    echo \"\"\nfi\n\n# Fetch README if missing\n\n  # Fetch README.md if not present\n  README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n  if [ ! -f \"$README_FILE\" ]; then\n    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o \"$README_FILE\" 2>/dev/null; then\n      echo \"✓ Downloaded README.md (use 'helpf' to view)\"\n    fi\n  fi\n\n# Project layout + backend selection (all overridable at activation time).\nexport AI_BRIEF_ROOT=\"$FLOX_ENV_PROJECT\"\nexport SOURCES_DIR=\"${SOURCES_DIR:-$AI_BRIEF_ROOT/sources}\"\nexport WORK_DIR=\"${WORK_DIR:-$AI_BRIEF_ROOT/work}\"\nexport REPORTS_DIR=\"${REPORTS_DIR:-$AI_BRIEF_ROOT/reports}\"\nexport PROMPTS_DIR=\"${PROMPTS_DIR:-$AI_BRIEF_ROOT/prompts}\"\nexport EVALS_DIR=\"${EVALS_DIR:-$AI_BRIEF_ROOT/evals}\"\nexport NOTEBOOKS_DIR=\"${NOTEBOOKS_DIR:-$AI_BRIEF_ROOT/notebooks}\"\nexport PIPELINE_DIR=\"${PIPELINE_DIR:-$AI_BRIEF_ROOT/pipeline}\"\nexport AI_BRIEF_JUSTFILE=\"${AI_BRIEF_JUSTFILE:-$AI_BRIEF_ROOT/justfile}\"\nexport AI_BRIEF_PYTHON=\"${AI_BRIEF_PYTHON:-python3.13}\"\n\n# Backend: honor an explicit AI_BACKEND, else detect (cuda / mps / cpu).\nif [ -z \"${AI_BACKEND:-}\" ]; then\n  if [ \"$(uname -s)\" = \"Darwin\" ] && [ \"$(uname -m)\" = \"arm64\" ]; then\n    AI_BACKEND=\"mps\"\n  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then\n    AI_BACKEND=\"cuda\"\n  else\n    AI_BACKEND=\"cpu\"\n  fi\nfi\nexport AI_BACKEND\n\n# Idempotent project skeleton.\nmkdir -p \"$SOURCES_DIR\" \"$WORK_DIR\" \"$REPORTS_DIR\" \"$PROMPTS_DIR\" \\\n         \"$EVALS_DIR\" \"$NOTEBOOKS_DIR\" \"$PIPELINE_DIR\" 2>/dev/null || true\n\ncd \"$FLOX_ENV_PROJECT\"\n"
+      "on-activate": "# Runtime-configurable variables with defaults\nexport JUPYTER_HOST=\"${JUPYTER_HOST:-0.0.0.0}\"\nexport JUPYTER_PORT=\"${JUPYTER_PORT:-8888}\"\nexport JUPYTER_SERVER_TOKEN=\"${JUPYTER_SERVER_TOKEN:-floxfan4evah}\"\nexport NOTEBOOK_DIR=\"${NOTEBOOK_DIR:-$FLOX_ENV_PROJECT}\"\nexport INSTALL_REQUIREMENTS=\"${INSTALL_REQUIREMENTS:-false}\"\n\n# Setup venv\nexport VENV_DIR=\"$FLOX_ENV_CACHE/venv\"\nif [ ! -d \"$VENV_DIR\" ]; then\n    echo \"Creating Python virtual environment...\"\n    python3.13 -m venv \"$VENV_DIR\"\nfi\n\n# Activate venv with guard\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\n\n    # Install requirements if requested\n    if [ -f \"$FLOX_ENV_PROJECT/requirements.txt\" ] && [ \"$INSTALL_REQUIREMENTS\" = \"true\" ]; then\n        echo \"Installing packages from requirements.txt...\"\n        pip install -r \"$FLOX_ENV_PROJECT/requirements.txt\" --quiet\n    fi\nfi\n\n# Display minimal info — only for interactive shells. Non-interactive\n# activations (the ask-flox MCP server, scripts, CI) stay silent so nothing\n# clutters their output streams. The same details remain available via\n# `jupyter-help`.\nif [ -t 1 ]; then\n    echo \"\"\n    echo \"✅ JupyterLab environment ready (headless mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: ${JUPYTER_SERVER_TOKEN}\"\n    echo \"\"\n    echo \"Start service: flox activate -s\"\n    echo \"Show help: jupyter-help\"\n    echo \"Documentation: helpf\"\n    echo \"\"\nfi\n\n# Fetch README if missing\n\n  # Fetch README.md if not present\n  README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n  if [ ! -f \"$README_FILE\" ]; then\n    if curl -fsSL https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md -o \"$README_FILE\" 2>/dev/null; then\n      echo \"✓ Downloaded README.md (use 'helpf' to view)\"\n    fi\n  fi\n\n# --- Orchestration config (all overridable at activation time) -------------\n# Durable local state: artifact store, per-candidate work, Temporal dev DB, logs.\nexport AI_BRIEF_STATE_DIR=\"${AI_BRIEF_STATE_DIR:-$FLOX_ENV_PROJECT/state}\"\nexport AI_BRIEF_STORE_DIR=\"${AI_BRIEF_STORE_DIR:-$AI_BRIEF_STATE_DIR/store}\"\nexport AI_BRIEF_LOG_DIR=\"${AI_BRIEF_LOG_DIR:-$AI_BRIEF_STATE_DIR/logs}\"\n\n# Temporal connection — client and worker read these.\nexport TEMPORAL_IP=\"${TEMPORAL_IP:-127.0.0.1}\"\nexport TEMPORAL_PORT=\"${TEMPORAL_PORT:-7233}\"\nexport TEMPORAL_UI_PORT=\"${TEMPORAL_UI_PORT:-8233}\"\nexport TEMPORAL_ADDRESS=\"${TEMPORAL_ADDRESS:-$TEMPORAL_IP:$TEMPORAL_PORT}\"\nexport TEMPORAL_NAMESPACE=\"${TEMPORAL_NAMESPACE:-default}\"\nexport TEMPORAL_TASK_QUEUE=\"${TEMPORAL_TASK_QUEUE:-ask-flox-pipeline}\"\n\n# Upstream source repos for the two content sources (local clones by default;\n# override to point at fresh checkouts). The pipeline resolves each to a pinned\n# commit before ingestion — see orchestrator/snapshot.py.\nexport ASK_FLOX_DOCS_REPO=\"${ASK_FLOX_DOCS_REPO:-$HOME/dev/flox-docs}\"\nexport ASK_FLOX_BLOG_REPO=\"${ASK_FLOX_BLOG_REPO:-$HOME/dev/floxwebsite}\"\n\n# Make the orchestrator package importable (python -m orchestrator.*).\nexport PYTHONPATH=\"$FLOX_ENV_PROJECT${PYTHONPATH:+:$PYTHONPATH}\"\n\nmkdir -p \"$AI_BRIEF_STATE_DIR/temporal\" \"$AI_BRIEF_STORE_DIR\" \"$AI_BRIEF_LOG_DIR\" 2>/dev/null || true\n\n# Project layout + backend selection (all overridable at activation time).\nexport AI_BRIEF_ROOT=\"$FLOX_ENV_PROJECT\"\nexport SOURCES_DIR=\"${SOURCES_DIR:-$AI_BRIEF_ROOT/sources}\"\nexport WORK_DIR=\"${WORK_DIR:-$AI_BRIEF_ROOT/work}\"\nexport REPORTS_DIR=\"${REPORTS_DIR:-$AI_BRIEF_ROOT/reports}\"\nexport PROMPTS_DIR=\"${PROMPTS_DIR:-$AI_BRIEF_ROOT/prompts}\"\nexport EVALS_DIR=\"${EVALS_DIR:-$AI_BRIEF_ROOT/evals}\"\nexport NOTEBOOKS_DIR=\"${NOTEBOOKS_DIR:-$AI_BRIEF_ROOT/notebooks}\"\nexport PIPELINE_DIR=\"${PIPELINE_DIR:-$AI_BRIEF_ROOT/pipeline}\"\nexport AI_BRIEF_JUSTFILE=\"${AI_BRIEF_JUSTFILE:-$AI_BRIEF_ROOT/justfile}\"\nexport AI_BRIEF_PYTHON=\"${AI_BRIEF_PYTHON:-python3.13}\"\n\n# Backend: honor an explicit AI_BACKEND, else detect (cuda / mps / cpu).\nif [ -z \"${AI_BACKEND:-}\" ]; then\n  if [ \"$(uname -s)\" = \"Darwin\" ] && [ \"$(uname -m)\" = \"arm64\" ]; then\n    AI_BACKEND=\"mps\"\n  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then\n    AI_BACKEND=\"cuda\"\n  else\n    AI_BACKEND=\"cpu\"\n  fi\nfi\nexport AI_BACKEND\n\n# Idempotent project skeleton.\nmkdir -p \"$SOURCES_DIR\" \"$WORK_DIR\" \"$REPORTS_DIR\" \"$PROMPTS_DIR\" \\\n         \"$EVALS_DIR\" \"$NOTEBOOKS_DIR\" \"$PIPELINE_DIR\" 2>/dev/null || true\n\ncd \"$FLOX_ENV_PROJECT\"\n"
     },
     "profile": {
       "bash": "jupyter-help() {\n    echo \"JupyterLab (Headless Mode)\"\n    echo \"\"\n    echo \"Access URL: http://localhost:$JUPYTER_PORT\"\n    echo \"Token: $JUPYTER_SERVER_TOKEN\"\n    echo \"Notebook Dir: $NOTEBOOK_DIR\"\n    echo \"\"\n    echo \"Commands:\"\n    echo \"  flox activate -s     Start JupyterLab service\"\n    echo \"  flox services status Check service status\"\n    echo \"  pip install <pkg>    Install Python package\"\n    echo \"\"\n    echo \"Runtime Configuration:\"\n    echo \"  JUPYTER_HOST         Default: $JUPYTER_HOST\"\n    echo \"  JUPYTER_PORT         Default: $JUPYTER_PORT\"\n    echo \"  JUPYTER_SERVER_TOKEN Default: (auto-generated)\"\n    echo \"  NOTEBOOK_DIR         Default: $NOTEBOOK_DIR\"\n    echo \"  INSTALL_REQUIREMENTS Default: false\"\n    echo \"\"\n    echo \"Example:\"\n    echo \"  JUPYTER_PORT=9999 JUPYTER_SERVER_TOKEN=mytoken flox activate -s\"\n}\n\n# View environment documentation\n\n  helpf() {\n    local README_FILE=\"$FLOX_ENV_PROJECT/README.md\"\n    local README_URL=\"https://raw.githubusercontent.com/barstoolbluz/floxenvs/main/jupyterlab-headless/README.md\"\n\n    if [ \"$1\" = \"--help\" ]; then\n      echo \"Usage: helpf [OPTIONS]\"\n      echo \"\"\n      echo \"View environment documentation\"\n      echo \"\"\n      echo \"Options:\"\n      echo \"  --force    Force download fresh copy from GitHub\"\n      echo \"  --help     Show this help message\"\n      echo \"\"\n      echo \"The README is cached locally and only downloaded if missing.\"\n      return 0\n    fi\n\n    if [ \"$1\" = \"--force\" ]; then\n      echo \"Fetching latest README.md from GitHub...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    elif [ ! -f \"$README_FILE\" ]; then\n      echo \"README.md not found, downloading...\"\n      if curl -fsSL \"$README_URL\" -o \"$README_FILE\"; then\n        echo \"✓ Downloaded README.md\"\n      else\n        echo \"✗ Failed to download README.md\"\n        return 1\n      fi\n    fi\n\n    if [ -f \"$README_FILE\" ]; then\n      bat --style=auto --paging=always \"$README_FILE\"\n    else\n      echo \"✗ README.md not found at $README_FILE\"\n      return 1\n    fi\n  }\n  export -f helpf\n\n_ai_brief_just() { just --justfile \"${AI_BRIEF_JUSTFILE:-$FLOX_ENV_PROJECT/justfile}\" \"$@\"; }\ningest()    { _ai_brief_just ingest \"$@\"; }\nindex()     { _ai_brief_just index \"$@\"; }\nbrief()     { _ai_brief_just brief \"$@\"; }\nai-eval()   { _ai_brief_just ai-eval \"$@\"; }\nnotebook()  { _ai_brief_just notebook \"$@\"; }\nai-doctor() { _ai_brief_just ai-doctor \"$@\"; }\nmcp()       { _ai_brief_just mcp \"$@\"; }\n",
@@ -215,6 +221,9 @@
     "services": {
       "jupyter-lab": {
         "command": "# Activate venv for user packages\nif [ -f \"$VENV_DIR/bin/activate\" ]; then\n    source \"$VENV_DIR/bin/activate\"\nfi\n\nexec jupyter-lab \\\n  --no-browser \\\n  --ip=\"$JUPYTER_HOST\" \\\n  --port=\"$JUPYTER_PORT\" \\\n  --IdentityProvider.token=\"$JUPYTER_SERVER_TOKEN\" \\\n  --notebook-dir=\"$NOTEBOOK_DIR\"\n"
+      },
+      "temporal-dev": {
+        "command": "exec temporal server start-dev \\\n  --ip \"$TEMPORAL_IP\" \\\n  --port \"$TEMPORAL_PORT\" \\\n  --ui-port \"$TEMPORAL_UI_PORT\" \\\n  --db-filename \"$AI_BRIEF_STATE_DIR/temporal/dev.db\" \\\n  --log-format pretty 2>&1 | tee -a \"$AI_BRIEF_LOG_DIR/temporal-dev.log\"\n"
       }
     }
   },
@@ -1783,6 +1792,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:12:54.869529Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -1812,6 +1822,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:21.396930Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -1841,6 +1852,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:24.006443Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -1870,6 +1882,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:12:55.345357Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -1904,6 +1917,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:22.022206Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -1941,6 +1955,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:24.689079Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -1978,6 +1993,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:12:55.525657Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2007,6 +2023,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:22.252748Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2036,6 +2053,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:24.941694Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2065,6 +2083,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:12:55.787613Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2094,6 +2113,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:22.666530Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2123,6 +2143,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:25.405955Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2152,11 +2173,13 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:12:56.100688Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "2.54.0",
       "outputs_to_install": [
+        "out",
         "out"
       ],
       "outputs": {
@@ -2182,6 +2205,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:23.164881Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2213,11 +2237,13 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:25.941971Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "2.54.0",
       "outputs_to_install": [
+        "out",
         "out"
       ],
       "outputs": {
@@ -2244,6 +2270,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:11.195701Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2273,6 +2300,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:42.178726Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2302,6 +2330,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:45.582538Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2331,6 +2360,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.259752Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2361,6 +2391,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:31.873486Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2391,6 +2422,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:38.529480Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2421,11 +2453,13 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:12.483661Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "1.8.1",
       "outputs_to_install": [
+        "bin",
         "bin",
         "man"
       ],
@@ -2455,11 +2489,13 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:44.221148Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "1.8.1",
       "outputs_to_install": [
+        "bin",
         "bin",
         "bin",
         "man"
@@ -2490,11 +2526,13 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:47.719913Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "1.8.1",
       "outputs_to_install": [
+        "bin",
         "bin",
         "bin",
         "man"
@@ -2525,6 +2563,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.714133Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2555,6 +2594,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:32.454984Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2585,6 +2625,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:39.107105Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2615,6 +2656,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.716153Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2645,6 +2687,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:32.457517Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2675,6 +2718,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:39.109884Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2705,6 +2749,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.720219Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2735,6 +2780,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:32.462803Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2765,6 +2811,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:39.114950Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2795,6 +2842,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.722242Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2825,6 +2873,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:32.465284Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2855,6 +2904,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:39.117539Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2885,6 +2935,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.724252Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2915,6 +2966,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:32.467747Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2945,6 +2997,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:39.120082Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -2975,6 +3028,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:44.728255Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3005,6 +3059,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:32.473717Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3035,6 +3090,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:39.125215Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3065,12 +3121,15 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:12.610781Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "1.55.1",
       "outputs_to_install": [
         "man",
+        "man",
+        "out",
         "out"
       ],
       "outputs": {
@@ -3097,12 +3156,15 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:44.394333Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "1.55.1",
       "outputs_to_install": [
         "man",
+        "man",
+        "out",
         "out"
       ],
       "outputs": {
@@ -3129,12 +3191,15 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:47.888909Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "1.55.1",
       "outputs_to_install": [
         "man",
+        "man",
+        "out",
         "out"
       ],
       "outputs": {
@@ -3161,6 +3226,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:45.923218Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3191,6 +3257,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:34.026496Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3222,6 +3289,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:40.709217Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3253,6 +3321,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:19.285157Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3287,6 +3356,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:58.642733Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3321,6 +3391,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:03.978790Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3355,6 +3426,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:47.853801Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3385,6 +3457,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:36.489489Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3415,6 +3488,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:43.180974Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3445,6 +3519,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:48.626147Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3475,6 +3550,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:37.455556Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3506,6 +3582,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:44.183230Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3537,6 +3614,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:26.325957Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3566,6 +3644,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:08.581961Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3595,6 +3674,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:14.425460Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3624,6 +3704,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:49.224807Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3654,6 +3735,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:38.144583Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3684,6 +3766,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:44.923383Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3714,6 +3797,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:35.263942Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3744,6 +3828,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:20.293542Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3774,6 +3859,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:26.780146Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3804,6 +3890,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:49.934178Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3834,6 +3921,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:38.986028Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3864,6 +3952,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:45.829929Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3894,6 +3983,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:50.309191Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3924,6 +4014,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:39.427226Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3954,6 +4045,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:46.292832Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -3984,11 +4076,14 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:37.148341Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "3.13.13",
       "outputs_to_install": [
+        "out",
+        "out",
         "out"
       ],
       "outputs": {
@@ -4013,11 +4108,13 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:22.923986Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "3.13.13",
       "outputs_to_install": [
+        "out",
         "out",
         "out"
       ],
@@ -4044,11 +4141,14 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:29.489145Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
       "version": "3.13.13",
       "outputs_to_install": [
+        "out",
+        "out",
         "out",
         "out"
       ],
@@ -4075,6 +4175,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:14:28.294597Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4104,6 +4205,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:43:24.548100Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4133,6 +4235,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:42:35.616404Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4162,6 +4265,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:13:55.816825Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4192,6 +4296,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:42:45.811729Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4222,6 +4327,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:41:53.149150Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4232,6 +4338,189 @@
       "outputs": {
         "dist": "/nix/store/jlcf4hq5sdm41zwqmzsvlvdi0nqxh81y-python3.13-sympy-1.14.0-dist",
         "out": "/nix/store/anbz5pbq5z9174bpj299aw41rh99kl4g-python3.13-sympy-1.14.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "temporal-cli",
+      "broken": false,
+      "derivation": "/nix/store/7fk5fcgsayr73ss6hs7wx07pfq3grm5m-temporal-cli-1.7.2.drv",
+      "description": "Command-line interface for running Temporal Server and interacting with Workflows, Activities, Namespaces, and other parts of Temporal",
+      "install_id": "temporal-cli",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "temporal-cli-1.7.2",
+      "pname": "temporal-cli",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:14:54.383078Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.7.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/n36aqf50v3h60a4k2ij6vpjv8bfscwdi-temporal-cli-1.7.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "temporal-cli",
+      "broken": false,
+      "derivation": "/nix/store/s9hchp0j5ixnvg1lkjbsxsj7b691x50x-temporal-cli-1.7.2.drv",
+      "description": "Command-line interface for running Temporal Server and interacting with Workflows, Activities, Namespaces, and other parts of Temporal",
+      "install_id": "temporal-cli",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "temporal-cli-1.7.2",
+      "pname": "temporal-cli",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:43:55.102470Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.7.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/fvjbp6q9smsbid3mai9g7kph9s6i7c76-temporal-cli-1.7.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "temporal-cli",
+      "broken": false,
+      "derivation": "/nix/store/alm6xwg2izqq5y1qlm4sh07qdy5z5rfk-temporal-cli-1.7.2.drv",
+      "description": "Command-line interface for running Temporal Server and interacting with Workflows, Activities, Namespaces, and other parts of Temporal",
+      "install_id": "temporal-cli",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "temporal-cli-1.7.2",
+      "pname": "temporal-cli",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:43:11.731369Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.7.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/0qjazcarm5k4gcyfxk6mcihvz8qsascd-temporal-cli-1.7.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.temporalio",
+      "broken": false,
+      "derivation": "/nix/store/rkgnypnn5q6ixpnjpd3b9jk8md7vgqp4-python3.13-temporalio-1.29.0.drv",
+      "description": "Temporal Python SDK",
+      "install_id": "temporalio",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-temporalio-1.29.0",
+      "pname": "temporalio",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:55.989197Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.29.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2y9990km9fmwbxkq4ydwy6nnhp6wiwb2-python3.13-temporalio-1.29.0-dist",
+        "out": "/nix/store/axbal7m81gi9xx45yb36kvrpyjxpinmw-python3.13-temporalio-1.29.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.temporalio",
+      "broken": false,
+      "derivation": "/nix/store/vl4hqmfibzhaczc1x81f4xrhcbacyg6g-python3.13-temporalio-1.29.0.drv",
+      "description": "Temporal Python SDK",
+      "install_id": "temporalio",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-temporalio-1.29.0",
+      "pname": "temporalio",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:46.020102Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.29.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/w76iqggbarn72ni241ryx7lprd7r1xzj-python3.13-temporalio-1.29.0-dist",
+        "out": "/nix/store/lmkx4hq8y89zjlf0d9yivci56l5qv33n-python3.13-temporalio-1.29.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.temporalio",
+      "broken": false,
+      "derivation": "/nix/store/fff0r0d6nmr79db6gsir7ni2qxmrikip-python3.13-temporalio-1.29.0.drv",
+      "description": "Temporal Python SDK",
+      "install_id": "temporalio",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-temporalio-1.29.0",
+      "pname": "temporalio",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:53.368669Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.29.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2b5v9lj6lhssjlyrg5635cwgv1whi890-python3.13-temporalio-1.29.0-dist",
+        "out": "/nix/store/58ka2049qg55x3lip49l9g8wcbffc94y-python3.13-temporalio-1.29.0"
       },
       "system": "x86_64-linux",
       "group": "toplevel",
@@ -4252,6 +4541,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:15:17.360707Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4283,6 +4573,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:44:24.530964Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4314,6 +4605,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:43:43.711308Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4345,6 +4637,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:15:39.158658Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4374,6 +4667,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:44:48.957401Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4403,6 +4697,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:44:10.521793Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4432,6 +4727,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:15:55.264427Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4465,6 +4761,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:45:10.048244Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4498,6 +4795,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:44:33.251720Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -4548,6 +4846,9 @@
           },
           {
             "dir": "envs/ai-notebook"
+          },
+          {
+            "dir": "envs/ai-orchestration"
           }
         ]
       }
@@ -4844,6 +5145,41 @@
         "descriptor": {
           "dir": "envs/ai-notebook"
         }
+      },
+      {
+        "manifest": {
+          "schema-version": "1.13.0",
+          "install": {
+            "temporal-cli": {
+              "pkg-path": "temporal-cli"
+            },
+            "temporalio": {
+              "pkg-path": "python313Packages.temporalio"
+            }
+          },
+          "vars": {
+            "ENV_NAME": "ai-orchestration"
+          },
+          "hook": {
+            "on-activate": "# --- Orchestration config (all overridable at activation time) -------------\n# Durable local state: artifact store, per-candidate work, Temporal dev DB, logs.\nexport AI_BRIEF_STATE_DIR=\"${AI_BRIEF_STATE_DIR:-$FLOX_ENV_PROJECT/state}\"\nexport AI_BRIEF_STORE_DIR=\"${AI_BRIEF_STORE_DIR:-$AI_BRIEF_STATE_DIR/store}\"\nexport AI_BRIEF_LOG_DIR=\"${AI_BRIEF_LOG_DIR:-$AI_BRIEF_STATE_DIR/logs}\"\n\n# Temporal connection — client and worker read these.\nexport TEMPORAL_IP=\"${TEMPORAL_IP:-127.0.0.1}\"\nexport TEMPORAL_PORT=\"${TEMPORAL_PORT:-7233}\"\nexport TEMPORAL_UI_PORT=\"${TEMPORAL_UI_PORT:-8233}\"\nexport TEMPORAL_ADDRESS=\"${TEMPORAL_ADDRESS:-$TEMPORAL_IP:$TEMPORAL_PORT}\"\nexport TEMPORAL_NAMESPACE=\"${TEMPORAL_NAMESPACE:-default}\"\nexport TEMPORAL_TASK_QUEUE=\"${TEMPORAL_TASK_QUEUE:-ask-flox-pipeline}\"\n\n# Upstream source repos for the two content sources (local clones by default;\n# override to point at fresh checkouts). The pipeline resolves each to a pinned\n# commit before ingestion — see orchestrator/snapshot.py.\nexport ASK_FLOX_DOCS_REPO=\"${ASK_FLOX_DOCS_REPO:-$HOME/dev/flox-docs}\"\nexport ASK_FLOX_BLOG_REPO=\"${ASK_FLOX_BLOG_REPO:-$HOME/dev/floxwebsite}\"\n\n# Make the orchestrator package importable (python -m orchestrator.*).\nexport PYTHONPATH=\"$FLOX_ENV_PROJECT${PYTHONPATH:+:$PYTHONPATH}\"\n\nmkdir -p \"$AI_BRIEF_STATE_DIR/temporal\" \"$AI_BRIEF_STORE_DIR\" \"$AI_BRIEF_LOG_DIR\" 2>/dev/null || true\n"
+          },
+          "options": {
+            "systems": [
+              "x86_64-linux",
+              "aarch64-linux",
+              "aarch64-darwin"
+            ]
+          },
+          "services": {
+            "temporal-dev": {
+              "command": "exec temporal server start-dev \\\n  --ip \"$TEMPORAL_IP\" \\\n  --port \"$TEMPORAL_PORT\" \\\n  --ui-port \"$TEMPORAL_UI_PORT\" \\\n  --db-filename \"$AI_BRIEF_STATE_DIR/temporal/dev.db\" \\\n  --log-format pretty 2>&1 | tee -a \"$AI_BRIEF_LOG_DIR/temporal-dev.log\"\n"
+            }
+          }
+        },
+        "name": "ai-orchestration",
+        "descriptor": {
+          "dir": "envs/ai-orchestration"
+        }
       }
     ],
     "warnings": [
@@ -4900,6 +5236,24 @@
           ]
         },
         "higher_priority_name": "jupyterlab"
+      },
+      {
+        "warning": {
+          "Overriding": [
+            "vars",
+            "ENV_NAME"
+          ]
+        },
+        "higher_priority_name": "ai-orchestration"
+      },
+      {
+        "warning": {
+          "Overriding": [
+            "options",
+            "systems"
+          ]
+        },
+        "higher_priority_name": "ai-orchestration"
       },
       {
         "warning": {

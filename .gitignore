@@ -10,6 +10,9 @@
 work/
 reports/
 
+# --- Durable orchestration state (Temporal dev DB, artifact store, logs) ---
+state/
+
 # --- flox build artifacts + model cache ---
 result-*
 .hfcache/

@@ -62,6 +62,47 @@ mcp *args:
     [ -f "$f" ] || { echo "not implemented: create pipeline/mcp_server.py" >&2; exit 1; }
     exec "{{python}}" "$f" "$@"
 
+# --- Durable orchestration (Temporal + Flox) -------------------------------
+# The correctness spine: snapshot -> identity -> generation -> workflow ->
+# artifact -> eval -> authorized publish. See orchestrator/ and docs/ARCHITECTURE.md.
+
+# Run the Temporal worker (workflows + activities). Start the dev server first
+# with `flox activate -s` (the temporal-dev service), then run this.
+worker *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.worker "$@"
+
+# Submit a build. Pass source refs, e.g.: just pipeline-submit --docs-ref HEAD --wait
+pipeline-submit *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.cli submit "$@"
+
+# Inspect a running build workflow's status.
+pipeline-status *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.cli status "$@"
+
+# Show the active published index + its provenance.
+pipeline-current *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.cli current "$@"
+
+# Query the singleton publication authority (generations, current winner).
+pipeline-authority *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m orchestrator.cli authority "$@"
+
+# Orchestrator unit tests (pure correctness spine — no server needed).
+otests *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec "{{python}}" -m unittest discover -s orchestrator/tests -t . "$@"
+
 # Open JupyterLab on the same env/paths/backend (exploration surface).
 notebook *args:
     #!/usr/bin/env bash

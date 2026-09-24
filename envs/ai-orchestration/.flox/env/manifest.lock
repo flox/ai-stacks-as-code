@@ -1,0 +1,217 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "schema-version": "1.13.0",
+    "install": {
+      "temporal-cli": {
+        "pkg-path": "temporal-cli"
+      },
+      "temporalio": {
+        "pkg-path": "python313Packages.temporalio"
+      }
+    },
+    "vars": {
+      "ENV_NAME": "ai-orchestration"
+    },
+    "hook": {
+      "on-activate": "# --- Orchestration config (all overridable at activation time) -------------\n# Durable local state: artifact store, per-candidate work, Temporal dev DB, logs.\nexport AI_BRIEF_STATE_DIR=\"${AI_BRIEF_STATE_DIR:-$FLOX_ENV_PROJECT/state}\"\nexport AI_BRIEF_STORE_DIR=\"${AI_BRIEF_STORE_DIR:-$AI_BRIEF_STATE_DIR/store}\"\nexport AI_BRIEF_LOG_DIR=\"${AI_BRIEF_LOG_DIR:-$AI_BRIEF_STATE_DIR/logs}\"\n\n# Temporal connection — client and worker read these.\nexport TEMPORAL_IP=\"${TEMPORAL_IP:-127.0.0.1}\"\nexport TEMPORAL_PORT=\"${TEMPORAL_PORT:-7233}\"\nexport TEMPORAL_UI_PORT=\"${TEMPORAL_UI_PORT:-8233}\"\nexport TEMPORAL_ADDRESS=\"${TEMPORAL_ADDRESS:-$TEMPORAL_IP:$TEMPORAL_PORT}\"\nexport TEMPORAL_NAMESPACE=\"${TEMPORAL_NAMESPACE:-default}\"\nexport TEMPORAL_TASK_QUEUE=\"${TEMPORAL_TASK_QUEUE:-ask-flox-pipeline}\"\n\n# Upstream source repos for the two content sources (local clones by default;\n# override to point at fresh checkouts). The pipeline resolves each to a pinned\n# commit before ingestion — see orchestrator/snapshot.py.\nexport ASK_FLOX_DOCS_REPO=\"${ASK_FLOX_DOCS_REPO:-$HOME/dev/flox-docs}\"\nexport ASK_FLOX_BLOG_REPO=\"${ASK_FLOX_BLOG_REPO:-$HOME/dev/floxwebsite}\"\n\n# Make the orchestrator package importable (python -m orchestrator.*).\nexport PYTHONPATH=\"$FLOX_ENV_PROJECT${PYTHONPATH:+:$PYTHONPATH}\"\n\nmkdir -p \"$AI_BRIEF_STATE_DIR/temporal\" \"$AI_BRIEF_STORE_DIR\" \"$AI_BRIEF_LOG_DIR\" 2>/dev/null || true\n"
+    },
+    "options": {
+      "systems": [
+        "x86_64-linux",
+        "aarch64-linux",
+        "aarch64-darwin"
+      ]
+    },
+    "services": {
+      "temporal-dev": {
+        "command": "exec temporal server start-dev \\\n  --ip \"$TEMPORAL_IP\" \\\n  --port \"$TEMPORAL_PORT\" \\\n  --ui-port \"$TEMPORAL_UI_PORT\" \\\n  --db-filename \"$AI_BRIEF_STATE_DIR/temporal/dev.db\" \\\n  --log-format pretty 2>&1 | tee -a \"$AI_BRIEF_LOG_DIR/temporal-dev.log\"\n"
+      }
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "temporal-cli",
+      "broken": false,
+      "derivation": "/nix/store/7fk5fcgsayr73ss6hs7wx07pfq3grm5m-temporal-cli-1.7.2.drv",
+      "description": "Command-line interface for running Temporal Server and interacting with Workflows, Activities, Namespaces, and other parts of Temporal",
+      "install_id": "temporal-cli",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "temporal-cli-1.7.2",
+      "pname": "temporal-cli",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:14:54.383078Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.7.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/n36aqf50v3h60a4k2ij6vpjv8bfscwdi-temporal-cli-1.7.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "temporal-cli",
+      "broken": false,
+      "derivation": "/nix/store/s9hchp0j5ixnvg1lkjbsxsj7b691x50x-temporal-cli-1.7.2.drv",
+      "description": "Command-line interface for running Temporal Server and interacting with Workflows, Activities, Namespaces, and other parts of Temporal",
+      "install_id": "temporal-cli",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "temporal-cli-1.7.2",
+      "pname": "temporal-cli",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:43:55.102470Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.7.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/fvjbp6q9smsbid3mai9g7kph9s6i7c76-temporal-cli-1.7.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "temporal-cli",
+      "broken": false,
+      "derivation": "/nix/store/alm6xwg2izqq5y1qlm4sh07qdy5z5rfk-temporal-cli-1.7.2.drv",
+      "description": "Command-line interface for running Temporal Server and interacting with Workflows, Activities, Namespaces, and other parts of Temporal",
+      "install_id": "temporal-cli",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "temporal-cli-1.7.2",
+      "pname": "temporal-cli",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:43:11.731369Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.7.2",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/0qjazcarm5k4gcyfxk6mcihvz8qsascd-temporal-cli-1.7.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.temporalio",
+      "broken": false,
+      "derivation": "/nix/store/rkgnypnn5q6ixpnjpd3b9jk8md7vgqp4-python3.13-temporalio-1.29.0.drv",
+      "description": "Temporal Python SDK",
+      "install_id": "temporalio",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-temporalio-1.29.0",
+      "pname": "temporalio",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:13:55.989197Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.29.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2y9990km9fmwbxkq4ydwy6nnhp6wiwb2-python3.13-temporalio-1.29.0-dist",
+        "out": "/nix/store/axbal7m81gi9xx45yb36kvrpyjxpinmw-python3.13-temporalio-1.29.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.temporalio",
+      "broken": false,
+      "derivation": "/nix/store/vl4hqmfibzhaczc1x81f4xrhcbacyg6g-python3.13-temporalio-1.29.0.drv",
+      "description": "Temporal Python SDK",
+      "install_id": "temporalio",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-temporalio-1.29.0",
+      "pname": "temporalio",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:42:46.020102Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.29.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/w76iqggbarn72ni241ryx7lprd7r1xzj-python3.13-temporalio-1.29.0-dist",
+        "out": "/nix/store/lmkx4hq8y89zjlf0d9yivci56l5qv33n-python3.13-temporalio-1.29.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python313Packages.temporalio",
+      "broken": false,
+      "derivation": "/nix/store/fff0r0d6nmr79db6gsir7ni2qxmrikip-python3.13-temporalio-1.29.0.drv",
+      "description": "Temporal Python SDK",
+      "install_id": "temporalio",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "python3.13-temporalio-1.29.0",
+      "pname": "temporalio",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:41:53.368669Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.29.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dist": "/nix/store/2b5v9lj6lhssjlyrg5635cwgv1whi890-python3.13-temporalio-1.29.0-dist",
+        "out": "/nix/store/58ka2049qg55x3lip49l9g8wcbffc94y-python3.13-temporalio-1.29.0"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    }
+  ]
+}

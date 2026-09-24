@@ -82,6 +82,7 @@ environments = [
     { dir = "envs/ai-ingest" },
     { dir = "envs/ai-embeddings" },
     { dir = "envs/ai-notebook" },
+    { dir = "envs/ai-orchestration" },
 ]
 
 # Packaging lives in a Nix expression build, not here: .flox/pkgs/ask-flox/.
