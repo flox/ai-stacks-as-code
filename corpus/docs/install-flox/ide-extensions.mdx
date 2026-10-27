@@ -4,27 +4,46 @@ description: "IDE extensions and AI agent integrations for Flox"
 ---
 
 <Tabs>
-  <Tab title="Skills and MCP">
+  <Tab title="Agent skills">
 
-  [Flox Agentic](https://github.com/flox/flox-agentic) provides a skill library and MCP server
-  that give AI coding agents expert knowledge of Flox environments,
-  builds, services, containers, publishing, and CUDA.
+  [Flox Skills](https://github.com/flox/flox-skills) teaches AI coding
+  agents how to use Flox properly: building reproducible environments,
+  onboarding existing repositories, wiring up services, builds,
+  containers, and package publishing, and debugging catalog resolution.
 
-  **Skills included:** `flox-environments`, `flox-services`,
-  `flox-builds`, `flox-containers`, `flox-publish`,
-  `flox-sharing`, `flox-cuda`
+  **Skills included:**
+
+  - `flox` — create and manage environments. Installs packages and pins
+    toolchains, sets up services and databases, builds and containerizes
+    applications, publishes to FloxHub, and composes environments across
+    teams.
+  - `floxify` — onboard an existing repository. Detects your runtimes,
+    services, and build tools, then writes `.flox/env/manifest.toml` so
+    `flox activate` becomes the only setup command a new developer needs.
+  - `flox-debug` — diagnose catalog resolution. Explains why a package
+    won't resolve, why `flox install` picks an older build after you
+    published a new one, and why adding one package to a working
+    environment fails with "constraints for group 'toplevel' are too
+    tight".
 
   ## Claude Code
 
-  The Flox plugin for Claude Code installs both the skill library
-  and MCP server in one step:
-
   ```
-  claude plugin marketplace add flox/flox-agentic
+  claude plugin marketplace add flox/flox-skills
   ```
 
   ```
-  claude plugin install flox@flox-agentic
+  claude plugin install flox@flox-skills
+  ```
+
+  ## Codex
+
+  ```bash
+  codex plugin marketplace add flox/flox-skills
+  ```
+
+  ```bash
+  codex plugin add flox@flox-skills
   ```
 
   ## Other agents (skills.sh)
@@ -34,7 +53,7 @@ description: "IDE extensions and AI agent integrations for Flox"
   ecosystem:
 
   ```
-  npx skills add flox/flox-agentic
+  npx skills add flox/flox-skills
   ```
 
   <Note>
@@ -43,32 +62,11 @@ description: "IDE extensions and AI agent integrations for Flox"
     skills.sh is not maintained by Flox. It requires Node.js.
     See [skills.sh](https://skills.sh) for supported agents and docs.
   </Note>
-  ## MCP server
-
-  For agents that support the
-  [Model Context Protocol](https://modelcontextprotocol.io) directly, install the MCP server:
-
-  ```
-  flox install flox/flox-mcp-server
-  ```
-
-  Then point your client at the `flox-mcp` command using stdio
-  transport. For Cursor, add to `~/.cursor/mcp.json`:
-
-  ```
-  {
-    "mcpServers": {
-      "flox": {
-        "command": "flox-mcp"
-      }
-    }
-  }
-  ```
 
   ## Learn more
 
   Full documentation and source code:
-  [github.com/flox/flox-agentic](https://github.com/flox/flox-agentic)
+  [github.com/flox/flox-skills](https://github.com/flox/flox-skills)
 
   </Tab>
   <Tab title="VS Code">
